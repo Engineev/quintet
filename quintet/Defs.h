@@ -9,6 +9,7 @@
 namespace quintet {
 
 using PrmIdx = std::uint64_t;
+using Port   = std::uint8_t;
 
 }
 

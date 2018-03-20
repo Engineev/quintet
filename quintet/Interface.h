@@ -10,7 +10,7 @@
  *                     std::string,        // args
  *                     quintet::ServerId,  // the id of the server which added the log
  *                     quintet::PrmIdx)>)  // the promise to be set
- *
+ *  3. ServerId local() const; // a trait should be provided
  */
 
 #include <string>
@@ -29,14 +29,21 @@
 
 #include "quintet/Serialization.h"
 #include "quintet/Defs.h"
-#include "quintet/ServerInfo.h"
+#include "quintet/Utility.h"
 
 namespace quintet {
 
 template <class Consensus>
 class Interface {
 public:
-    Interface() = default; // TODO
+//    using ServerId = typename Consensus::ServerId;
+
+public:
+    Interface() = default;
+
+    GEN_DELETE_COPY_AND_MOVE(Interface)
+
+    void configure(const std::string & filename);
 
     explicit Interface(ServerId local) : localId(std::move(local)) {
         consensus.BindCommitter(
@@ -45,10 +52,11 @@ public:
         });
     }
 
+
+
     // User should guarantee that the types of arguments here exactly match
     // the ones previously bounded. Otherwise the serialization/deserialization
     // may fail.
-    // TODO: call: replace boost::any with the actual type & more type-check ?
     template <class... Args>
     std::future<boost::any> asyncCall(const std::string & opName, Args... args) {
         std::string log = serialize(args...);
@@ -71,10 +79,11 @@ private:
     std::unordered_map<std::string, std::function<boost::any(std::string)>> fs;
     // the promises to be set
     std::unordered_map<PrmIdx, std::promise<boost::any>> prms;
-    ServerId localId;
     Consensus consensus;
 
     std::mutex committing;
+
+    using
 
 private:
     // The only use of the third parameter is to get the types of the arguments explicitly.

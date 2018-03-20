@@ -11,9 +11,11 @@ include_directories(${CMAKE_SOURCE_DIR})
 file(GLOB SOURCE_FILES
         ${CMAKE_SOURCE_DIR}/test/*.cpp
         ${CMAKE_SOURCE_DIR}/quintet/*.cpp
+        ${CMAKE_SOURCE_DIR}/quintet/raft/*.cpp
 
         ${CMAKE_SOURCE_DIR}/test/*.h
         ${CMAKE_SOURCE_DIR}/quintet/*.h
+        ${CMAKE_SOURCE_DIR}/quintet/raft/*.h
         )
 
 add_executable(quintet ${SOURCE_FILES})
