@@ -2,15 +2,19 @@
 #define QUINTET_INTERFACE_H
 
 /**
+ *  Interface:
+ *    construct --> configure --> run --> stop --> destroy
+ *
  *  The APIs of Consensus
- *  1. std::future<boost::any> AddLog(std::string opName, std::string args);
- *  2. void BindCommitter(
- *             std::function<void(
- *                     std::string,        // opName
- *                     std::string,        // args
- *                     quintet::ServerId,  // the id of the server which added the log
- *                     quintet::PrmIdx)>)  // the promise to be set
- *  3. ServerId local() const; // a trait should be provided
+ *    1. void AddLog(std::string opName, std::string args, quintet::PrmIdx idx);
+ *    2. void BindCommitter(
+ *               std::function<void(
+ *                       std::string,        // opName
+ *                       std::string,        // args
+ *                       ServerId,  // the id of the server which added the log
+ *                       quintet::PrmIdx)>)  // the promise to be set
+ *    3. ServerId Local() const; // a trait should be provided
+ *    4. void Configure(const std::string & filename);
  */
 
 #include <string>
@@ -21,6 +25,7 @@
 #include <type_traits>
 #include <thread>
 #include <mutex>
+#include <atomic>
 //#include <iostream> // debug
 
 #include <boost/serialization/utility.hpp>
@@ -36,37 +41,47 @@ namespace quintet {
 template <class Consensus>
 class Interface {
 public:
-//    using ServerId = typename Consensus::ServerId;
+    using SrvId = typename Consensus::ServerId;
 
 public:
     Interface() = default;
 
     GEN_DELETE_COPY_AND_MOVE(Interface)
 
-    void configure(const std::string & filename);
+    ~Interface() = default; // TODO
 
-    explicit Interface(ServerId local) : localId(std::move(local)) {
-        consensus.BindCommitter(
-                [&](std::string opName, std::string args, ServerId srvAdd, PrmIdx idx) {
-            commit(std::move(opName), std::move(args), srvAdd, idx);
-        });
+    void configure(const std::string & filename) {
+        using namespace std::placeholders;
+        consensus.Configure(filename);
+        consensus.BindCommitter(std::bind(&Interface<Consensus>::commit, this, _1, _2, _3, _4));
+        localId = consensus.Local();
     }
 
+    void run();
 
+    void stop();
 
     // User should guarantee that the types of arguments here exactly match
     // the ones previously bounded. Otherwise the serialization/deserialization
     // may fail.
     template <class... Args>
-    std::future<boost::any> asyncCall(const std::string & opName, Args... args) {
-        std::string log = serialize(args...);
-        return consensus.AddLog(opName, log);
+    std::future<boost::any> asyncCall(const std::string & opName, Args... rawArgs) {
+        std::string args = serialize(rawArgs...);
+        PrmIdx idx = prmIdx++;
+        std::promise<boost::any> prm;
+        auto fut = prm.get_future();
+        prms.emplace(idx, std::move(prm));
+
+        std::shared_ptr<void> addLog(nullptr, [&] (void*) {
+            consensus.AddLog(opName, std::move(args), idx);
+        });
+
+        return fut;
     }
 
     template <class... Args>
     boost::any call(const std::string & opName, Args... args) {
-        auto res = asyncCall(opName, args...);
-        return res.get();
+        return asyncCall(opName, std::move(args)...).get();
     }
 
     template <class Func>
@@ -75,15 +90,18 @@ public:
     }
 
 private:
+    // There is no need to save the data the Interface maintained,
+    // because if the Interface is down, all the consumers are all down.
+
     // the mapping from the names of the operation to the corresponding function
     std::unordered_map<std::string, std::function<boost::any(std::string)>> fs;
     // the promises to be set
     std::unordered_map<PrmIdx, std::promise<boost::any>> prms;
+    std::atomic<PrmIdx> prmIdx{0};
     Consensus consensus;
-
+    SrvId     localId;
     std::mutex committing;
 
-    using
 
 private:
     // The only use of the third parameter is to get the types of the arguments explicitly.
@@ -105,11 +123,13 @@ private:
         }));
     }
 
-    void commit(std::string opName, std::string args, ServerId srvAdd, PrmIdx idx) {
+    // TODO: sync ??
+    void commit(std::string opName, std::string args, SrvId srvAdd, PrmIdx idx) {
         std::lock_guard<std::mutex> lk(committing);
         auto res = fs.at(opName)(std::move(args));
         if (srvAdd == localId) {
             auto prm = prms.find(idx);
+            assert(prm != prms.end());
             prm->second.set_value(res);
             prms.erase(prm);
         }

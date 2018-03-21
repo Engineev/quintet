@@ -29,7 +29,15 @@ find_package(Boost REQUIRED COMPONENTS
         )
 include_directories(${Boost_INCLUDE_DIR})
 
+# librpc
+find_package(rpclib REQUIRED)
+include_directories(${Rpclib_INCLUDE_DIR})
+
 # link
 target_link_libraries(quintet
+        rpclib::rpc
         ${Boost_LIBRARIES}
         )
+
+# config
+add_definitions( -DCMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}" )

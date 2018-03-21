@@ -2,4 +2,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_CASE(HelloWorld) { BOOST_TEST_MESSAGE("Hello World!"); }
+BOOST_AUTO_TEST_CASE(HelloWorld) {
+    BOOST_TEST_MESSAGE("Test: Hello World!");
+    BOOST_REQUIRE(true);
+}
