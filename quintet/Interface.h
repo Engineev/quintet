@@ -3,18 +3,26 @@
 
 /**
  *  Interface:
- *    construct --> configure --> run --> stop --> destroy
+ *    construct --> configure & bind --> run
+ *              --> call & asyncCall --> stop --> destroy
+ *    Only run(), call(), asynCall() and stop() are thread-safe.
+ *    All other things should be done before starting to run or after being stopped
+ *    Construction, including move construction and assignment are not thread-safe
  *
  *  The APIs of Consensus
  *    1. void AddLog(std::string opName, std::string args, quintet::PrmIdx idx);
  *    2. void BindCommitter(
  *               std::function<void(
- *                       std::string,        // opName
- *                       std::string,        // args
- *                       ServerId,  // the id of the server which added the log
- *                       quintet::PrmIdx)>)  // the promise to be set
+ *                       std::string,     // opName
+ *                       std::string,     // args
+ *                       ServerId,        // the id of the server which added the log
+ *                       quintet::PrmIdx) // the promise to be set
+ *                     > committer)
  *    3. ServerId Local() const; // a trait should be provided
  *    4. void Configure(const std::string & filename);
+ *    5. void run();
+ *    6. void stop();
+ *
  */
 
 #include <string>
@@ -26,6 +34,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <memory>
 //#include <iostream> // debug
 
 #include <boost/serialization/utility.hpp>
@@ -35,8 +44,11 @@
 #include "quintet/Serialization.h"
 #include "quintet/Defs.h"
 #include "quintet/Utility.h"
+#include "quintet/SharedInterface.h"
 
 namespace quintet {
+
+// TODO: mimic the smart pointers
 
 template <class Consensus>
 class Interface {
@@ -46,26 +58,57 @@ public:
 public:
     Interface() = default;
 
-    GEN_DELETE_COPY_AND_MOVE(Interface)
+    GEN_DELETE_COPY(Interface)
 
-    ~Interface() = default; // TODO
+    Interface(Interface && o) {
+        move_impl(std::move(o));
+    }
+
+    Interface& operator=(Interface && o) {
+        if (this == &o)
+            return *this;
+        move_impl(std::move(o));
+        return *this;
+    }
+
+    ~Interface() {
+        if (consensus.get() == nullptr)
+            return;
+        stop(); 
+    }
 
     void configure(const std::string & filename) {
         using namespace std::placeholders;
-        consensus.Configure(filename);
-        consensus.BindCommitter(std::bind(&Interface<Consensus>::commit, this, _1, _2, _3, _4));
-        localId = consensus.Local();
+        consensus->Configure(filename);
+        consensus->BindCommitter(std::bind(&Interface<Consensus>::commit, this, _1, _2, _3, _4));
+        localId = consensus->Local();
     }
 
-    void run();
+    void run() {
+        std::lock_guard<std::mutex> lk(turning);
+        if (running)
+            return;
+        running = true;
+        consensus->run();
+    }
 
-    void stop();
+    void stop() {
+        std::lock_guard<std::mutex> lk(turning);
+        consensus->stop();
+        running = false;
+    }
 
     // User should guarantee that the types of arguments here exactly match
     // the ones previously bounded. Otherwise the serialization/deserialization
     // may fail.
+    // If you are considering replacing boost::any with the actual type,
+    // please figure out the way to dispatch these heterogeneous functions first.
     template <class... Args>
     std::future<boost::any> asyncCall(const std::string & opName, Args... rawArgs) {
+        std::lock_guard<std::mutex> lk(turning);
+        if (!running)
+            throw ; // TODO: throw something meaningful
+
         std::string args = serialize(rawArgs...);
         PrmIdx idx = prmIdx++;
         std::promise<boost::any> prm;
@@ -73,7 +116,7 @@ public:
         prms.emplace(idx, std::move(prm));
 
         std::shared_ptr<void> addLog(nullptr, [&] (void*) {
-            consensus.AddLog(opName, std::move(args), idx);
+            consensus->AddLog(opName, std::move(args), idx);
         });
 
         return fut;
@@ -85,8 +128,9 @@ public:
     }
 
     template <class Func>
-    void bind(const std::string & name, Func f) {
+    Interface& bind(const std::string & name, Func f) {
         bind_impl(name, f, &Func::operator());
+        return *this; // return *this to enable chained binding.
     }
 
 private:
@@ -98,10 +142,21 @@ private:
     // the promises to be set
     std::unordered_map<PrmIdx, std::promise<boost::any>> prms;
     std::atomic<PrmIdx> prmIdx{0};
-    Consensus consensus;
-    SrvId     localId;
+
+    std::unique_ptr<Consensus>  consensus;
+    SrvId      localId;
     std::mutex committing;
 
+    std::mutex turning;
+    bool       running;
+
+    void move_impl(Interface && o) {
+        fs        = std::move(o.fs);
+        prms      = std::move(o.prms);
+        prmIdx    = o.prmIdx;
+        consensus = std::move(o.consensus);
+        running   = false;
+    }
 
 private:
     // The only use of the third parameter is to get the types of the arguments explicitly.

@@ -14,8 +14,12 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/signals2.hpp>
 
+#include <rpc/server.h>
+#include <rpc/client.h>
+
 #include "quintet/Defs.h"
 
+// SampleConsensus: no PRC
 namespace quintet {
 
 class SampleConsensus {
@@ -30,15 +34,23 @@ public:
 
     void Configure(const std::string & filename);
 
+    void run() {}
+
+    void stop() {}
+
 private:
     ServerId id;
     std::vector<ServerId> srvList;
 
     boost::signals2::signal<void(std::string, std::string, ServerId, PrmIdx)> commit;
     // dummy_mutex ??
-};
+}; // class SampleConsensus
 
 } // namespace quintet
 
+
+// TODO: SampleConsensusRPC
+namespace quintet {
+} // namespace quintet
 
 #endif //QUINTET_SAMPLECONSENSUS_H

@@ -1,6 +1,7 @@
 #ifndef QUINTET_UTILITY_H
 #define QUINTET_UTILITY_H
 
+// macro
 namespace quintet {
 
 #define GEN_NOT_EQUAL(NAME) \
@@ -8,13 +9,13 @@ namespace quintet {
         return !(lhs == rhs); \
     }
 
-#define GEN_DELETE_COPY_AND_MOVE(NAME) \
+#define GEN_DELETE_COPY(NAME) \
     NAME(const NAME &) = delete; \
-    NAME(NAME &&) = delete; \
     NAME & operator=(const NAME &) = delete; \
+
+#define GEN_DELETE_MOVE(NAME) \
+    NAME(NAME &&) = delete; \
     NAME & operator=(NAME &&) = delete;
-
-
 
 }
 

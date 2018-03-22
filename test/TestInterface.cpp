@@ -24,6 +24,7 @@ BOOST_AUTO_TEST_SUITE(Interface)
 BOOST_AUTO_TEST_CASE(Sample) {
     BOOST_TEST_MESSAGE("Test: Interface: Sample");
     quintet::Interface<quintet::SampleConsensus> inf;
+
     inf.configure(std::string(CMAKE_SOURCE_DIR) + "/test/SampleConfig.json");
 
     inf.bind("duplicate", [&](std::string str, int n)->std::string {
@@ -37,6 +38,8 @@ BOOST_AUTO_TEST_CASE(Sample) {
     inf.bind("print", [&ss](std::string str)->void {
         ss << str;
     });
+
+    inf.run();
 
     std::string hello = "Hello, World!\n";
     auto ans = inf.call("duplicate", hello, 2);
