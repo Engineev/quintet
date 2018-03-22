@@ -1,6 +1,10 @@
 #ifndef QUINTET_SERVERINFO_H
 #define QUINTET_SERVERINFO_H
 
+/**
+ *  The identity and configuration of a server
+ */
+
 #include <cstdint>
 #include <utility>
 #include <string>
@@ -10,7 +14,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include "quintet/Defs.h"
+#include "quintet/raft/RaftDefs.h"
 #include "quintet/Utility.h"
 
 namespace quintet {

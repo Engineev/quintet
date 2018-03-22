@@ -12,10 +12,12 @@ file(GLOB SOURCE_FILES
         ${CMAKE_SOURCE_DIR}/test/*.cpp
         ${CMAKE_SOURCE_DIR}/quintet/*.cpp
         ${CMAKE_SOURCE_DIR}/quintet/raft/*.cpp
+        ${CMAKE_SOURCE_DIR}/quintet/raft/identity/*.cpp
 
         ${CMAKE_SOURCE_DIR}/test/*.h
         ${CMAKE_SOURCE_DIR}/quintet/*.h
         ${CMAKE_SOURCE_DIR}/quintet/raft/*.h
+        ${CMAKE_SOURCE_DIR}/quintet/raft/identity/*.h
         )
 
 add_executable(quintet ${SOURCE_FILES})
