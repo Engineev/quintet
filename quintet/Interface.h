@@ -18,10 +18,10 @@
  *                       ServerId,        // the id of the server which added the log
  *                       quintet::PrmIdx) // the promise to be set
  *                     > committer)
- *    3. ServerId Local() const; // a trait should be provided
- *    4. void Configure(const std::string & filename);
- *    5. void run();
- *    6. void stop();
+ *    4. ServerId Local() const; // a trait should be provided
+ *    5. void Configure(const std::string & filename);
+ *    6. void run();
+ *    7. void stop();
  *
  */
 

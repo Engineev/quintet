@@ -23,6 +23,10 @@ public:
     RPCRequestVote(Term term, ServerId candidateId,
                    std::size_t lastLogIdx, Term lastLogTerm);
 
+    virtual void leave();
+
+    virtual void init();
+
 private:
     ServerState   & state;
     ServerInfo    & info;
