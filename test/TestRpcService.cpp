@@ -35,13 +35,29 @@ struct RPCs {
     }
 };
 
-BOOST_FIXTURE_TEST_SUITE(RpcService, RPCs, *utf::disabled())
+BOOST_FIXTURE_TEST_SUITE(RpcService, RPCs)
+
+BOOST_AUTO_TEST_CASE(RpcService_Naive) {
+    BOOST_TEST_MESSAGE("Test: RpcService_Naive");
+
+    using namespace std::chrono_literals;
+
+    BOOST_REQUIRE_EQUAL(2, rpcs[0]->call("localhost", BasePort + 2, "add", 1, 1).as<int>());
+    BOOST_REQUIRE_NO_THROW(rpcs[1]->async_call("localhost", BasePort, "sleepFor", 10));
+    rpcs[0]->pause();
+    auto fut = rpcs[1]->async_call("localhost", BasePort, "add", 1, 1);
+    std::this_thread::sleep_for(10ms);
+    BOOST_REQUIRE_EQUAL(false, fut.ready());
+    rpcs[0]->resume();
+    std::this_thread::sleep_for(10ms);
+    BOOST_REQUIRE_EQUAL(true, fut.ready());
+} // case RpcService_Naive
 
 BOOST_AUTO_TEST_CASE(RpcService_Advanced) {
     BOOST_TEST_MESSAGE("Test: RpcService_Advanced");
     using namespace std::chrono_literals;
     std::vector<std::thread> ts;
-    const auto TestDuration = 3s;
+    const auto TestDuration = 10s;
 
     auto foo = [&](int srv) {
         std::vector<std::pair<quintet::FutureWrapper<RPCLIB_MSGPACK::object_handle>, int>> futs;
@@ -111,21 +127,6 @@ BOOST_AUTO_TEST_CASE(RpcService_Advanced) {
     BOOST_REQUIRE(true); // TODO: RpcService_Advanced: check
 } // case RpcService_Advanced
 
-BOOST_AUTO_TEST_CASE(RpcService_Naive) {
-    BOOST_TEST_MESSAGE("Test: RpcService_Naive");
-
-    using namespace std::chrono_literals;
-
-    BOOST_REQUIRE_EQUAL(2, rpcs[0]->call("localhost", BasePort + 2, "add", 1, 1).as<int>());
-    BOOST_REQUIRE_NO_THROW(rpcs[1]->async_call("localhost", BasePort, "sleepFor", 10));
-    rpcs[0]->pause();
-    auto fut = rpcs[1]->async_call("localhost", BasePort, "add", 1, 1);
-    std::this_thread::sleep_for(10ms);
-    BOOST_REQUIRE_EQUAL(false, fut.ready());
-    rpcs[0]->resume();
-    std::this_thread::sleep_for(10ms);
-    BOOST_REQUIRE_EQUAL(true, fut.ready());
-} // case RpcService_Naive
 
 BOOST_AUTO_TEST_SUITE_END() // suite RpcService
 
