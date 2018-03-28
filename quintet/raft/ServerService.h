@@ -71,9 +71,15 @@ public:
         srv = std::make_unique<rpc::server>(port);
     }
 
+
+    void async_run(std::size_t worker = 1) {
+        srv->async_run(worker);
+    }
+
     template <class Func>
-    void bind(const std::string & name, Func f) {
+    RpcService& bind(const std::string & name, Func f) {
         bind_impl(name, f, &Func::operator());
+        return *this;
     }
 
     /* The detail of the implementation of pause() and resume()
@@ -105,6 +111,7 @@ public:
         paused = true;
     }
 
+    /// \brief Resume the paused RPC service and notify all the RPCs waiting.
     void resume() {
         std::lock_guard<std::mutex> pauseLk(pausing);
         paused = false;
@@ -126,7 +133,7 @@ public:
     RPCLIB_MSGPACK::object_handle call(
             const std::string & addr, Port port,
             std::string const &func_name, Args... args) {
-        return async_call(func_name, std::move(args)...).get();
+        return async_call(addr, port, func_name, std::move(args)...).get();
     }
 
 private:
@@ -152,14 +159,14 @@ private:
 
 }; // class RpcService
 
-} /* namespace RpcService */
+} /* namespace quintet */
 
 
 namespace quintet {
 
 struct ServerService {
-
     IdentityTransformer identityTransformer;
+    RpcService          rpcService;
 
 }; // class ServerService
 

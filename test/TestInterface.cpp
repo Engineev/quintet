@@ -19,7 +19,9 @@
 
 #include "test/SampleConsensus.h"
 
-BOOST_AUTO_TEST_SUITE(Interface)
+namespace utf = boost::unit_test;
+
+BOOST_AUTO_TEST_SUITE(Interface, *utf::disabled())
 
 BOOST_AUTO_TEST_CASE(Sample) {
     BOOST_TEST_MESSAGE("Test: Interface: Sample");

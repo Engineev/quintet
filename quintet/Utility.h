@@ -2,6 +2,10 @@
 #define QUINTET_UTILITY_H
 
 #include <future>
+#include <chrono>
+#include <memory>
+
+#include <rpc/client.h>
 
 // macro
 namespace quintet {
@@ -24,10 +28,10 @@ namespace quintet {
 // Future wrapper
 namespace quintet {
 
-template <class T, class Item>
+template <class T, class Item = std::unique_ptr<rpc::client>>
 class FutureWrapper {
 public:
-    explicit FutureWrapper(std::future<T> && fut, Item && item) noexcept
+    FutureWrapper(std::future<T> && fut, Item && item) noexcept
             : fut_(std::move(fut)), item_(std::move(item)) {}
 
     FutureWrapper(FutureWrapper && o) noexcept
@@ -43,6 +47,10 @@ public:
 
     T get() {
         return fut_.get();
+    }
+
+    bool ready() const {
+        return fut_.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
     }
 
     operator std::future<T>& () {
