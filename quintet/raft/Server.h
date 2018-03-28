@@ -16,6 +16,7 @@
 
 namespace quintet {
 
+// TODO: Server: .h -> .cpp
 // TODO: thread-safe: event-driven, all the sync operations should be done at the service level ?
 // TODO: bind
 class Server {
@@ -31,6 +32,20 @@ public:
         service.identityTransformer.transform(ServerIdentityNo::Down);
     }
 
+private: /// RPCs
+    std::pair<Term /*current term*/, bool /*success*/>
+    RPCAppendEntries(Term term, ServerId leaderId,
+                     std::size_t prevLogIdx, Term prevLogTerm,
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx) {
+        throw ;
+    }
+
+    std::pair<Term /*current term*/, bool /*vote granted*/>
+    RPCRequestVote(Term term, ServerId candidateId,
+                   std::size_t lastLogIdx, Term lastLogTerm) {
+        throw ;
+    };
+
 private:
     std::array<std::unique_ptr<ServerIdentityBase>, 3> identities;
     ServerIdentityNo currentIdentity = ServerIdentityNo::Down;
@@ -42,9 +57,22 @@ private:
 private:
     void initBind() {
         service.identityTransformer.bind([&](ServerIdentityNo to) {transform(to);});
+
+        service.rpcService.bind("AppendEntries",
+                                [&](Term term, ServerId leaderId,
+                                    std::size_t prevLogIdx, Term prevLogTerm,
+                                    std::vector<LogEntry> logEntries, std::size_t commitIdx) {
+                                    return RPCAppendEntries(term, leaderId,  prevLogIdx, prevLogTerm,
+                                           std::move(logEntries), commitIdx);
+                                });
+        service.rpcService.bind("RequestVote",
+                                 [&](Term term, ServerId candidateId,
+                                     std::size_t lastLogIdx, Term lastLogTerm) {
+                                     return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
+                                 });
     }
 
-    // the following should never be invoked directly !!!
+    // the following functions should never be invoked directly !!!
 
     void transform(ServerIdentityNo to) {
         auto from = currentIdentity;

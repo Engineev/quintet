@@ -14,6 +14,8 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <rpc/server.h>
+
 #include "quintet/raft/RaftDefs.h"
 #include "quintet/Utility.h"
 
@@ -22,6 +24,8 @@ namespace quintet {
 struct ServerId {
     std::string addr = "";
     Port port = 0;
+
+    MSGPACK_DEFINE_ARRAY(addr, port);
 
     friend std::istream & operator>>(std::istream & in, ServerId & id);
 

@@ -17,7 +17,7 @@ public:
     virtual std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,
                      std::size_t prevLogIdx, Term prevLogTerm,
-                     std::vector<LogEntry> logEntries, std::size_t commitIdx) = 0;
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx);
 
     virtual std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId,
