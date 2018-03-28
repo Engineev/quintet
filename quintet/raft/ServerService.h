@@ -15,6 +15,7 @@
 #include <functional>
 #include <memory>
 #include <condition_variable>
+#include <fstream>
 
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
@@ -35,18 +36,11 @@ namespace quintet {
 
 class IdentityTransformer {
 public:
-    void bind(std::function<void(ServerIdentityNo)> transform) {
-        transform_ = std::move(transform);
-    }
+    void bind(std::function<void(ServerIdentityNo)> transform);
 
     // Make sure to avoid the possibility that two distinct RPCs
     // fired the transformation during the same identity period.
-    void transform(ServerIdentityNo target) {
-        std::unique_lock<std::mutex> lk(transforming, std::defer_lock);
-        if (!lk.try_lock())
-            return;
-        transform_(target);
-    }
+    void transform(ServerIdentityNo target);
 
 private:
     std::function<void(ServerIdentityNo /*target*/)> transform_;
@@ -65,16 +59,10 @@ public:
     /// functors bound previously will become invalid.
     ///
     /// \param port the port to listen on.
-    void listen(Port port) {
-        if (srv)
-            srv->stop();
-        srv = std::make_unique<rpc::server>(port);
-    }
+    void listen(Port port);
 
 
-    void async_run(std::size_t worker = 1) {
-        srv->async_run(worker);
-    }
+    void async_run(std::size_t worker = 1);
 
     template <class Func>
     RpcService& bind(const std::string & name, Func f) {
@@ -104,19 +92,10 @@ public:
     /// Block until the current RPCs are completed.
     ///
     /// The functionality of pause is actually implemented in bind()
-    void pause() {
-        std::lock(rpcing, pausing);
-        std::unique_lock<boost::shared_mutex> rpcLk(rpcing, std::adopt_lock);
-        std::unique_lock<std::mutex> pauseLk(pausing, std::adopt_lock);
-        paused = true;
-    }
+    void pause();
 
     /// \brief Resume the paused RPC service and notify all the RPCs waiting.
-    void resume() {
-        std::lock_guard<std::mutex> pauseLk(pausing);
-        paused = false;
-        cv.notify_all();
-    }
+    void resume();
 
     /// \brief Create a rpc::client and invoke the corresponding async_call.
     /// The client created will be packed with the std::future returned so
@@ -151,7 +130,7 @@ private:
         srv->bind(name, [rawF, this](Args... args) -> Ret {
             std::unique_lock<std::mutex> pauseLk(pausing);
             cv.wait(pauseLk, [&] { return !paused;});
-            boost::shared_lock<boost::shared_mutex> rpcLk(rpcing);
+            boost::shared_lock<boost::shared_mutex> rpcLk(rpcing); // acquire this lock before releasing pauseLk !!
             pauseLk.unlock();
             return rawF(std::move(args)...);
         });
@@ -161,13 +140,57 @@ private:
 
 } /* namespace quintet */
 
+// Logger
+#define LOGGING
+namespace quintet {
+
+class Logger {
+public:
+    Logger() = default;
+
+    Logger(std::string dir, std::string id);
+
+    ~Logger();
+
+    void set(std::string dir_, std::string id_);
+
+    template <class... Args>
+    void log(const Args&... args) {
+#ifdef LOGGING
+        std::lock_guard<std::mutex> lk(logging);
+        fout << id << ": ";
+        log_impl(args...);
+#endif
+    }
+
+    template <class... Args>
+    void operator()(const Args&... args) {
+        log(args...);
+    }
+
+private:
+    std::mutex    logging;
+    std::string   dir;
+    std::string   id;
+    std::ofstream fout;
+
+    void log_impl();
+
+    template <class T, class... Args>
+    void log_impl(const T & x, const Args&... args) {
+        fout << x;
+        log_impl(args...);
+    };
+};
+
+} /* namespace quintet */
 
 namespace quintet {
 
 struct ServerService {
     IdentityTransformer identityTransformer;
     RpcService          rpcService;
-
+    Logger              logger;
 }; // class ServerService
 
 } // namespace quintet

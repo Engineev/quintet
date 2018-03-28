@@ -10,6 +10,8 @@
 #include <utility>
 #include <functional>
 
+namespace utf = boost::unit_test;
+
 BOOST_AUTO_TEST_SUITE(Service)
 
 struct RPCs {
@@ -33,60 +35,8 @@ struct RPCs {
     }
 };
 
-BOOST_FIXTURE_TEST_SUITE(RpcService, RPCs)
+BOOST_FIXTURE_TEST_SUITE(RpcService, RPCs, *utf::disabled())
 
-//BOOST_AUTO_TEST_CASE(RpcService_Advanced) {
-//    BOOST_TEST_MESSAGE("Test: RpcService_Advanced");
-//    using namespace std::chrono_literals;
-//    // advanced
-//    std::vector<std::thread> ts;
-//    auto foo = [&](int srv) {
-//        std::vector<std::pair<quintet::FutureWrapper<RPCLIB_MSGPACK::object_handle>, int>> futs;
-//        // int ans; ans < 0 means it is created by "sleepFor"
-//        auto & rpc = *rpcs[srv];
-//        std::vector<std::function<void()>> op = {
-//                [&] { // sleep
-//                    std::this_thread::sleep_for(
-//                            std::chrono::milliseconds(randTime()));
-//                },
-//                [&] /* pause  */ { rpc.pause(); },
-//                [&] /* resume */ { rpc.resume(); },
-//                [&] { // add
-//                    int x = randInt(), y = randInt();
-//                    int ans = x + y;
-//                    if (randInt() % 2)
-//                        BOOST_REQUIRE_EQUAL(ans,
-//                                            rpc.call("localhost", randPort(), "add", x, y).as<int>());
-//                    else
-//                        futs.emplace_back(rpc.async_call("localhost", randPort(), "add", x, y), ans);
-//                },
-//                [&] { // sleepFor
-//                    if (randInt() % 2)
-//                        rpc.call("localhost", randPort(), "sleepFor", randTime());
-//                    else
-//                        futs.emplace_back(rpc.async_call("localhost", randPort(), "sleepFor", randTime()), -1);
-//                }
-//        };
-//        std::uniform_int_distribution<int> opDist(0, op.size() - 1);
-//        std::default_random_engine generator;
-//        auto randOp = std::bind(opDist, generator);
-//        for (int i = 0; i < OpNum; ++i)
-//            op[randOp()]();
-//
-//        // test
-//        for (auto && item : futs) {
-//            if (item.second != -1)
-//                BOOST_REQUIRE_EQUAL(item.second, item.first.get().as<int>());
-//        }
-//    };
-//
-//
-//    // clean up
-//    for (auto && rpc : rpcs)
-//        rpc->resume();
-//    for (auto && t : ts)
-//        t.join();
-//}
 BOOST_AUTO_TEST_CASE(RpcService_Advanced) {
     BOOST_TEST_MESSAGE("Test: RpcService_Advanced");
     using namespace std::chrono_literals;
