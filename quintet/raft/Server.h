@@ -21,9 +21,19 @@ namespace quintet {
 // TODO: bind
 class Server {
 public:
-    void configure();
+    void init(const std::string & configDir) {
+        info.load(configDir);
+        initService();
+        identities[(std::size_t)ServerIdentityNo::Follower]
+                = std::make_unique<ServerIdentityFollower>(state, info, service);
+        identities[(std::size_t)ServerIdentityNo::Candidate]
+                = std::make_unique<ServerIdentityCandidate>(state, info, service);
+        identities[(std::size_t)ServerIdentityNo::Leader]
+                = std::make_unique<ServerIdentityLeader>(state, info, service);
+        currentIdentity = ServerIdentityNo::Down;
 
-    /// \brief
+    }
+
     void run() {
         service.identityTransformer.transform(ServerIdentityNo::Follower);
     }
@@ -55,7 +65,7 @@ private:
     ServerService service;
 
 private:
-    void initBind() {
+    void initService() {
         service.identityTransformer.bind([&](ServerIdentityNo to) {transform(to);});
 
         service.rpcService.bind("AppendEntries",
@@ -70,6 +80,8 @@ private:
                                      std::size_t lastLogIdx, Term lastLogTerm) {
                                      return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
                                  });
+
+        service.logger.set("./", info.local.addr + "_" + std::to_string(info.local.port));
     }
 
     // the following functions should never be invoked directly !!!
@@ -78,10 +90,16 @@ private:
         auto from = currentIdentity;
         currentIdentity = to;
 
+        service.rpcService.pause();
+        service.heartBeatController.stop();
+
         if (from != ServerIdentityNo::Down)
             identities[(std::size_t)from]->leave();
         if (to != ServerIdentityNo::Down)
             identities[(std::size_t)to]->init();
+
+        service.heartBeatController.start();
+        service.rpcService.resume();
     }
 };
 

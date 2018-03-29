@@ -9,29 +9,24 @@
 
 #include <vector>
 
-#include "quintet/raft/RaftDefs.h"
-#include "quintet/raft/ServerInfo.h"
+#include "raft/RaftDefs.h"
+#include "raft/ServerInfo.h"
 
 namespace quintet {
 
 // TODO: thread-safe ??
 
-class ServerState {
-public:
-
-
-private:
-    Term     currentTerm;
-    ServerId votedFor;
-    // TODO: log[]
+struct ServerState {
+    Term                  currentTerm;
+    ServerId              votedFor;
+    std::vector<LogEntry> entries;
 
     Index commitIndex;
     Index lastApplied;
 
     std::vector<Index> nextIndex;
     std::vector<Index> matchIndex;
-
-}; // class ServerState
+}; // struct ServerState
 
 } // namespace quintet
 

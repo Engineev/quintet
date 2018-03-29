@@ -3,7 +3,9 @@
 
 /// A universal header for identities
 
-#include "quintet/raft/identity/ServerIdentityBase.h"
-
+#include "raft/identity/ServerIdentityBase.h"
+#include "raft/identity/ServerIdentityFollower.h"
+#include "raft/identity/ServerIdentityCandidate.h"
+#include "raft/identity/ServerIdentityLeader.h"
 
 #endif //QUINTET_SERVERIDENTITY_H

@@ -42,12 +42,22 @@ class IdentityTransformer {
 public:
     void bind(std::function<void(ServerIdentityNo)> transform);
 
-    // Make sure to avoid the possibility that two distinct RPCs
-    // fired the transformation during the same identity period.
+    // Implementation detail:
+    // There is no possibility that two identity transformations
+    // will be executed during the same identity period since
+    // before the transformation being carried out, the RPC
+    // service will be stop first. And the RPC service will wait
+    // until all the RPCs are completed. As the transformation
+    // is asynchronous, the PRC which triggered the transformation
+    // will exit almost immediately. And the other PRCs who
+    // trying to trigger another transformation will fail since
+    // they can not lock the mutex. Since try_lock() is adopted,
+    // they will also exit immediately.
     void transform(ServerIdentityNo target);
 
 private:
-    std::function<void(ServerIdentityNo /*target*/)> transform_;
+    std::function<void(ServerIdentityNo /*target*/,
+                       std::unique_lock<std::mutex> &&)> transform_;
     std::mutex transforming;
 };
 
@@ -89,13 +99,13 @@ public:
      * std::conditional_variable to wake the waiting RPCs.
      */
 
-
     /// \brief Pause the RPC service until resume() is invoked.
     /// The original connections will not be invalid. After being
     /// paused, the RPCs will wait.
     /// Block until the current RPCs are completed.
     ///
     /// The functionality of pause is actually implemented in bind()
+    /// TODO: "After being paused..." -> "Right after pause() being invoked..."
     void pause();
 
     /// \brief Resume the paused RPC service and notify all the RPCs waiting.
@@ -196,29 +206,15 @@ class HeartBeatController {
 public:
     HeartBeatController() = default;
 
-    HeartBeatController(std::function<void()> f, std::uint32_t periodMs) {
-        bind(std::move(f), periodMs);
-    }
+    HeartBeatController(std::function<void()> f, std::uint32_t periodMs);
 
-    ~HeartBeatController() {
-        stop();
-    }
+    ~HeartBeatController();
 
-    void bind(std::function<void()> f, std::uint32_t periodMs_) {
-        heartBeat = std::move(f);
-        periodMs  = periodMs_;
-    }
+    void bind(std::function<void()> f, std::uint32_t periodMs_);
 
-    void start() {
-        assert(periodMs);
-        if (!running.exchange(true))
-            beat = boost::thread(&HeartBeatController::run, this);
-    }
+    void start();
 
-    void stop() {
-        beat.interrupt();
-        beat.join();
-    }
+    void stop();
 
 private:
     std::function<void()> heartBeat;
@@ -226,17 +222,7 @@ private:
     std::atomic<bool>     running{false};
     boost::thread         beat;
 
-    void run() {
-        while (true) {
-            heartBeat();
-            try {
-                boost::this_thread::sleep_for(boost::chrono::milliseconds(periodMs));
-            } catch (boost::thread_interrupted ) {
-                break;
-            }
-        }
-        running = false;
-    }
+    void run();
 
 }; // class HeartBeatController
 
@@ -249,6 +235,7 @@ struct ServerService {
     IdentityTransformer identityTransformer;
     RpcService          rpcService;
     Logger              logger;
+    HeartBeatController heartBeatController;
 }; // class ServerService
 
 } // namespace quintet

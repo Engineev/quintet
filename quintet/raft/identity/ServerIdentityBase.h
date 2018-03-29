@@ -10,6 +10,10 @@ namespace quintet {
 
 class ServerIdentityBase {
 public:
+    ServerIdentityBase(ServerState & state_,
+                       ServerInfo & info_,
+                       ServerService & service_);
+
     virtual ~ServerIdentityBase() = default;
 
     /// RPCs
@@ -17,15 +21,15 @@ public:
     virtual std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,
                      std::size_t prevLogIdx, Term prevLogTerm,
-                     std::vector<LogEntry> logEntries, std::size_t commitIdx);
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx) {throw; }
 
     virtual std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId,
-                   std::size_t lastLogIdx, Term lastLogTerm);
+                   std::size_t lastLogIdx, Term lastLogTerm) {throw; }
 
-    virtual void leave();
+    virtual void leave() {throw; }
 
-    virtual void init();
+    virtual void init() {throw; }
 
 private:
     ServerState   & state;
