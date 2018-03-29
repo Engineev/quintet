@@ -223,7 +223,7 @@ public:
 private:
     std::function<void()> heartBeat;
     std::uint32_t         periodMs = 0;
-    std::atomic<bool>     running;
+    std::atomic<bool>     running{false};
     boost::thread         beat;
 
     void run() {
