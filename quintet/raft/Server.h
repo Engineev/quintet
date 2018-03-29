@@ -13,6 +13,7 @@
 #include "quintet/raft/ServerState.h"
 #include "quintet/raft/ServerService.h"
 
+#define UNIT_TEST_IDENTITY
 
 namespace quintet {
 
@@ -88,7 +89,11 @@ private:
 
     void transform(ServerIdentityNo to) {
         auto from = currentIdentity;
+#ifdef UNIT_TEST_IDENTITY
+        currentIdentity = from;
+#else
         currentIdentity = to;
+#endif
 
         service.rpcService.pause();
         service.heartBeatController.stop();

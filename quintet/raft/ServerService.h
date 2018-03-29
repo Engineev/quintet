@@ -228,6 +228,15 @@ private:
 
 } /* namespace quintet */
 
+// Committer
+namespace quintet {
+
+class Committer {
+
+};
+
+} /* namespace quintet */
+
 // ServerService
 namespace quintet {
 

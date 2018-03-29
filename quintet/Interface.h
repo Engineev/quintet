@@ -78,9 +78,11 @@ public:
     }
 
     void configure(const std::string & filename) {
-        using namespace std::placeholders;
         consensus->Configure(filename);
-        consensus->BindCommitter(std::bind(&Interface<Consensus>::commit, this, _1, _2, _3, _4));
+        consensus->BindCommitter(
+                [&](std::string opName, std::string args, SrvId srvAdd, PrmIdx idx) {
+                    return commit(std::move(opName), std::move(args), srvAdd, idx);
+                });
         localId = consensus->Local();
     }
 
