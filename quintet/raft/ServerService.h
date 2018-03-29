@@ -6,6 +6,9 @@
  *  such as RPC and identity transformation.
  *  Services:
  *    - IdentityTransformer
+ *    - RpcService
+ *    - Logger
+ *    - HeartBeatController
  */
 
 #include <functional>
@@ -19,6 +22,7 @@
 
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
+#include <boost/thread/thread.hpp>
 
 #include <rpc/server.h>
 #include <rpc/client.h>
@@ -185,6 +189,60 @@ private:
 
 } /* namespace quintet */
 
+// HeartBeatController
+namespace quintet {
+
+class HeartBeatController {
+public:
+    HeartBeatController() = default;
+
+    HeartBeatController(std::function<void()> f, std::uint32_t periodMs) {
+        bind(std::move(f), periodMs);
+    }
+
+    ~HeartBeatController() {
+        stop();
+    }
+
+    void bind(std::function<void()> f, std::uint32_t periodMs_) {
+        heartBeat = std::move(f);
+        periodMs  = periodMs_;
+    }
+
+    void start() {
+        assert(periodMs);
+        if (!running.exchange(true))
+            beat = boost::thread(&HeartBeatController::run, this);
+    }
+
+    void stop() {
+        beat.interrupt();
+        beat.join();
+    }
+
+private:
+    std::function<void()> heartBeat;
+    std::uint32_t         periodMs = 0;
+    std::atomic<bool>     running;
+    boost::thread         beat;
+
+    void run() {
+        while (true) {
+            heartBeat();
+            try {
+                boost::this_thread::sleep_for(boost::chrono::milliseconds(periodMs));
+            } catch (boost::thread_interrupted ) {
+                break;
+            }
+        }
+        running = false;
+    }
+
+}; // class HeartBeatController
+
+} /* namespace quintet */
+
+// ServerService
 namespace quintet {
 
 struct ServerService {

@@ -35,7 +35,7 @@ struct RPCs {
     }
 };
 
-BOOST_FIXTURE_TEST_SUITE(RpcService, RPCs)
+BOOST_FIXTURE_TEST_SUITE(RpcService, RPCs, *utf::disabled())
 
 BOOST_AUTO_TEST_CASE(RpcService_Naive) {
     BOOST_TEST_MESSAGE("Test: RpcService_Naive");
