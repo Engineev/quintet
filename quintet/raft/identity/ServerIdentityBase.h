@@ -31,7 +31,7 @@ public:
 
     virtual void init() {throw; }
 
-private:
+protected:
     ServerState   & state;
     ServerInfo    & info;
     ServerService & service;

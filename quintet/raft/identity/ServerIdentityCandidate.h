@@ -1,6 +1,8 @@
 #ifndef QUINTET_SERVERIDENTITYCANDIDATE_H
 #define QUINTET_SERVERIDENTITYCANDIDATE_H
 
+#include <vector>
+
 #include "raft/identity/ServerIdentityBase.h"
 
 namespace quintet {
@@ -25,10 +27,29 @@ public:
 
     void leave() override {throw; }
 
-    void init() override {throw; }
+    /// \breif See figure 2 of the paper
+    ///
+    /// 1. Increase the current term.
+    /// 2. Vote for self
+    /// 3. Reset election timer
+    /// 4. Send RequestVote RPCs to the other servers.
+    ///    This procedure will not wait for the other servers to reply.
+    void init() override {
+        ++state.currentTerm;
+        state.votedFor = info.local;
+        // TODO: reset election timer
+        voteRequested = 1;
+        launchVotesChecker(sendRequests());
+    }
 
 private:
+    std::atomic<std::size_t> voteRequested{0};
 
+    std::vector<FutureWrapper<RPCLIB_MSGPACK::object_handle>> sendRequests();
+
+    void launchVotesChecker(std::vector<FutureWrapper<RPCLIB_MSGPACK::object_handle>> && votes) {
+
+    }
 
 }; // class ServerIdentityCandidate
 

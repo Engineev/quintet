@@ -115,7 +115,7 @@ public:
     /// The client created will be packed with the std::future returned so
     /// that it will not be destroyed prematurely.
     template <typename... Args>
-    FutureWrapper<RPCLIB_MSGPACK::object_handle, std::unique_ptr<rpc::client>>
+    FutureWrapper<RPCLIB_MSGPACK::object_handle>
         async_call(const std::string & addr, Port port, std::string const &func_name, Args... args) {
         auto c = std::make_unique<rpc::client>(addr, port);
         auto fut = c->async_call(func_name, std::move(args)...);

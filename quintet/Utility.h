@@ -53,10 +53,6 @@ public:
         return fut_.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
     }
 
-    operator std::future<T>& () {
-        return fut_;
-    }
-
 private:
     std::future<T> fut_;
     Item item_;
