@@ -17,7 +17,7 @@
 #include <rpc/server.h>
 
 #include "quintet/raft/RaftDefs.h"
-#include "quintet/Utility.h"
+#include "quintet/component/Utility.h"
 
 namespace quintet {
 

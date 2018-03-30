@@ -29,6 +29,7 @@
 
 #include "raft/RaftDefs.h"
 #include "Utility.h"
+#include "Future.h"
 
 
 // forward declaration
@@ -112,14 +113,14 @@ public:
     void resume();
 
     /// \brief Create a rpc::client and invoke the corresponding async_call.
-    /// The client created will be packed with the std::future returned so
+    /// The client created will be packed with the boost::future returned so
     /// that it will not be destroyed prematurely.
     template <typename... Args>
     FutureWrapper<RPCLIB_MSGPACK::object_handle>
         async_call(const std::string & addr, Port port, std::string const &func_name, Args... args) {
         auto c = std::make_unique<rpc::client>(addr, port);
         auto fut = c->async_call(func_name, std::move(args)...);
-        return {std::move(fut), std::move(c)};
+        return {toBoostFuture(std::move(fut)), std::move(c)};
     }
 
     template <typename... Args>
@@ -214,6 +215,12 @@ public:
 
     void start();
 
+    /// \brief Sleep for periodMs ms and then invoke f.
+    /// Calling stop() will disable all the waiting oneShots.
+    ///
+    /// TODO: test: oneShot
+    void oneShot(std::function<void()> f, std::uint32_t periodMs);
+
     void stop();
 
 private:
@@ -221,6 +228,9 @@ private:
     std::uint32_t         periodMs = 0;
     std::atomic<bool>     running{false};
     boost::thread         beat;
+
+    std::mutex                 launching;
+    std::vector<boost::thread> oneShots;
 
     void run();
 

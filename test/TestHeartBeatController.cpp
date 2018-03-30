@@ -2,6 +2,7 @@
 #include "raft/ServerService.h"
 
 #include <thread>
+#include <atomic>
 
 BOOST_AUTO_TEST_SUITE(Service)
 
@@ -43,5 +44,6 @@ BOOST_AUTO_TEST_CASE(HeartBeatController) {
     delete hbc2;
     std::this_thread::sleep_for(std::chrono::milliseconds(Period));
 }
+
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -10,6 +10,7 @@ endif()
 
 include_directories(${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/quintet
+        ${CMAKE_SOURCE_DIR}/quintet/component
         )
 
 file(GLOB SOURCE_FILES
@@ -17,11 +18,13 @@ file(GLOB SOURCE_FILES
         ${CMAKE_SOURCE_DIR}/quintet/*.cpp
         ${CMAKE_SOURCE_DIR}/quintet/raft/*.cpp
         ${CMAKE_SOURCE_DIR}/quintet/raft/identity/*.cpp
+        ${CMAKE_SOURCE_DIR}/quintet/raft/component/*.cpp
 
         ${CMAKE_SOURCE_DIR}/test/*.h
         ${CMAKE_SOURCE_DIR}/quintet/*.h
         ${CMAKE_SOURCE_DIR}/quintet/raft/*.h
         ${CMAKE_SOURCE_DIR}/quintet/raft/identity/*.h
+        ${CMAKE_SOURCE_DIR}/quintet/raft/component/*.h
         )
 
 add_executable(quintet ${SOURCE_FILES})
@@ -47,3 +50,4 @@ target_link_libraries(quintet
 
 # config
 add_definitions( -DCMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}" )
+add_definitions( -DBOOST_THREAD_VERSION=4)

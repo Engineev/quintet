@@ -41,10 +41,11 @@
 #include <boost/hana/if.hpp>
 #include <boost/any.hpp>
 
-#include "quintet/Serialization.h"
-#include "quintet/Defs.h"
-#include "quintet/Utility.h"
-#include "quintet/SharedInterface.h"
+#include "Serialization.h"
+#include "Defs.h"
+#include "Utility.h"
+#include "Future.h"
+#include "SharedInterface.h"
 
 namespace quintet {
 
@@ -106,14 +107,14 @@ public:
     // If you are considering replacing boost::any with the actual type,
     // please figure out the way to dispatch these heterogeneous functions first.
     template <class... Args>
-    std::future<boost::any> asyncCall(const std::string & opName, Args... rawArgs) {
+    boost::future<boost::any> asyncCall(const std::string & opName, Args... rawArgs) {
         std::lock_guard<std::mutex> lk(turning);
         if (!running)
             throw ; // TODO: throw something meaningful
 
         std::string args = serialize(rawArgs...);
         PrmIdx idx = prmIdx++;
-        std::promise<boost::any> prm;
+        boost::promise<boost::any> prm;
         auto fut = prm.get_future();
         prms.emplace(idx, std::move(prm));
 
@@ -142,7 +143,7 @@ private:
     // the mapping from the names of the operation to the corresponding function
     std::unordered_map<std::string, std::function<boost::any(std::string)>> fs;
     // the promises to be set
-    std::unordered_map<PrmIdx, std::promise<boost::any>> prms;
+    std::unordered_map<PrmIdx, boost::promise<boost::any>> prms;
     std::atomic<PrmIdx> prmIdx{0};
 
     std::unique_ptr<Consensus>  consensus;

@@ -84,9 +84,30 @@ void quintet::HeartBeatController::start() {
         beat = boost::thread(&HeartBeatController::run, this);
 }
 
+void quintet::HeartBeatController::oneShot(std::function<void()> f, std::uint32_t periodMs) {
+    std::unique_lock<std::mutex> lk(launching, std::defer_lock);
+    if (!lk.try_lock())
+        return;
+    oneShots.emplace_back([f, this, periodMs] {
+        try {
+            std::this_thread::sleep_for(std::chrono::milliseconds(periodMs));
+        } catch (boost::thread_interrupted) {
+            return;
+        }
+        f();
+    });
+}
+
 void quintet::HeartBeatController::stop() {
+    std::lock_guard<std::mutex> lk(launching);
+
     beat.interrupt();
+    for (auto && t : oneShots)
+        t.interrupt();
     beat.join();
+    for (auto && t : oneShots)
+        t.join();
+    oneShots.clear();
 }
 
 void quintet::HeartBeatController::run() {
@@ -100,3 +121,6 @@ void quintet::HeartBeatController::run() {
     }
     running = false;
 }
+
+
+
