@@ -11,7 +11,7 @@
 namespace quintet {
 
 #define GEN_NOT_EQUAL(NAME) \
-    friend bool operator!=(const NAME & lhs, const NAME & rhs) { \
+    bool operator!=(const NAME & lhs, const NAME & rhs) { \
         return !(lhs == rhs); \
     }
 

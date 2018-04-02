@@ -36,6 +36,26 @@ protected:
     ServerService    & service;
     const ServerInfo & info;
 
+protected:
+    // TODO: upToDate
+    bool upToDate(std::size_t lastLogIdx, Term lastLogTerm) const {
+        throw ;
+    }
+
+    std::pair<Term /*current term*/, bool /*vote granted*/>
+    defaultRPCRequestVote(Term term, ServerId candidateId,
+                   std::size_t lastLogIdx, Term lastLogTerm) {
+        if (term < state.currentTerm)
+             return {state.currentTerm, false};
+
+        if ((state.votedFor == NullServerId || state.votedFor == candidateId)
+                && upToDate(lastLogIdx, lastLogTerm)) {
+            return {state.currentTerm, true};
+        }
+
+        return {state.currentTerm, false};
+    }
+
 }; // class ServerIdentityBase
 
 } // namespace quintet

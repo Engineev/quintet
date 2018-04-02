@@ -85,6 +85,10 @@ private:
         service.logger.set("./", info.local.addr + "_" + std::to_string(info.local.port));
     }
 
+    void refreshState() {
+        state.votedFor = NullServerId;
+    }
+
     // the following functions should never be invoked directly !!!
 
     void transform(ServerIdentityNo to) {
@@ -100,6 +104,9 @@ private:
 
         if (from != ServerIdentityNo::Down)
             identities[(std::size_t)from]->leave();
+
+        refreshState();
+
         if (to != ServerIdentityNo::Down)
             identities[(std::size_t)to]->init();
 
