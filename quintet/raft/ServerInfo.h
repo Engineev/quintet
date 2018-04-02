@@ -19,6 +19,7 @@
 #include "quintet/raft/RaftDefs.h"
 #include "quintet/component/Utility.h"
 
+// ServerId
 namespace quintet {
 
 struct ServerId {
@@ -26,15 +27,22 @@ struct ServerId {
     Port port = 0;
 
     MSGPACK_DEFINE_ARRAY(addr, port);
-
-    friend std::istream & operator>>(std::istream & in, ServerId & id);
-
-    friend std::ostream & operator<<(std::ostream & out, const ServerId & id);
-
-    friend bool operator==(const ServerId & lhs, const ServerId & rhs);
-
-    GEN_NOT_EQUAL(ServerId);
 };
+
+std::istream &operator>>(std::istream &in, ServerId &id);
+
+std::ostream &operator<<(std::ostream &out, const ServerId &id);
+
+bool operator==(const ServerId &lhs, const ServerId &rhs);
+
+bool operator!=(const ServerId & lhs, const ServerId & rhs);
+
+const ServerId NullServerId{"", 0};
+
+} /* namespace quintet */
+
+// ServerInfo
+namespace quintet {
 
 struct ServerInfo {
     ServerId local;
@@ -46,7 +54,6 @@ struct ServerInfo {
 
     void save(const std::string & filename);
 };
-
 
 } // namespace quintet
 

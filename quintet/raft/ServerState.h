@@ -17,8 +17,9 @@ namespace quintet {
 // TODO: thread-safe ??
 
 struct ServerState {
+    // update currentTerm at Server::init() ??
     Term                  currentTerm;
-    ServerId              votedFor;
+    ServerId              votedFor = NullServerId;
     std::vector<LogEntry> entries;
 
     Index commitIndex;

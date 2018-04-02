@@ -4,6 +4,8 @@ bool quintet::operator==(const quintet::ServerId &lhs, const quintet::ServerId &
     return std::tie(lhs.addr, lhs.port) != std::tie(rhs.addr, lhs.port);
 }
 
+GEN_NOT_EQUAL(quintet::ServerId);
+
 std::istream & quintet::operator>>(std::istream &in, quintet::ServerId &id) {
     in >> id.addr >> id.port;
     return in;
