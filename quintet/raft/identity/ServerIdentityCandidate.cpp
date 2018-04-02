@@ -17,27 +17,22 @@ std::vector<quintet::FutureWrapper<clmdep_msgpack::object_handle>> quintet::Serv
 }
 
 void quintet::ServerIdentityCandidate::launchVotesChecker(
-        std::vector<quintet::FutureWrapper<clmdep_msgpack::object_handle>> &&votes) {
-    voteResults.resize(votes.size());
-    for (auto &&voteResult : voteResults)
-        voteResult = std::make_shared<VoteResult>(VoteResult::Unready);
-
-    for (int i = 0; i < (int)votes.size(); ++i) {
-        votes[i].then([this, voteResult = voteResults[i]]
-                              (boost::future<RPCLIB_MSGPACK::object_handle> fut) mutable {
+        std::vector<quintet::FutureWrapper<RPCLIB_MSGPACK::object_handle>> &&votes) {
+    for (auto && vote : votes) {
+        // capture data by value !!
+        vote.then([this, data = this->data](boost::future<RPCLIB_MSGPACK::object_handle> fut) mutable {
             Term termReceived;
             bool res;
             std::tie(termReceived, res) = fut.get().as<std::pair<Term, bool>>();
 
             // TODO: when larger term is received ...
 
-            boost::lock_guard<boost::mutex> lk(*m);
-            assert((*voteResult == VoteResult::Discarded || *voteResult == VoteResult::Unready));
-            if (*voteResult == VoteResult::Discarded)
+            boost::lock_guard<boost::mutex> lk(data->m);
+            if (data->discarded)
                 return;
-            *voteResult = res ? VoteResult::Accepted : VoteResult::Rejected;
-            votesReceived += res;
-            if (votesReceived > info.srvList.size())
+            data->votesReceived += res;
+            // It is guaranteed that only one transformation will be carried out.
+            if (data->votesReceived > info.srvList.size())
                 service.identityTransformer.transform(ServerIdentityNo::Leader);
         });
     }

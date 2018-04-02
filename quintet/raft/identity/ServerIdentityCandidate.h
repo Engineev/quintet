@@ -37,9 +37,10 @@ public:
     void init() override {
         ++state.currentTerm;
         state.votedFor = info.local;
-        votesReceived = 1;
+
         // TODO: reset election timer
-        m = std::make_shared<boost::mutex>();
+
+        data = std::make_shared<ElectionData>();
         launchVotesChecker(sendRequests());
     }
 
@@ -48,22 +49,18 @@ public:
     /// 1. Discard all the remaining RequestVote RPCs
     /// 2. Reset the shared pointers
     void leave() override {
-        boost::unique_lock<boost::mutex> lk(*m);
-        for (auto && vote : voteResults) {
-            *vote = VoteResult::Discarded;
-            vote = nullptr;
-        }
-        // Unlock before set m to nullptr, otherwise it
+        boost::unique_lock<boost::mutex> lk(data->m);
+
+        data->discarded = true;
+        // Unlock before setting m to nullptr, otherwise it
         // may happen that this thread is the last thread
-        // which hold m and set m to nullptr will release
-        // the resource before unlocking it.
+        // which hold m and set m to nullptr will destroy
+        // the mutex before unlocking it.
         lk.unlock();
-        m = nullptr;
+        data = nullptr;
     }
 
 private:
-    enum class VoteResult { Unready, Accepted, Rejected, Discarded };
-
     /* Why shared pointer are used here ?
      * I think that two different term should be completely independent,
      * which means that the operations in different term will never affect
@@ -74,10 +71,14 @@ private:
      * be released after all the other threads launched during this term
      * exist.
      */
-    std::shared_ptr<boost::mutex>             m;
-    std::vector<std::shared_ptr<VoteResult>>  voteResults;
 
-    std::atomic<std::size_t> votesReceived;
+    struct ElectionData {
+        boost::mutex m;
+        bool         discarded = false;
+        std::size_t  votesReceived = 1;
+    };
+
+    std::shared_ptr<ElectionData> data;
 
 private:
     std::vector<FutureWrapper<RPCLIB_MSGPACK::object_handle>> sendRequests();
