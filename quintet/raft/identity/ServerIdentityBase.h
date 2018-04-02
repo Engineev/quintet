@@ -32,9 +32,9 @@ public:
     virtual void init() {throw; }
 
 protected:
-    ServerState   & state;
-    ServerInfo    & info;
-    ServerService & service;
+    ServerState      & state;
+    ServerService    & service;
+    const ServerInfo & info;
 
 }; // class ServerIdentityBase
 

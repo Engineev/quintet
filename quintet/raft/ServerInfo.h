@@ -39,6 +39,7 @@ struct ServerId {
 struct ServerInfo {
     ServerId local;
     std::vector<ServerId> srvList;
+    std::uint64_t electionTimeout;
     // TODO: timeout
 
     void load(const std::string & filename);
