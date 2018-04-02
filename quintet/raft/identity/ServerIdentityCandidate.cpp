@@ -37,3 +37,27 @@ void quintet::ServerIdentityCandidate::launchVotesChecker(
         });
     }
 }
+
+void quintet::ServerIdentityCandidate::leave() {
+    boost::unique_lock<boost::mutex> lk(data->m);
+
+    data->discarded = true;
+    // Unlock before setting m to nullptr, otherwise it
+    // may happen that this thread is the last thread
+    // which hold m and set m to nullptr will destroy
+    // the mutex before unlocking it.
+    lk.unlock();
+    data = nullptr;
+}
+
+void quintet::ServerIdentityCandidate::init() {
+    ++state.currentTerm;
+    state.votedFor = info.local;
+
+    std::default_random_engine eg;
+    service.heartBeatController.oneShot([&] { service.identityTransformer.transform(ServerIdentityNo::Candidate); },
+        info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(0, info.electionTimeout)(eg));
+
+    data = std::make_shared<ElectionData>();
+    launchVotesChecker(sendRequests());
+}

@@ -1,9 +1,10 @@
 #ifndef QUINTET_SERVERIDENTITYCANDIDATE_H
 #define QUINTET_SERVERIDENTITYCANDIDATE_H
 
+#include <cassert>
 #include <vector>
 #include <memory>
-#include <cassert>
+#include <random>
 
 #include "raft/identity/ServerIdentityBase.h"
 
@@ -31,34 +32,16 @@ public:
     ///
     /// 1. Increase the current term.
     /// 2. Vote for self
-    /// 3. Reset election timer (TODO:)
+    /// 3. Reset election timer
     /// 4. Send RequestVote RPCs to the other servers.
     ///    This procedure will not wait for the other servers to reply.
-    void init() override {
-        ++state.currentTerm;
-        state.votedFor = info.local;
-
-        // TODO: reset election timer
-
-        data = std::make_shared<ElectionData>();
-        launchVotesChecker(sendRequests());
-    }
+    void init() override;
 
     /// \brief clean up
     ///
     /// 1. Discard all the remaining RequestVote RPCs
     /// 2. Reset the shared pointers
-    void leave() override {
-        boost::unique_lock<boost::mutex> lk(data->m);
-
-        data->discarded = true;
-        // Unlock before setting m to nullptr, otherwise it
-        // may happen that this thread is the last thread
-        // which hold m and set m to nullptr will destroy
-        // the mutex before unlocking it.
-        lk.unlock();
-        data = nullptr;
-    }
+    void leave() override;
 
 private:
     /* Why shared pointer are used here ?
