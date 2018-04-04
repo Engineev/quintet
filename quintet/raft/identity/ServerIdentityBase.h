@@ -18,14 +18,18 @@ public:
 
     /// RPCs
 
+    // Why pure virtual function and default__ are used ?
+    // reference: Effective C++, 3rd edition, Term 34
+    // Caution: the default version is non-synchronized
+
     virtual std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,
                      std::size_t prevLogIdx, Term prevLogTerm,
-                     std::vector<LogEntry> logEntries, std::size_t commitIdx) {throw; }
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx) = 0;
 
     virtual std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId,
-                   std::size_t lastLogIdx, Term lastLogTerm) {throw; }
+                   std::size_t lastLogIdx, Term lastLogTerm) = 0;
 
     virtual void leave() {throw; }
 
@@ -37,10 +41,15 @@ protected:
     const ServerInfo & info;
 
 protected:
-    // TODO: upToDate
+    // TODO: upToDate: check whether the given RPC info is up to date.
     bool upToDate(std::size_t lastLogIdx, Term lastLogTerm) const {
         throw ;
     }
+
+    std::pair<Term /*current term*/, bool /*success*/>
+    defaultRPCAppendEntries(Term term, ServerId leaderId, // TODO
+                     std::size_t prevLogIdx, Term prevLogTerm,
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx) {throw ;}
 
     std::pair<Term /*current term*/, bool /*vote granted*/>
     defaultRPCRequestVote(Term term, ServerId candidateId,

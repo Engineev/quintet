@@ -9,6 +9,7 @@
  *    - RpcService
  *    - Logger
  *    - HeartBeatController
+ *    - Committer
  */
 
 #include <functional>
@@ -242,6 +243,9 @@ private:
 namespace quintet {
 
 class Committer {
+public:
+
+    void commit(LogEntry log) {throw ;} // TODO
 
 };
 
