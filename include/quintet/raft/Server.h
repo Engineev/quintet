@@ -13,8 +13,6 @@
 #include "ServerState.h"
 #include "ServerService.h"
 
-#define UNIT_TEST_IDENTITY
-
 namespace quintet {
 
 // TODO: Server: .h -> .cpp
@@ -93,7 +91,7 @@ private:
 
     void transform(ServerIdentityNo to) {
         auto from = currentIdentity;
-#ifdef UNIT_TEST_IDENTITY
+#ifdef IDENTITY_TEST
         currentIdentity = from;
 #else
         currentIdentity = to;
