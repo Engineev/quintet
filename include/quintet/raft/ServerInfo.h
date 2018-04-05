@@ -16,8 +16,8 @@
 
 #include <rpc/server.h>
 
-#include "quintet/raft/RaftDefs.h"
-#include "quintet/component/Utility.h"
+#include "RaftDefs.h"
+#include "Utility.h"
 
 // ServerId
 namespace quintet {

@@ -1,0 +1,12 @@
+option(IDENTITY_TEST "test the identities resepectively" ON)
+
+# boost
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED
+        COMPONENTS unit_test_framework thread serialization
+        )
+include_directories(${Boost_INCLUDE_DIR})
+add_definitions(-DBOOST_THREAD_VERSION=4)
+
+# other flags
+add_definitions(-DCMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
