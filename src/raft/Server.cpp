@@ -1,6 +1,11 @@
 #include "Server.h"
 
+#include <cassert>
+
 void quintet::Server::init(const std::string &configDir) {
+#ifndef IDENTITY_TEST
+    assert(false);
+#endif
     info.load(configDir);
     initService();
     identities[(std::size_t)ServerIdentityNo::Follower]
@@ -42,12 +47,12 @@ void quintet::Server::initService() {
 }
 
 void quintet::Server::transform(quintet::ServerIdentityNo to) {
-    auto from = currentIdentity;
 #ifdef IDENTITY_TEST
-    currentIdentity = from;
-#else
-    currentIdentity = to;
+    transform_test(to);
+    return;
 #endif
+    auto from = currentIdentity;
+    currentIdentity = to;
 
     service.rpcService.pause();
     service.heartBeatController.stop();

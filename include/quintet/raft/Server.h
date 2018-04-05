@@ -40,28 +40,6 @@ private: /// RPCs
         throw ;
     };
 
-    // TODO: uncomment: I commented the #ifdef to enable the linter
-//#ifdef IDENTITY_TEST
-    void setIdentity(ServerIdentityNo to) {
-        auto from = currentIdentity;
-        currentIdentity = to;
-
-        service.rpcService.pause();
-        service.heartBeatController.stop();
-
-        if (from != ServerIdentityNo::Down)
-            identities[(std::size_t)from]->leave();
-
-        refreshState();
-
-        if (to != ServerIdentityNo::Down)
-            identities[(std::size_t)to]->init();
-
-        service.heartBeatController.start();
-        service.rpcService.resume();
-    }
-//#endif
-
 
 private:
     std::array<std::unique_ptr<ServerIdentityBase>, 3> identities;
@@ -79,6 +57,37 @@ private:
     // the following functions should never be invoked directly !!!
 
     void transform(ServerIdentityNo to);
+
+public:
+    // TODO: uncomment: I commented the #ifdef to enable the linter
+//#ifdef IDENTITY_TEST
+    void setIdentity_test(ServerIdentityNo to) {
+        auto from = currentIdentity;
+        currentIdentity = to;
+
+        service.rpcService.pause();
+        service.heartBeatController.stop();
+
+        if (from != ServerIdentityNo::Down)
+            identities[(std::size_t)from]->leave();
+
+        refreshState();
+
+        if (to != ServerIdentityNo::Down)
+            identities[(std::size_t)to]->init();
+
+        service.heartBeatController.start();
+        service.rpcService.resume();
+    }
+
+    ServerIdentityNo currentIdentity_test() const {
+        return currentIdentity;
+    }
+
+    void transform_test(quintet::ServerIdentityNo to) {
+
+    }
+//#endif
 };
 
 } // namespace quintet
