@@ -3,9 +3,6 @@
 #include <cassert>
 
 void quintet::Server::init(const std::string &configDir) {
-#ifndef IDENTITY_TEST
-    assert(false);
-#endif
     info.load(configDir);
     initService();
     identities[(std::size_t)ServerIdentityNo::Follower]

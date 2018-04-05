@@ -5,8 +5,16 @@ project(quintet)
 # option
 option(UNIT_TEST     "unit test"
         ON)
+option(MISC_TEST "test components and services"
+        ON)
 option(IDENTITY_TEST "test the identities resepectively"
         ON)
+option(COMPREHENSIVE_TEST "test with normal identity transformation enabled"
+        OFF)
+
+if (${IDENTITY_TEST} AND ${COMPREHENSIVE_TEST})
+    message(FATAL_ERROR "identity test and comprehensive can not be enabled simultaneously.")
+endif ()
 
 # common flags
 set(CMAKE_CXX_STANDARD 14)
@@ -22,6 +30,10 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include/quintet/raft
     ${CMAKE_SOURCE_DIR}/include/quintet/raft/identity
 )
+
+if (IDENTITY_TEST)
+    add_definitions(-D IDENTITY_TEST)
+endif ()
 
 # config
 configure_file (
