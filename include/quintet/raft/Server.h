@@ -8,10 +8,10 @@
 #include <mutex>
 #include <thread>
 
-#include "quintet/raft/identity/ServerIdentity.h"
-#include "quintet/raft/ServerInfo.h"
-#include "quintet/raft/ServerState.h"
-#include "quintet/raft/ServerService.h"
+#include "ServerIdentity.h"
+#include "ServerInfo.h"
+#include "ServerState.h"
+#include "ServerService.h"
 
 #define UNIT_TEST_IDENTITY
 

@@ -1,5 +1,5 @@
 #include <boost/test/unit_test.hpp>
-#include "quintet/Interface.h"
+#include "Interface.h"
 
 #include <string>
 #include <queue>
@@ -17,7 +17,7 @@
 
 #include <boost/any.hpp>
 
-#include "test/SampleConsensus.h"
+#include "SampleConsensus.h"
 
 namespace utf = boost::unit_test;
 

@@ -208,11 +208,11 @@ class HeartBeatController {
 public:
     HeartBeatController() = default;
 
-    HeartBeatController(std::function<void()> f, std::uint32_t periodMs);
+    HeartBeatController(std::function<void()> f, std::uint64_t periodMs);
 
     ~HeartBeatController();
 
-    void bind(std::function<void()> f, std::uint32_t periodMs_);
+    void bind(std::function<void()> f, std::uint64_t periodMs_);
 
     void start();
 
@@ -220,13 +220,13 @@ public:
     /// Calling stop() will disable all the waiting oneShots.
     ///
     /// TODO: test: oneShot
-    void oneShot(std::function<void()> f, std::uint32_t periodMs);
+    void oneShot(std::function<void()> f, std::uint64_t periodMs);
 
     void stop();
 
 private:
     std::function<void()> heartBeat;
-    std::uint32_t         periodMs = 0;
+    std::uint64_t         periodMs = 0;
     std::atomic<bool>     running{false};
     boost::thread         beat;
 

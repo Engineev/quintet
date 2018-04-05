@@ -1,10 +1,10 @@
 #ifndef QUINTET_SERVERIDENTITYBASE_H
 #define QUINTET_SERVERIDENTITYBASE_H
 
-#include "quintet/raft/ServerInfo.h"
-#include "quintet/raft/ServerState.h"
-#include "quintet/raft/ServerService.h"
-#include "quintet/raft/RaftDefs.h"
+#include "ServerInfo.h"
+#include "ServerState.h"
+#include "ServerService.h"
+#include "RaftDefs.h"
 
 namespace quintet {
 

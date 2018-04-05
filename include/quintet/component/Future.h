@@ -54,6 +54,11 @@ public:
         return fut_.wait_for(boost::chrono::seconds(0)) == boost::future_status::ready;
     }
 
+    template <class Func>
+    decltype(auto) then(Func f) {
+        return fut_.then(std::move(f));
+    }
+
 private:
     boost::future<T> fut_;
     Item item_;

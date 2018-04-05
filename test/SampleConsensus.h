@@ -18,8 +18,8 @@
 #include <rpc/server.h>
 #include <rpc/client.h>
 
-#include "quintet/Defs.h"
-#include "quintet/raft/RaftDefs.h"
+#include "Defs.h"
+#include "RaftDefs.h"
 
 // SampleConsensus: no PRC
 namespace quintet {

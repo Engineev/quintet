@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
+
 project(quintet)
 
+# option
+option(UNIT_TEST "unit test" ON)
+
+# common flags
 set(CMAKE_CXX_STANDARD 14)
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /W4 /EHsc")
@@ -8,46 +13,23 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -o2 -Wall")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}
-        ${CMAKE_SOURCE_DIR}/quintet
-        ${CMAKE_SOURCE_DIR}/quintet/component
-        )
-
-file(GLOB SOURCE_FILES
-        ${CMAKE_SOURCE_DIR}/test/*.cpp
-        ${CMAKE_SOURCE_DIR}/quintet/*.cpp
-        ${CMAKE_SOURCE_DIR}/quintet/raft/*.cpp
-        ${CMAKE_SOURCE_DIR}/quintet/raft/identity/*.cpp
-        ${CMAKE_SOURCE_DIR}/quintet/raft/component/*.cpp
-
-        ${CMAKE_SOURCE_DIR}/test/*.h
-        ${CMAKE_SOURCE_DIR}/quintet/*.h
-        ${CMAKE_SOURCE_DIR}/quintet/raft/*.h
-        ${CMAKE_SOURCE_DIR}/quintet/raft/identity/*.h
-        ${CMAKE_SOURCE_DIR}/quintet/raft/component/*.h
-        )
-
-add_executable(quintet ${SOURCE_FILES})
-
-# boost
-set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED COMPONENTS
-        unit_test_framework
-        thread
-        serialization
-        )
-include_directories(${Boost_INCLUDE_DIR})
-
-# librpc
-find_package(rpclib REQUIRED)
-include_directories(${Rpclib_INCLUDE_DIR})
-
-# link
-target_link_libraries(quintet
-        rpclib::rpc
-        ${Boost_LIBRARIES}
-        )
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include/quintet
+    ${CMAKE_SOURCE_DIR}/include/quintet/component
+    ${CMAKE_SOURCE_DIR}/include/quintet/raft
+    ${CMAKE_SOURCE_DIR}/include/quintet/raft/identity
+)
 
 # config
-add_definitions( -DCMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}" )
-add_definitions( -DBOOST_THREAD_VERSION=4)
+configure_file (
+    ${CMAKE_SOURCE_DIR}/QuintetConfig.h.in
+    ${CMAKE_SOURCE_DIR}/include/quintet/QuintetConfig.h
+)
+
+# source
+add_subdirectory(src)
+
+# test
+if(UNIT_TEST)
+    add_subdirectory(test)
+endif()

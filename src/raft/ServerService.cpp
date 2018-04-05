@@ -65,7 +65,7 @@ void quintet::Logger::log_impl() {
     fout << std::endl;
 }
 
-quintet::HeartBeatController::HeartBeatController(std::function<void()> f, std::uint32_t periodMs) {
+quintet::HeartBeatController::HeartBeatController(std::function<void()> f, std::uint64_t periodMs) {
     bind(std::move(f), periodMs);
 }
 
@@ -73,7 +73,7 @@ quintet::HeartBeatController::~HeartBeatController() {
     stop();
 }
 
-void quintet::HeartBeatController::bind(std::function<void()> f, std::uint32_t periodMs_) {
+void quintet::HeartBeatController::bind(std::function<void()> f, std::uint64_t periodMs_) {
     heartBeat = std::move(f);
     periodMs  = periodMs_;
 }
@@ -84,7 +84,7 @@ void quintet::HeartBeatController::start() {
         beat = boost::thread(&HeartBeatController::run, this);
 }
 
-void quintet::HeartBeatController::oneShot(std::function<void()> f, std::uint32_t periodMs) {
+void quintet::HeartBeatController::oneShot(std::function<void()> f, std::uint64_t periodMs) {
     std::unique_lock<std::mutex> lk(launching, std::defer_lock);
     if (!lk.try_lock())
         return;
