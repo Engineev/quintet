@@ -6,8 +6,8 @@
 
 BOOST_AUTO_TEST_SUITE(Service)
 
-BOOST_AUTO_TEST_CASE(HeartBeatController) {
-    BOOST_TEST_MESSAGE("Test: HeartBeatController");
+BOOST_AUTO_TEST_CASE(HeartBeatController, *boost::unit_test::disabled()) {
+    BOOST_TEST_MESSAGE("Test::HeartBeatController");
     const auto Period = 50;
     int a = 0;
     quintet::HeartBeatController hbc;

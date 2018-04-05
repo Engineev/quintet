@@ -9,4 +9,6 @@ include_directories(${Boost_INCLUDE_DIR})
 add_definitions(-DBOOST_THREAD_VERSION=4)
 
 # other flags
-add_definitions(-DCMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+add_definitions(
+        -DCMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)

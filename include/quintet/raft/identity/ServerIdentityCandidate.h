@@ -43,6 +43,7 @@ public:
     /// 2. Reset the shared pointers
     void leave() override;
 
+
 private:
     /* Why shared pointer are used here ?
      * I think that two different term should be completely independent,

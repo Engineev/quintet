@@ -5,8 +5,8 @@
 
 BOOST_AUTO_TEST_SUITE(Service)
 
-BOOST_AUTO_TEST_CASE(Logger) {
-    BOOST_TEST_MESSAGE("Test: Logger");
+BOOST_AUTO_TEST_CASE(Logger, *boost::unit_test::disabled()) {
+    BOOST_TEST_MESSAGE("Test::Logger");
     quintet::Logger log("./", "test");
 
     log();

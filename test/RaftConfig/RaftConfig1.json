@@ -1,0 +1,9 @@
+{
+  "local" : {
+    "address" : "localhost 8000"
+  },
+  "electionTimeout" : 300,
+  "serverList" : {
+      "" : "localhost 8000"
+  }
+}

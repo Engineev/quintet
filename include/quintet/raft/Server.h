@@ -20,26 +20,11 @@ namespace quintet {
 // TODO: bind
 class Server {
 public:
-    void init(const std::string & configDir) {
-        info.load(configDir);
-        initService();
-        identities[(std::size_t)ServerIdentityNo::Follower]
-                = std::make_unique<ServerIdentityFollower>(state, info, service);
-        identities[(std::size_t)ServerIdentityNo::Candidate]
-                = std::make_unique<ServerIdentityCandidate>(state, info, service);
-        identities[(std::size_t)ServerIdentityNo::Leader]
-                = std::make_unique<ServerIdentityLeader>(state, info, service);
-        currentIdentity = ServerIdentityNo::Down;
+    void init(const std::string & configDir);
 
-    }
+    void run();
 
-    void run() {
-        service.identityTransformer.transform(ServerIdentityNo::Follower);
-    }
-
-    void stop() {
-        service.identityTransformer.transform(ServerIdentityNo::Down);
-    }
+    void stop();
 
 private: /// RPCs
     std::pair<Term /*current term*/, bool /*success*/>
@@ -55,47 +40,11 @@ private: /// RPCs
         throw ;
     };
 
-private:
-    std::array<std::unique_ptr<ServerIdentityBase>, 3> identities;
-    ServerIdentityNo currentIdentity = ServerIdentityNo::Down;
-
-    ServerState   state;
-    ServerInfo    info;
-    ServerService service;
-
-private:
-    void initService() {
-        service.identityTransformer.bind([&](ServerIdentityNo to) {transform(to);});
-
-        service.rpcService.bind("AppendEntries",
-                                [&](Term term, ServerId leaderId,
-                                    std::size_t prevLogIdx, Term prevLogTerm,
-                                    std::vector<LogEntry> logEntries, std::size_t commitIdx) {
-                                    return RPCAppendEntries(term, leaderId,  prevLogIdx, prevLogTerm,
-                                           std::move(logEntries), commitIdx);
-                                });
-        service.rpcService.bind("RequestVote",
-                                 [&](Term term, ServerId candidateId,
-                                     std::size_t lastLogIdx, Term lastLogTerm) {
-                                     return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
-                                 });
-
-        service.logger.set("./", info.local.addr + "_" + std::to_string(info.local.port));
-    }
-
-    void refreshState() {
-        state.votedFor = NullServerId;
-    }
-
-    // the following functions should never be invoked directly !!!
-
-    void transform(ServerIdentityNo to) {
+    // TODO: uncomment: I commented the #ifdef to enable the linter
+//#ifdef IDENTITY_TEST
+    void setIdentity(ServerIdentityNo to) {
         auto from = currentIdentity;
-#ifdef IDENTITY_TEST
-        currentIdentity = from;
-#else
         currentIdentity = to;
-#endif
 
         service.rpcService.pause();
         service.heartBeatController.stop();
@@ -111,6 +60,25 @@ private:
         service.heartBeatController.start();
         service.rpcService.resume();
     }
+//#endif
+
+
+private:
+    std::array<std::unique_ptr<ServerIdentityBase>, 3> identities;
+    ServerIdentityNo currentIdentity = ServerIdentityNo::Down;
+
+    ServerState   state;
+    ServerInfo    info;
+    ServerService service;
+
+private:
+    void initService();
+
+    void refreshState();
+
+    // the following functions should never be invoked directly !!!
+
+    void transform(ServerIdentityNo to);
 };
 
 } // namespace quintet
