@@ -26,7 +26,7 @@ public:
 
     std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId,
-                   std::size_t lastLogIdx, Term lastLogTerm) override {throw ;};
+                   std::size_t lastLogIdx, Term lastLogTerm) override;
 
     /// \breif See figure 2 of the paper
     ///

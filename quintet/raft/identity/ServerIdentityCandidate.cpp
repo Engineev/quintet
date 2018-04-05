@@ -61,3 +61,9 @@ void quintet::ServerIdentityCandidate::init() {
     data = std::make_shared<ElectionData>();
     launchVotesChecker(sendRequests());
 }
+
+std::pair<quintet::Term, bool>
+quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId,
+                                                 std::size_t lastLogIdx, quintet::Term lastLogTerm) {
+    return defaultRPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
+}
