@@ -44,6 +44,10 @@ void quintet::Server::initService() {
 }
 
 void quintet::Server::transform(quintet::ServerIdentityNo to) {
+#ifdef IDENTITY_TEST
+    transform_test(to);
+    return;
+#endif
     auto from = currentIdentity;
     currentIdentity = to;
 

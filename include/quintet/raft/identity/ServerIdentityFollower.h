@@ -1,6 +1,11 @@
 #ifndef QUINTET_SERVERIDENTITYFOLLOWER_H
 #define QUINTET_SERVERIDENTITYFOLLOWER_H
 
+#include <random>
+#include <memory>
+
+#include <boost/chrono.hpp>
+
 #include "raft/identity/ServerIdentityBase.h"
 
 namespace quintet {
@@ -23,9 +28,9 @@ public:
     RPCRequestVote(Term term, ServerId candidateId,
                    std::size_t lastLogIdx, Term lastLogTerm) override {throw; }
 
-    void leave() override {throw; }
+    void leave() override;
 
-    void init() override {throw; }
+    void init() override;
 
 private:
 

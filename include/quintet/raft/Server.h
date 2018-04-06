@@ -60,15 +60,51 @@ private:
 
 #ifdef IDENTITY_TEST
 public:
+    void setTestedIdentity(ServerIdentityNo no) {
+        testedIdentity = no;
+    };
+
+    // return the identity the tester wants to transform to
+    void setOnTransform(std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> f) {
+        onTransform = std::move(f);
+    }
+
+    std::uint64_t getElectionTimeout() const {
+        return info.electionTimeout;
+    }
+
     ServerIdentityNo /*from*/ setIdentity_test(ServerIdentityNo to) {
         auto from = currentIdentity;
-        transform(to);
+        currentIdentity = to;
+
+        service.rpcService.pause();
+        service.heartBeatController.stop();
+
+        if (from != ServerIdentityNo::Down)
+            identities[(std::size_t)from]->leave();
+
+        refreshState();
+
+        if (to != ServerIdentityNo::Down) {
+            identities[(std::size_t) to]->init();
+            service.heartBeatController.start();
+            service.rpcService.resume();
+        }
         return from;
     }
 
     ServerIdentityNo currentIdentity_test() const {
         return currentIdentity;
     }
+
+    void transform_test(ServerIdentityNo to) {
+        auto actual = onTransform(currentIdentity, to);
+        setIdentity_test(actual);
+    }
+
+private:
+    ServerIdentityNo testedIdentity = ServerIdentityNo::Down;
+    std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> onTransform;
 
 #endif
 };

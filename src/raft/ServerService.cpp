@@ -102,12 +102,8 @@ void quintet::HeartBeatController::stop() {
     std::lock_guard<std::mutex> lk(launching);
 
     beat.interrupt();
-    for (auto && t : oneShots)
-        t.interrupt();
     beat.join();
-    for (auto && t : oneShots)
-        t.join();
-    oneShots.clear();
+    resetOneShots();
 }
 
 void quintet::HeartBeatController::run() {
@@ -120,6 +116,14 @@ void quintet::HeartBeatController::run() {
         }
     }
     running = false;
+}
+
+void quintet::HeartBeatController::resetOneShots() {
+    for (auto && t : oneShots)
+        t.interrupt();
+    for (auto && t : oneShots)
+        t.join();
+    oneShots.clear();
 }
 
 

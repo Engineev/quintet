@@ -222,6 +222,8 @@ public:
     /// TODO: test: oneShot
     void oneShot(std::function<void()> f, std::uint64_t periodMs);
 
+    void resetOneShots();
+
     void stop();
 
 private:
