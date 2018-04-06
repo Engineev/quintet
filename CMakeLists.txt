@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 3.5)
 project(quintet)
 
 # option
-option(UNIT_TEST     "unit test"
+option(UNIT_TEST "unit test"
         ON)
 option(MISC_TEST "test components and services"
-        ON)
+        OFF)
 option(IDENTITY_TEST "test the identities resepectively"
         ON)
 option(COMPREHENSIVE_TEST "test with normal identity transformation enabled"

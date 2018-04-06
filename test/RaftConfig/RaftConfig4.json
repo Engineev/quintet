@@ -1,6 +1,6 @@
 {
   "local" : {
-    "address" : "localhost 8001"
+    "address" : "localhost 8004"
   },
   "electionTimeout" : 300,
   "serverList" : {

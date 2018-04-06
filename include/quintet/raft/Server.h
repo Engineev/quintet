@@ -58,36 +58,19 @@ private:
 
     void transform(ServerIdentityNo to);
 
+#ifdef IDENTITY_TEST
 public:
-    // TODO: uncomment: I commented the #ifdef to enable the linter
-//#ifdef IDENTITY_TEST
-    void setIdentity_test(ServerIdentityNo to) {
+    ServerIdentityNo /*from*/ setIdentity_test(ServerIdentityNo to) {
         auto from = currentIdentity;
-        currentIdentity = to;
-
-        service.rpcService.pause();
-        service.heartBeatController.stop();
-
-        if (from != ServerIdentityNo::Down)
-            identities[(std::size_t)from]->leave();
-
-        refreshState();
-
-        if (to != ServerIdentityNo::Down)
-            identities[(std::size_t)to]->init();
-
-        service.heartBeatController.start();
-        service.rpcService.resume();
+        transform(to);
+        return from;
     }
 
     ServerIdentityNo currentIdentity_test() const {
         return currentIdentity;
     }
 
-    void transform_test(quintet::ServerIdentityNo to) {
-
-    }
-//#endif
+#endif
 };
 
 } // namespace quintet

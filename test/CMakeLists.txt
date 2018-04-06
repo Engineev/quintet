@@ -1,10 +1,6 @@
-include(TestConfig)
-
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 file(GLOB TEST_SOURCE ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
-
-#set(TEST_SOURCE "Test.cpp")
 
 if (MISC_TEST)
     file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/Misc/*.cpp)
