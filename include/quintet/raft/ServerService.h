@@ -118,7 +118,7 @@ public:
     /// The client created will be packed with the boost::future returned so
     /// that it will not be destroyed prematurely.
     template <typename... Args>
-    FutureWrapper<RPCLIB_MSGPACK::object_handle>
+    [[deprecated]] FutureWrapper<RPCLIB_MSGPACK::object_handle>
         async_call(const std::string & addr, Port port, std::string const &func_name, Args... args) {
         auto c = std::make_unique<rpc::client>(addr, port);
         c->set_timeout(timeOut);
@@ -127,13 +127,13 @@ public:
     }
 
     template <typename... Args>
-    RPCLIB_MSGPACK::object_handle call(
+    [[deprecated]] RPCLIB_MSGPACK::object_handle call(
             const std::string & addr, Port port,
             std::string const &func_name, Args... args) {
         return async_call(addr, port, func_name, std::move(args)...).get();
     }
 
-    void setTimeout(std::int64_t value);
+    [[deprecated]] void setTimeout(std::int64_t value);
 
 private:
     std::unique_ptr<rpc::server> srv;
