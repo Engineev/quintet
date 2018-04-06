@@ -3,17 +3,18 @@
 // IdentityTransformer
 
 void quintet::IdentityTransformer::bind(std::function<void(ServerIdentityNo)> transform) {
-    transform_ = [transform, this](ServerIdentityNo to, std::unique_lock<std::mutex> && lk_) {
+    transform_ = [transform](ServerIdentityNo to, std::unique_lock<std::mutex> && lk_) {
         std::unique_lock<std::mutex> lk = std::move(lk_);
         transform(to);
     };
 }
 
-void quintet::IdentityTransformer::transform(quintet::ServerIdentityNo target) {
+bool quintet::IdentityTransformer::transform(quintet::ServerIdentityNo target) {
     std::unique_lock<std::mutex> lk(transforming, std::defer_lock);
     if (!lk.try_lock())
-        return;
+        return false;
     std::thread(transform_, target, std::move(lk)).detach();
+    return true;
 }
 
 // RpcService
@@ -39,6 +40,10 @@ void quintet::RpcService::resume() {
     std::lock_guard<std::mutex> pauseLk(pausing);
     paused = false;
     cv.notify_all();
+}
+
+void quintet::RpcService::setTimeout(std::int64_t value) {
+    timeOut = value;
 }
 
 // Logger
@@ -79,7 +84,8 @@ void quintet::HeartBeatController::bind(std::function<void()> f, std::uint64_t p
 }
 
 void quintet::HeartBeatController::start() {
-    assert(periodMs);
+    if (!periodMs)
+        return;
     if (!running.exchange(true))
         beat = boost::thread(&HeartBeatController::run, this);
 }
@@ -88,7 +94,7 @@ void quintet::HeartBeatController::oneShot(std::function<void()> f, std::uint64_
     std::unique_lock<std::mutex> lk(launching, std::defer_lock);
     if (!lk.try_lock())
         return;
-    oneShots.emplace_back([f, this, periodMs] {
+    oneShots.emplace_back([f, periodMs] {
         try {
             std::this_thread::sleep_for(std::chrono::milliseconds(periodMs));
         } catch (boost::thread_interrupted) {

@@ -9,7 +9,7 @@
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Follower, quintet::test::IdentityTestHelper)
 
-BOOST_AUTO_TEST_CASE(StartElection) {
+BOOST_AUTO_TEST_CASE(StartElection, *boost::unit_test::disabled()) {
     BOOST_TEST_MESSAGE("Test::Identity::Follower::StartElection");
 
     const std::size_t SrvNum = 5;

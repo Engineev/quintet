@@ -1,6 +1,7 @@
 #ifndef QUINTET_IDENTITYTESTHELPER_H
 #define QUINTET_IDENTITYTESTHELPER_H
 
+#include <cassert>
 #include <vector>
 #include <memory>
 
@@ -11,7 +12,9 @@ namespace quintet {
 namespace test {
 
 struct IdentityTestHelper {
-    std::vector<std::unique_ptr<quintet::Server>> makeServers(std::size_t num = 5);
+    using No = quintet::ServerIdentityNo;
+
+    std::vector<std::unique_ptr<quintet::Server>> makeServers(std::size_t num = 3);
 
     void runServers(std::vector<std::unique_ptr<quintet::Server>> & srvs);
 };

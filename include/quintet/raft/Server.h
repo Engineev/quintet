@@ -30,15 +30,11 @@ private: /// RPCs
     std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,
                      std::size_t prevLogIdx, Term prevLogTerm,
-                     std::vector<LogEntry> logEntries, std::size_t commitIdx) {
-        throw ;
-    }
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx);
 
     std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId,
-                   std::size_t lastLogIdx, Term lastLogTerm) {
-        throw ;
-    };
+                   std::size_t lastLogIdx, Term lastLogTerm);;
 
 
 private:
@@ -99,6 +95,10 @@ public:
 
     void transform_test(ServerIdentityNo to) {
         auto actual = onTransform(currentIdentity, to);
+
+        service.logger("transform from ", IdentityNames[(int)currentIdentity],
+            " to ", IdentityNames[(int)to], ". Actually to ", IdentityNames[(int)actual]);
+
         setIdentity_test(actual);
     }
 
