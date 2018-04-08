@@ -15,3 +15,4 @@ void quintet::test::IdentityTestHelper::runServers(std::vector<std::unique_ptr<q
     for (auto &&srv : srvs)
         srv->run();
 }
+

@@ -3,6 +3,9 @@
 
 #include <cstdint>
 #include <tuple>
+#include <limits>
+#include <string>
+#include <vector>
 
 #include <rpc/server.h>
 
@@ -14,6 +17,8 @@ using Port  = std::uint16_t;
 using Term  = std::uint64_t;
 using Index = std::size_t;
 
+const Term InvalidTerm = std::numeric_limits<Term>::max();
+
 struct LogEntry { // TODO
     Term        term;
     std::string opName;
@@ -24,7 +29,11 @@ struct LogEntry { // TODO
 };
 
 enum class ServerIdentityNo {
-    Follower = 0, Candidate, Leader, Down
+    Follower = 0, Candidate, Leader, Down, Error
+};
+
+const std::vector<std::string> IdentityNames = {
+        "Follower", "Candidate", "Leader", "Down"
 };
 
 } // namespace quintet

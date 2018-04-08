@@ -6,7 +6,8 @@
 #include <memory>
 #include <random>
 
-#include "raft/identity/ServerIdentityBase.h"
+#include "ServerIdentityBase.h"
+#include "Future.h"
 
 namespace quintet {
 
@@ -22,7 +23,11 @@ public:
     std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,
                      std::size_t prevLogIdx, Term prevLogTerm,
-                     std::vector<LogEntry> logEntries, std::size_t commitIdx) override {throw ;};
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx) override {
+        service.logger("Candidate:AppendEntries from ", leaderId);
+        service.identityTransformer.transform(ServerIdentityNo::Follower);
+        return {0, 0};
+    };
 
     std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId,
@@ -64,7 +69,11 @@ private:
 
     std::shared_ptr<ElectionData> data;
 
+    boost::upgrade_mutex currentTermM;
+
 private:
+    void requestVotes();
+
     std::vector<FutureWrapper<RPCLIB_MSGPACK::object_handle>> sendRequests();
 
     void launchVotesChecker(std::vector<FutureWrapper<RPCLIB_MSGPACK::object_handle>> && votes);
