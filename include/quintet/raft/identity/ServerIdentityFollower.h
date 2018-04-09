@@ -1,6 +1,13 @@
 #ifndef QUINTET_SERVERIDENTITYFOLLOWER_H
 #define QUINTET_SERVERIDENTITYFOLLOWER_H
 
+#include <random>
+#include <memory>
+
+#include <boost/chrono.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+
 #include "raft/identity/ServerIdentityBase.h"
 
 namespace quintet {
@@ -21,13 +28,29 @@ public:
 
     std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId,
-                   std::size_t lastLogIdx, Term lastLogTerm) override {throw; }
+                   std::size_t lastLogIdx, Term lastLogTerm) override {
+        boost::upgrade_lock<boost::upgrade_mutex> lk(currentTermM);
+        if (term < state.currentTerm)
+            return {state.currentTerm, false};
+        if (term > state.currentTerm) {
+            auto ulk = boost::upgrade_to_unique_lock<boost::upgrade_mutex>(lk);
+            state.currentTerm = term;
+        }
 
-    void leave() override {throw; }
+        if ((state.votedFor == NullServerId || state.votedFor == candidateId)
+            && upToDate(lastLogIdx, lastLogTerm)) {
+            state.votedFor = candidateId;
+            return {state.currentTerm, true};
+        }
+        return {state.currentTerm, false};
+    }
 
-    void init() override {throw; }
+    void leave() override;
+
+    void init() override;
 
 private:
+    boost::upgrade_mutex currentTermM;
 
 
 }; // class ServerIdentityFollower

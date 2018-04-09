@@ -43,7 +43,7 @@ protected:
 protected:
     // TODO: upToDate: check whether the given RPC info is up to date.
     bool upToDate(std::size_t lastLogIdx, Term lastLogTerm) const {
-        throw ;
+        return true;
     }
 
     std::pair<Term /*current term*/, bool /*success*/>

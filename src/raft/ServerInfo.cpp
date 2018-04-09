@@ -4,7 +4,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 bool quintet::operator==(const quintet::ServerId &lhs, const quintet::ServerId &rhs) {
-    return std::tie(lhs.addr, lhs.port) != std::tie(rhs.addr, lhs.port);
+    return std::tie(lhs.addr, lhs.port) == std::tie(rhs.addr, rhs.port);
 }
 
 GEN_NOT_EQUAL(quintet::ServerId);

@@ -5,26 +5,41 @@
 #include <vector>
 #include <string>
 
+#include "Identity/IdentityTestHelper.h"
+
 BOOST_AUTO_TEST_SUITE(Identity)
-
-struct ServerFixture {
-    std::vector<std::unique_ptr<quintet::Server>> makeServers() {
-        std::vector<std::unique_ptr<quintet::Server>> res;
-        for (int i = 0; i < 5; ++i) {
-            auto tmp = std::make_unique<quintet::Server>();
-            tmp->init(std::string(CMAKE_SOURCE_DIR) + "/test/RaftConfig" + std::to_string(i) + ".json");
-            res.emplace_back(std::move(tmp));
-        }
-        return res;
-    };
-};
-
-BOOST_FIXTURE_TEST_SUITE(Candidate, ServerFixture)
+BOOST_FIXTURE_TEST_SUITE(Candidate, quintet::test::IdentityTestHelper)
 
 BOOST_AUTO_TEST_CASE(Election) {
-    auto srvs = makeServers();
-    for (auto && srv : srvs)
-        srv->run();
+    BOOST_TEST_MESSAGE("Test::Identity::Candidate::Election");
+    using No = quintet::ServerIdentityNo;
+
+    const std::size_t SrvNum = 3;
+    auto srvs = makeServers(SrvNum);
+    const auto ElectionTimeout = srvs.front()->getElectionTimeout();
+
+    std::atomic<int> candidate2Follower{0}, candidate2Leader{0};
+    for (auto & srv : srvs) {
+        srv->setOnTransform([&](No from, No to) {
+            if (from == No::Down)
+                return to;
+            if (from == No::Candidate && to == No::Leader) {
+                ++candidate2Leader;
+                return No::Down;
+            }
+            if (from == No::Candidate && to == No::Follower) {
+                ++candidate2Follower;
+                return No::Down;
+            }
+            if (from == No::Candidate && to == No::Candidate)
+                return No::Candidate;
+            throw ;
+        });
+        srv->setIdentity_test(No::Candidate);
+    }
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 30));
+    BOOST_REQUIRE_EQUAL(candidate2Leader, 1);
+    BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

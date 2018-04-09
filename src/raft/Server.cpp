@@ -39,11 +39,16 @@ void quintet::Server::initService() {
                                 std::size_t lastLogIdx, Term lastLogTerm) {
                                 return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
                             });
+    service.rpcService.async_run();
 
     service.logger.set("./", info.local.addr + "_" + std::to_string(info.local.port));
 }
 
 void quintet::Server::transform(quintet::ServerIdentityNo to) {
+#ifdef IDENTITY_TEST
+    transform_test(to);
+    return;
+#endif
     auto from = currentIdentity;
     currentIdentity = to;
 
@@ -64,4 +69,21 @@ void quintet::Server::transform(quintet::ServerIdentityNo to) {
 
 void quintet::Server::refreshState() {
     state.votedFor = NullServerId;
+}
+
+std::pair<quintet::Term, bool>
+quintet::Server::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId, std::size_t lastLogIdx,
+                                quintet::Term lastLogTerm) {
+    if (currentIdentity == ServerIdentityNo::Down)
+        return {-1, false};
+    return identities[(int)currentIdentity]->RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
+}
+
+std::pair<quintet::Term, bool>
+quintet::Server::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId, std::size_t prevLogIdx,
+                                  quintet::Term prevLogTerm, std::vector<quintet::LogEntry> logEntries,
+                                  std::size_t commitIdx) {
+    return identities[(int)currentIdentity]->RPCAppendEntries(
+            term, leaderId, prevLogIdx, prevLogTerm,
+            std::move(logEntries), commitIdx);
 }

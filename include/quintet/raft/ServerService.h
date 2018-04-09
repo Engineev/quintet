@@ -24,6 +24,7 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/thread.hpp>
+#include <boost/chrono.hpp>
 
 #include <rpc/server.h>
 #include <rpc/client.h>
@@ -55,7 +56,7 @@ public:
     // trying to trigger another transformation will fail since
     // they can not lock the mutex. Since try_lock() is adopted,
     // they will also exit immediately.
-    void transform(ServerIdentityNo target);
+    bool transform(ServerIdentityNo target);
 
 private:
     std::function<void(ServerIdentityNo /*target*/,
@@ -117,19 +118,22 @@ public:
     /// The client created will be packed with the boost::future returned so
     /// that it will not be destroyed prematurely.
     template <typename... Args>
-    FutureWrapper<RPCLIB_MSGPACK::object_handle>
+    [[deprecated]] FutureWrapper<RPCLIB_MSGPACK::object_handle>
         async_call(const std::string & addr, Port port, std::string const &func_name, Args... args) {
         auto c = std::make_unique<rpc::client>(addr, port);
+        c->set_timeout(timeOut);
         auto fut = c->async_call(func_name, std::move(args)...);
         return {toBoostFuture(std::move(fut)), std::move(c)};
     }
 
     template <typename... Args>
-    RPCLIB_MSGPACK::object_handle call(
+    [[deprecated]] RPCLIB_MSGPACK::object_handle call(
             const std::string & addr, Port port,
             std::string const &func_name, Args... args) {
         return async_call(addr, port, func_name, std::move(args)...).get();
     }
+
+    [[deprecated]] void setTimeout(std::int64_t value);
 
 private:
     std::unique_ptr<rpc::server> srv;
@@ -138,6 +142,8 @@ private:
     bool paused = false;
     std::mutex pausing;
     std::condition_variable cv;
+
+    std::int64_t timeOut = std::numeric_limits<std::int64_t>::max();
 
 private:
 
@@ -174,6 +180,8 @@ public:
     void log(const Args&... args) {
 #ifdef LOGGING
         std::lock_guard<std::mutex> lk(logging);
+        fout << boost::chrono::time_point_cast<boost::chrono::milliseconds>(
+                boost::chrono::steady_clock::now()) << ": ";
         fout << id << ": ";
         log_impl(args...);
 #endif
@@ -221,6 +229,8 @@ public:
     ///
     /// TODO: test: oneShot
     void oneShot(std::function<void()> f, std::uint64_t periodMs);
+
+    void resetOneShots();
 
     void stop();
 
