@@ -8,13 +8,12 @@
  */
 
 #include <vector>
+#include <utility>
 
 #include "raft/RaftDefs.h"
 #include "raft/ServerInfo.h"
 
 namespace quintet {
-
-// TODO: thread-safe ??
 
 struct ServerState {
     // update currentTerm at Server::init() ??
@@ -28,6 +27,35 @@ struct ServerState {
     std::vector<Index> nextIndex;
     std::vector<Index> matchIndex;
 }; // struct ServerState
+
+} // namespace quintet
+
+namespace quintet {
+
+/* TODO: Why only non-member functions are provided?
+ *
+ */
+
+/// \brief check whether the log provided is at least up-to-date
+/// to the local logs.
+///
+/// \tparam Lock       The external lock on the entries.
+/// \param entries     The local log entries.
+/// \param lastLogIdx
+/// \param lastLogTerm
+/// \return whether the log is at least up-to-date
+template <class Lock>
+bool upToDate(std::pair<const std::vector<LogEntry>&, Lock&> entries,
+              std::size_t lastLogIdx, Term lastLogTerm) {
+    if (entries.first.empty())
+        return true;
+    if (entries.first.back().term < lastLogTerm)
+        return true;
+    if (entries.first.back().term == lastLogTerm && entries.first.size() <= lastLogIdx)
+        return true;
+    return false;
+}
+
 
 } // namespace quintet
 
