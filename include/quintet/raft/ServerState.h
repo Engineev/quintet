@@ -7,8 +7,8 @@
  *  See Figure 2 of the paper for reference
  */
 
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "raft/RaftDefs.h"
 #include "raft/ServerInfo.h"
@@ -17,8 +17,8 @@ namespace quintet {
 
 struct ServerState {
     // update currentTerm at Server::init() ??
-    Term                  currentTerm;
-    ServerId              votedFor = NullServerId;
+    Term currentTerm;
+    ServerId votedFor = NullServerId;
     std::vector<LogEntry> entries;
 
     Index commitIndex;
@@ -45,19 +45,17 @@ namespace quintet {
 /// \param lastLogTerm
 /// \return whether the log is at least up-to-date
 template <class Lock>
-bool upToDate(std::pair<const std::vector<LogEntry>&, Lock&> entries,
+bool upToDate(std::pair<const std::vector<LogEntry> &, Lock &> entries,
               std::size_t lastLogIdx, Term lastLogTerm) {
-    if (entries.first.empty())
-        return true;
-    if (entries.first.back().term < lastLogTerm)
-        return true;
-    if (entries.first.back().term == lastLogTerm && entries.first.size() <= lastLogIdx)
+    if (entries.first.empty()) return true;
+    if (entries.first.back().term < lastLogTerm) return true;
+    if (entries.first.back().term == lastLogTerm &&
+        entries.first.size() - 1 <= lastLogIdx) // candidate is up to date when
+                                                // the two log lengths are equal
         return true;
     return false;
 }
 
-
 } // namespace quintet
 
-
-#endif //QUINTET_SERVERSTATE_H
+#endif // QUINTET_SERVERSTATE_H
