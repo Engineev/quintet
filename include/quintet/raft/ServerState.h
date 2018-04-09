@@ -18,18 +18,23 @@ namespace quintet {
 
 struct ServerState {
     // update currentTerm at Server::init() ??
-    Term                  currentTerm;
-    ServerId              votedFor = NullServerId;
+    Term currentTerm;
+    ServerId votedFor = NullServerId;
     std::vector<LogEntry> entries;
 
-    Index commitIndex;
+    Index commitIdx;
     Index lastApplied;
 
     std::vector<Index> nextIndex;
     std::vector<Index> matchIndex;
+    ServerState() {
+        entries.push_back(LogEntry());
+    } // This add an empty log entry to the entries, in order to make the
+      // entries's init size to be 1, and make it consistent of commitIdx with
+      // the init size of entries - 1
+
 }; // struct ServerState
 
 } // namespace quintet
 
-
-#endif //QUINTET_SERVERSTATE_H
+#endif // QUINTET_SERVERSTATE_H
