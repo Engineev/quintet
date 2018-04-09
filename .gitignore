@@ -4,3 +4,5 @@ cmake-build-*/
 build*/
 .vscode/
 DevLog.txt
+.clang-format
+CMakeSettings.json
