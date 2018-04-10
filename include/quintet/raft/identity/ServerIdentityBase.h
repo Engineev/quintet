@@ -9,9 +9,9 @@
 namespace quintet {
 
 class ServerIdentityBase {
-   public:
-    ServerIdentityBase(ServerState& state_, ServerInfo& info_,
-                       ServerService& service_);
+  public:
+    ServerIdentityBase(ServerState &state_, ServerInfo &info_,
+                       ServerService &service_);
 
     virtual ~ServerIdentityBase() = default;
 
@@ -21,9 +21,10 @@ class ServerIdentityBase {
     // reference: Effective C++, 3rd edition, Term 34
     // Caution: the default version is non-synchronized
 
-    virtual std::pair<Term /*current term*/, bool /*success*/> RPCAppendEntries(
-        Term term, ServerId leaderId, std::size_t prevLogIdx, Term prevLogTerm,
-        std::vector<LogEntry> logEntries, std::size_t commitIdx) = 0;
+    virtual std::pair<Term /*current term*/, bool /*success*/>
+    RPCAppendEntries(Term term, ServerId leaderId, std::size_t prevLogIdx,
+                     Term prevLogTerm, std::vector<LogEntry> logEntries,
+                     std::size_t commitIdx) = 0;
 
     virtual std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId, std::size_t lastLogIdx,
@@ -33,41 +34,44 @@ class ServerIdentityBase {
 
     virtual void init() { throw; }
 
-   protected:
-    ServerState& state;
-    ServerService& service;
-    const ServerInfo& info;
+  protected:
+    ServerState &state;
+    ServerService &service;
+    const ServerInfo &info;
     boost::upgrade_mutex entriesM;
 
-   protected:
+  protected:
     // TODO: upToDate: check whether the given RPC info is up to date.
-    // should some how change to lockable
-    bool upToDate(std::size_t lastLogIdx, Term lastLogTerm) const {
-        return true;
-    }
+    // This is implemented in ServerState.h
+    // bool upToDate(std::size_t lastLogIdx, Term lastLogTerm) const {
+    //     return true;
+    // }
 
-    std::pair<Term /*current term*/, bool /*success*/> defaultRPCAppendEntries(
-        Term term, ServerId leaderId,  // TODO
-        std::size_t prevLogIdx, Term prevLogTerm,
-        std::vector<LogEntry> logEntries, std::size_t commitIdx) {
+    std::pair<Term /*current term*/, bool /*success*/>
+    defaultRPCAppendEntries(Term term, ServerId leaderId, // TODO
+                            std::size_t prevLogIdx, Term prevLogTerm,
+                            std::vector<LogEntry> logEntries,
+                            std::size_t commitIdx) {
         throw;
     }
 
     std::pair<Term /*current term*/, bool /*vote granted*/>
     defaultRPCRequestVote(Term term, ServerId candidateId,
                           std::size_t lastLogIdx, Term lastLogTerm) {
-        if (term < state.currentTerm) return {state.currentTerm, false};
+        throw;
+        // if (term < state.currentTerm) return {state.currentTerm, false};
 
-        if ((state.votedFor == NullServerId || state.votedFor == candidateId) &&
-            upToDate(lastLogIdx, lastLogTerm)) {
-            return {state.currentTerm, true};
-        }
+        // if ((state.votedFor == NullServerId || state.votedFor == candidateId)
+        // &&
+        //     upToDate(lastLogIdx, lastLogTerm)) {
+        //     return {state.currentTerm, true};
+        // }
 
-        return {state.currentTerm, false};
+        // return {state.currentTerm, false};
     }
 
-};  // class ServerIdentityBase
+}; // class ServerIdentityBase
 
-}  // namespace quintet
+} // namespace quintet
 
-#endif  // QUINTET_SERVERIDENTITYBASE_H
+#endif // QUINTET_SERVERIDENTITYBASE_H

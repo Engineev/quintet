@@ -90,9 +90,9 @@ ServerIdentityFollower::RPCRequestVote(Term term, ServerId candidateId,
     updateCurrentTerm(term);
     boost::shared_lock<boost::shared_mutex> readCurrentTermLk(currentTermM);
     if (term < state.currentTerm) return {state.currentTerm, false};
-
+    boost::shared_lock<boost::shared_mutex> readEntriesLk(entriesM);
     if ((state.votedFor == NullServerId || state.votedFor == candidateId) &&
-        upToDate(lastLogIdx, lastLogTerm)) {
+        upToDate({state.entries, readEntriesLk}, lastLogIdx, lastLogTerm)) {
         state.votedFor = candidateId;
         return {state.currentTerm, true};
     }
