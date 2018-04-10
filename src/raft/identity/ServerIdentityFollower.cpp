@@ -38,18 +38,11 @@ ServerIdentityFollower::RPCAppendEntries(Term term, ServerId leaderId,
                                          std::vector<LogEntry> logEntries,
                                          std::size_t commitIdx) {
     // TODO
-
-    bool success = false;
+    updateCurrentTerm(term);
     boost::shared_lock<boost::shared_mutex> readCurrentTermLk(currentTermM);
 
     if (term < state.currentTerm) {
         return {state.currentTerm, false};
-    }
-    if (term > state.currentTerm) {
-        readCurrentTermLk.unlock();
-        boost::unique_lock<boost::shared_mutex> writeCurrentTermLk(
-            currentTermM);
-        state.currentTerm = term;
     }
 
     resetHeartBeat();
@@ -88,21 +81,15 @@ ServerIdentityFollower::RPCAppendEntries(Term term, ServerId leaderId,
     }
 
     return {state.currentTerm, true};
-} // namespace quintet
+}
 
 std::pair<Term /*current term*/, bool /*vote granted*/>
 ServerIdentityFollower::RPCRequestVote(Term term, ServerId candidateId,
                                        std::size_t lastLogIdx,
                                        Term lastLogTerm) {
+    updateCurrentTerm(term);
     boost::shared_lock<boost::shared_mutex> readCurrentTermLk(currentTermM);
-
     if (term < state.currentTerm) return {state.currentTerm, false};
-    if (term > state.currentTerm) {
-        readCurrentTermLk.unlock();
-        boost::unique_lock<boost::shared_mutex> writeCurrentTermLk(
-            currentTermM);
-        state.currentTerm = term;
-    }
 
     if ((state.votedFor == NullServerId || state.votedFor == candidateId) &&
         upToDate(lastLogIdx, lastLogTerm)) {
@@ -112,6 +99,7 @@ ServerIdentityFollower::RPCRequestVote(Term term, ServerId candidateId,
     return {state.currentTerm, false};
 }
 
+// Private
 void ServerIdentityFollower::resetHeartBeat() {
     // Restart heart beat time
     service.heartBeatController.resetOneShots();
@@ -120,5 +108,12 @@ void ServerIdentityFollower::resetHeartBeat() {
             service.identityTransformer.transform(ServerIdentityNo::Candidate);
         },
         electionTimeout);
+}
+
+void ServerIdentityFollower::updateCurrentTerm(Term term) {
+    boost::unique_lock<boost::shared_mutex> writeCurrentTermLk(currentTermM);
+    if (term > state.currentTerm) {
+        state.currentTerm = term;
+    }
 }
 } // namespace quintet

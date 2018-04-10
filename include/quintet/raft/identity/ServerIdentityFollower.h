@@ -41,6 +41,7 @@ class ServerIdentityFollower : public ServerIdentityBase {
 
     void resetHeartBeat();
 
+    void updateCurrentTerm(Term term);
 }; // class ServerIdentityFollower
 
 } // namespace quintet
