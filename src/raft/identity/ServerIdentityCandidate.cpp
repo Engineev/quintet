@@ -96,7 +96,7 @@ quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::Se
     }
 
     if ((state.votedFor == NullServerId || state.votedFor == candidateId)
-        && upToDate(lastLogIdx, lastLogTerm)) {
+        && upToDate(state, lastLogIdx, lastLogTerm)) {
         state.votedFor = candidateId;
         return {state.currentTerm, true};
     }
