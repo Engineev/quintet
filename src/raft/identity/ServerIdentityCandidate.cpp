@@ -37,7 +37,8 @@ void quintet::ServerIdentityCandidate::init() {
             electionTimeout);
 
     data = std::make_shared<ElectionData>();
-    requestVotes(state.currentTerm);
+    requestVotes(state.currentTerm, info.local,
+                 state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term);
 }
 
 std::pair<quintet::Term, bool>
@@ -45,31 +46,31 @@ quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::Se
                                                  std::size_t lastLogIdx, quintet::Term lastLogTerm) {
     boost::lock_guard<ServerState> lk(state);
 
-    auto log = service.logger.makeLog();
-    log.add("RPCRequestVote\n\tIdentity = Candidate\n\tterm = ", term,
+    auto log = service.logger.makeLog("RPCRequestVote");
+    log.add("Identity = Candidate\n\tterm = ", term,
             ", from = ", candidateId, "\n\tcurrentTerm = ", state.currentTerm);
 
     if (term < state.currentTerm) {
-        log.add("\n\tresult = false. (term < currentTerm)");
+        log.add("result = false. (term < currentTerm)");
         return {state.currentTerm, false};
     }
     if (term > state.currentTerm) {
         state.votedFor = NullServerId;
         state.currentTerm = term;
-        log.add("\n\tterm > currentTerm, voteFor <- null");
+        log.add("term > currentTerm, voteFor <- null");
     }
 
     if ((state.votedFor == NullServerId || state.votedFor == candidateId)
         && upToDate(state, lastLogIdx, lastLogTerm)) {
-        log.add("\n\tresult = true");
+        log.add("result = true");
         state.votedFor = candidateId;
         return {state.currentTerm, true};
     }
 
     if (state.votedFor != NullServerId && state.votedFor != candidateId)
-        log.add("\n\tresult = false (voted)");
+        log.add("result = false (voted)");
     else
-        log.add("\n\tresult = false (not up-to-date)");
+        log.add("result = false (not up-to-date)");
     return {state.currentTerm, false};
 }
 
@@ -89,33 +90,32 @@ quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::
 
 
 
-void quintet::ServerIdentityCandidate::requestVotes(Term electionTerm) {
+void quintet::ServerIdentityCandidate::requestVotes(
+        Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm) {
     service.logger("Candidate::requestVotes");
 
     for (auto & srv : info.srvList) {
         if (srv == info.local)
             continue;
 
-        boost::thread([this, data = this->data, &srv, electionTerm] () mutable {
+        boost::thread([this, data = this->data, &srv,
+                           currentTerm, local, lastLogIdx, lastLogTerm] () mutable {
             service.logger("send RPCRequestVote to ", srv);
             rpc::client c(srv.addr, srv.port);
-
 
             Term termReceived;
             bool res;
             try {
                 // TODO: call RPCRequestVote
                 std::tie(termReceived, res) = c.call("RequestVote",
-                                                     state.currentTerm, info.local,
-                                                     state.entries.size() - 1,
-                                                     state.entries.empty() ? InvalidTerm : state.entries.back().term)
+                                                     currentTerm, local, lastLogIdx, lastLogTerm)
                         .as<std::pair<Term, bool>>();
             } catch (rpc::timeout & t) {
                 service.logger(srv, " TLE");
                 return;
             }
             service.logger("Vote result from ", srv, " = ", "(result: " , res, ", term: ", termReceived);
-            if (termReceived != electionTerm || !res)
+            if (termReceived != currentTerm || !res)
                 return;
 
             boost::lock_guard<boost::mutex> lk(data->m);
@@ -126,7 +126,7 @@ void quintet::ServerIdentityCandidate::requestVotes(Term electionTerm) {
             if (data->votesReceived > info.srvList.size() / 2) {
                 if (service.identityTransformer.transform(ServerIdentityNo::Leader)) {
 #ifdef IDENTITY_TEST
-                    notifyReign();
+                    notifyReign(currentTerm);
 #endif
                 }
             }

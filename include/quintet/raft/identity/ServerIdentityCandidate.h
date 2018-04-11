@@ -25,7 +25,7 @@ public:
     std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,
                      std::size_t prevLogIdx, Term prevLogTerm,
-                     std::vector<LogEntry> logEntries, std::size_t commitIdx) override;;
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx) override;
 
     std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId,
@@ -70,20 +70,17 @@ private:
 private:
     /// \brief Send RPCRequestVotes to other servers and
     ///        count the votes
-    ///
-    /// \param electionTerm The term at which this election started
-    void requestVotes(Term electionTerm);
+    void requestVotes(Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm);
 
 #ifdef IDENTITY_TEST
     /// \brief Notify the other servers the end of the election
-    void notifyReign() {
+    void notifyReign(Term currentTerm) {
         for (auto & srv : info.srvList) {
             if (srv == info.local)
                 continue;
-            boost::thread([srv, this] {
+            boost::thread([srv, currentTerm, this] {
                 rpc::client c(srv.addr, srv.port);
-                // TODO: call -> send ??
-                c.call("AppendEntries", 0, ServerId(), 0, 0, std::vector<LogEntry>(), 0);
+                c.call("AppendEntries", currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0);
                 service.logger("Shutdown ", srv);
             }).detach();
         }

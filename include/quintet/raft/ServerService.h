@@ -206,7 +206,7 @@ class Logger {
     class Log {
     public:
         ~Log() {
-            ss << "\nend\n";
+            ss << "\nend";
             logger.log_impl(std::string(std::istreambuf_iterator<char>(ss), {}));
         }
 
@@ -222,10 +222,11 @@ class Logger {
 
     private:
         friend class Logger;
-        explicit Log(Logger & logger) : logger(logger), ss(std::stringstream()) {
+        explicit Log(Logger & logger, const std::string & init)
+                : logger(logger), ss(std::stringstream()) {
             ss << boost::chrono::time_point_cast<boost::chrono::milliseconds>(
                     boost::chrono::steady_clock::now()) << ": ";
-            ss << logger.id << ": ";
+            ss << logger.id << ": " << init;;
         }
 
         void add_impl() {}
@@ -241,8 +242,8 @@ class Logger {
         std::stringstream ss;
     };
 
-    Log makeLog() {
-        return Log(*this);
+    Log makeLog(std::string init = "") {
+        return Log(*this, init);
     }
 
 private:
