@@ -12,37 +12,36 @@
  *    - Committer
  */
 
+#include <condition_variable>
+#include <fstream>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
-#include <functional>
-#include <memory>
-#include <condition_variable>
-#include <fstream>
 
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/thread.hpp>
 #include <boost/chrono.hpp>
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/thread.hpp>
 
-#include <rpc/server.h>
 #include <rpc/client.h>
+#include <rpc/server.h>
 
-#include "raft/RaftDefs.h"
-#include "Utility.h"
 #include "Future.h"
-
+#include "Utility.h"
+#include "raft/RaftDefs.h"
 
 // forward declaration
-namespace quintet { struct ServerService;  }
-
+namespace quintet {
+struct ServerService;
+}
 
 // IdentityTransformer
 namespace quintet {
 
 class IdentityTransformer {
-public:
+  public:
     void bind(std::function<void(ServerIdentityNo)> transform);
 
     // Implementation detail:
@@ -58,9 +57,10 @@ public:
     // they will also exit immediately.
     bool transform(ServerIdentityNo target);
 
-private:
+  private:
     std::function<void(ServerIdentityNo /*target*/,
-                       std::unique_lock<std::mutex> &&)> transform_;
+                       std::unique_lock<std::mutex> &&)>
+        transform_;
     std::mutex transforming;
 };
 
@@ -70,7 +70,7 @@ private:
 namespace quintet {
 
 class RpcService {
-public:
+  public:
     /// \brief Change the port to listen on to the given one.
     /// The original server will be stopped first and the
     /// functors bound previously will become invalid.
@@ -78,11 +78,9 @@ public:
     /// \param port the port to listen on.
     void listen(Port port);
 
-
     void async_run(std::size_t worker = 1);
 
-    template <class Func>
-    RpcService& bind(const std::string & name, Func f) {
+    template <class Func> RpcService &bind(const std::string &name, Func f) {
         bind_impl(name, f, &Func::operator());
         return *this;
     }
@@ -119,7 +117,8 @@ public:
     /// that it will not be destroyed prematurely.
     template <typename... Args>
     [[deprecated]] FutureWrapper<RPCLIB_MSGPACK::object_handle>
-        async_call(const std::string & addr, Port port, std::string const &func_name, Args... args) {
+    async_call(const std::string &addr, Port port, std::string const &func_name,
+               Args... args) {
         auto c = std::make_unique<rpc::client>(addr, port);
         c->set_timeout(timeOut);
         auto fut = c->async_call(func_name, std::move(args)...);
@@ -127,15 +126,15 @@ public:
     }
 
     template <typename... Args>
-    [[deprecated]] RPCLIB_MSGPACK::object_handle call(
-            const std::string & addr, Port port,
-            std::string const &func_name, Args... args) {
+    [[deprecated]] RPCLIB_MSGPACK::object_handle
+    call(const std::string &addr, Port port, std::string const &func_name,
+         Args... args) {
         return async_call(addr, port, func_name, std::move(args)...).get();
     }
 
     [[deprecated]] void setTimeout(std::int64_t value);
 
-private:
+  private:
     std::unique_ptr<rpc::server> srv;
 
     boost::shared_mutex rpcing;
@@ -145,14 +144,15 @@ private:
 
     std::int64_t timeOut = std::numeric_limits<std::int64_t>::max();
 
-private:
-
+  private:
     template <class Func, class Closure, class Ret, class... Args>
-    void bind_impl(const std::string & name, Func rawF, Ret(Closure::*)(Args...) const) {
+    void bind_impl(const std::string &name, Func rawF,
+                   Ret (Closure::*)(Args...) const) {
         srv->bind(name, [rawF, this](Args... args) -> Ret {
             std::unique_lock<std::mutex> pauseLk(pausing);
-            cv.wait(pauseLk, [&] { return !paused;});
-            boost::shared_lock<boost::shared_mutex> rpcLk(rpcing); // acquire this lock before releasing pauseLk !!
+            cv.wait(pauseLk, [&] { return !paused; });
+            boost::shared_lock<boost::shared_mutex> rpcLk(
+                rpcing); // acquire this lock before releasing pauseLk !!
             pauseLk.unlock();
             return rawF(std::move(args)...);
         });
@@ -167,7 +167,7 @@ private:
 namespace quintet {
 
 class Logger {
-public:
+  public:
     Logger() = default;
 
     Logger(std::string dir, std::string id);
@@ -176,32 +176,31 @@ public:
 
     void set(std::string dir_, std::string id_);
 
-    template <class... Args>
-    void log(const Args&... args) {
+    template <class... Args> void log(const Args &... args) {
 #ifdef LOGGING
         std::lock_guard<std::mutex> lk(logging);
         fout << boost::chrono::time_point_cast<boost::chrono::milliseconds>(
-                boost::chrono::steady_clock::now()) << ": ";
+                    boost::chrono::steady_clock::now())
+             << ": ";
         fout << id << ": ";
         log_impl(args...);
 #endif
     }
 
-    template <class... Args>
-    void operator()(const Args&... args) {
+    template <class... Args> void operator()(const Args &... args) {
         log(args...);
     }
 
-private:
-    std::mutex    logging;
-    std::string   dir;
-    std::string   id;
+  private:
+    std::mutex logging;
+    std::string dir;
+    std::string id;
     std::ofstream fout;
 
     void log_impl();
 
     template <class T, class... Args>
-    void log_impl(const T & x, const Args&... args) {
+    void log_impl(const T &x, const Args &... args) {
         fout << x;
         log_impl(args...);
     };
@@ -213,7 +212,7 @@ private:
 namespace quintet {
 
 class HeartBeatController {
-public:
+  public:
     HeartBeatController() = default;
 
     HeartBeatController(std::function<void()> f, std::uint64_t periodMs);
@@ -234,13 +233,13 @@ public:
 
     void stop();
 
-private:
+  private:
     std::function<void()> heartBeat;
-    std::uint64_t         periodMs = 0;
-    std::atomic<bool>     running{false};
-    boost::thread         beat;
+    std::uint64_t periodMs = 0;
+    std::atomic<bool> running{false};
+    boost::thread beat;
 
-    std::mutex                 launching;
+    std::mutex launching;
     std::vector<boost::thread> oneShots;
 
     void run();
@@ -253,10 +252,8 @@ private:
 namespace quintet {
 
 class Committer {
-public:
-
-    void commit(LogEntry log) {throw ;} // TODO
-
+  public:
+    void commit(LogEntry log) { throw; } // TODO
 };
 
 } /* namespace quintet */
@@ -266,11 +263,12 @@ namespace quintet {
 
 struct ServerService {
     IdentityTransformer identityTransformer;
-    RpcService          rpcService;
-    Logger              logger;
+    RpcService rpcService;
+    Logger logger;
     HeartBeatController heartBeatController;
+    Committer committer;
 }; // class ServerService
 
 } // namespace quintet
 
-#endif //QUINTET_SERVERSERVICE_H
+#endif // QUINTET_SERVERSERVICE_H
