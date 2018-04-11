@@ -19,6 +19,11 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <functional>
+#include <memory>
+#include <condition_variable>
+#include <fstream>
+#include <stdexcept>
 
 #include <boost/chrono.hpp>
 #include <boost/thread/condition_variable.hpp>
@@ -44,6 +49,12 @@ class IdentityTransformer {
   public:
     void bind(std::function<void(ServerIdentityNo)> transform);
 
+
+    /// \breif trigger a transformation
+    ///
+    /// \param  target the identity to transform to
+    /// \return succeeded ?
+    bool transform(ServerIdentityNo target);
     // Implementation detail:
     // There is no possibility that two identity transformations
     // will be executed during the same identity period since
@@ -55,7 +66,6 @@ class IdentityTransformer {
     // trying to trigger another transformation will fail since
     // they can not lock the mutex. Since try_lock() is adopted,
     // they will also exit immediately.
-    bool transform(ServerIdentityNo target);
 
   private:
     std::function<void(ServerIdentityNo /*target*/,
