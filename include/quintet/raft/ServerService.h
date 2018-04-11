@@ -24,6 +24,7 @@
 #include <condition_variable>
 #include <fstream>
 #include <stdexcept>
+#include <sstream>
 
 #include <boost/chrono.hpp>
 #include <boost/thread/condition_variable.hpp>
@@ -201,10 +202,49 @@ class Logger {
         log(args...);
     }
 
-  private:
-    std::mutex logging;
-    std::string dir;
-    std::string id;
+    friend class Log;
+    class Log {
+    public:
+        ~Log() {
+            ss << "\nend\n";
+            logger.log_impl(std::string(std::istreambuf_iterator<char>(ss), {}));
+        }
+
+        template <class... Args>
+        void add(const Args&... args) {
+            ss << "\n\t";
+            add_impl(args...);
+        }
+
+    private:
+        friend class Logger;
+        explicit Log(Logger & logger) : logger(logger) {
+            ss << boost::chrono::time_point_cast<boost::chrono::milliseconds>(
+                    boost::chrono::steady_clock::now()) << ": ";
+            ss << logger.id << ": ";
+        }
+
+        void add_impl() {}
+
+        template <class T, class... Args>
+        void add_impl(const T & x, const Args&... args) {
+            ss << x;
+            add_impl(args...);
+        };
+
+    private:
+        std::stringstream ss;
+        Logger & logger;
+    };
+
+    Log makeLog() {
+        return Log(*this);
+    }
+
+private:
+    std::mutex    logging;
+    std::string   dir;
+    std::string   id;
     std::ofstream fout;
 
     void log_impl();
