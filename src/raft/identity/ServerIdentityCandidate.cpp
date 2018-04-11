@@ -1,51 +1,13 @@
 #include "ServerIdentityCandidate.h"
 
+#include <boost/thread/lock_guard.hpp>
+
 #include <rpc/client.h>
+#include <rpc/rpc_error.h>
 
 quintet::ServerIdentityCandidate::ServerIdentityCandidate(quintet::ServerState &state_, quintet::ServerInfo &info_,
                                                           quintet::ServerService &service_)
         : ServerIdentityBase(state_, info_, service_) {}
-
-std::vector<quintet::FutureWrapper<clmdep_msgpack::object_handle>> quintet::ServerIdentityCandidate::sendRequests() {
-    std::vector<FutureWrapper<RPCLIB_MSGPACK::object_handle>> res;
-    for (auto && srv : info.srvList) {
-        if (srv == info.local)
-            continue;
-        service.logger("send RPCRequestVote to ", srv);
-
-
-        res.emplace_back(service.rpcService.async_call(
-                srv.addr, srv.port, "RequestVote",
-                state.currentTerm, info.local,
-                state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term
-        ));
-    }
-    return res;
-}
-
-void quintet::ServerIdentityCandidate::launchVotesChecker(
-        std::vector<quintet::FutureWrapper<RPCLIB_MSGPACK::object_handle>> &&votes) {
-    for (auto && vote : votes) {
-        // capture data by value !!
-        vote.then([this, data = this->data](boost::future<RPCLIB_MSGPACK::object_handle> fut) mutable {
-            Term termReceived;
-            bool res;
-            std::tie(termReceived, res) = fut.get().as<std::pair<Term, bool>>();
-
-            service.logger("Vote result = ", res);
-
-            // TODO: when larger term is received ...
-
-            boost::lock_guard<boost::mutex> lk(data->m);
-            if (data->discarded)
-                return;
-            data->votesReceived += res;
-            // It is guaranteed that only one transformation will be carried out.
-            if (data->votesReceived > info.srvList.size())
-                service.identityTransformer.transform(ServerIdentityNo::Leader);
-        });
-    }
-}
 
 void quintet::ServerIdentityCandidate::leave() {
     boost::unique_lock<boost::mutex> lk(data->m);
@@ -53,7 +15,7 @@ void quintet::ServerIdentityCandidate::leave() {
     data->discarded = true;
     // Unlock before setting m to nullptr, otherwise it
     // may happen that this thread is the last thread
-    // which hold m and set m to nullptr will destroy
+    // which hold m and set data to nullptr will destroy
     // the mutex before unlocking it.
     lk.unlock();
     data = nullptr;
@@ -75,78 +37,96 @@ void quintet::ServerIdentityCandidate::init() {
             electionTimeout);
 
     data = std::make_shared<ElectionData>();
-//    launchVotesChecker(sendRequests());
-    requestVotes();
+    requestVotes(state.currentTerm);
 }
 
 std::pair<quintet::Term, bool>
 quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId,
                                                  std::size_t lastLogIdx, quintet::Term lastLogTerm) {
-    boost::upgrade_lock<boost::upgrade_mutex> lk(currentTermM);
+    boost::lock_guard<ServerState> lk(state);
 
-    service.logger("\n\tIdentity = Candidate\n\tterm = ", term,
-        ", from = ", candidateId, "\n\tcurrentTerm = ", state.currentTerm);
+    auto log = service.logger.makeLog();
+    log.add("RPCRequestVote\n\tIdentity = Candidate\n\tterm = ", term,
+            ", from = ", candidateId, "\n\tcurrentTerm = ", state.currentTerm);
 
-    if (term < state.currentTerm)
+    if (term < state.currentTerm) {
+        log.add("\n\tresult = false. (term < currentTerm)");
         return {state.currentTerm, false};
+    }
     if (term > state.currentTerm) {
-        auto ulk = boost::upgrade_to_unique_lock<boost::upgrade_mutex>(lk);
         state.votedFor = NullServerId;
         state.currentTerm = term;
+        log.add("\n\tterm > currentTerm, voteFor <- null");
     }
 
     if ((state.votedFor == NullServerId || state.votedFor == candidateId)
         && upToDate(state, lastLogIdx, lastLogTerm)) {
+        log.add("\n\tresult = true");
         state.votedFor = candidateId;
         return {state.currentTerm, true};
+    }
+
+    if (state.votedFor != NullServerId && state.votedFor != candidateId)
+        log.add("\n\tresult = false (voted)");
+    else
+        log.add("\n\tresult = false (not up-to-date)");
+    return {state.currentTerm, false};
+}
+
+std::pair<quintet::Term, bool>
+quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId,
+                                                   std::size_t prevLogIdx, quintet::Term prevLogTerm,
+                                                   std::vector<quintet::LogEntry> logEntries, std::size_t commitIdx) {
+    service.logger("Candidate:AppendEntries from ", leaderId);
+    boost::lock_guard<ServerState> lk(state);
+    if (term >= state.currentTerm) {
+        state.currentTerm = term;
+        service.identityTransformer.transform(ServerIdentityNo::Follower);
+        return {state.currentTerm, false};
     }
     return {state.currentTerm, false};
 }
 
-void quintet::ServerIdentityCandidate::requestVotes() {
-    using Ms = boost::chrono::milliseconds;
 
+
+void quintet::ServerIdentityCandidate::requestVotes(Term electionTerm) {
     service.logger("Candidate::requestVotes");
 
     for (auto & srv : info.srvList) {
         if (srv == info.local)
             continue;
-        boost::thread([this, data = this->data, &srv] () mutable {
+
+        boost::thread([this, data = this->data, &srv, electionTerm] () mutable {
             service.logger("send RPCRequestVote to ", srv);
             rpc::client c(srv.addr, srv.port);
-            while (c.get_connection_state() != rpc::client::connection_state::connected) {
-                service.logger("trying... (", srv, ")");
-                boost::this_thread::sleep_for(Ms(1));
-            }
 
-            service.logger("connected! ", srv);
 
             Term termReceived;
             bool res;
-
-            std::tie(termReceived, res) = c.call("RequestVote",
-                                                 state.currentTerm, info.local,
-                                                 state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term)
-                    .as<std::pair<Term, bool>>();
-            service.logger("Vote result from ", srv, " = ", res);
-
-            // TODO: when larger term is received ...
+            try {
+                // TODO: call RPCRequestVote
+                std::tie(termReceived, res) = c.call("RequestVote",
+                                                     state.currentTerm, info.local,
+                                                     state.entries.size() - 1,
+                                                     state.entries.empty() ? InvalidTerm : state.entries.back().term)
+                        .as<std::pair<Term, bool>>();
+            } catch (rpc::timeout & t) {
+                service.logger(srv, " TLE");
+                return;
+            }
+            service.logger("Vote result from ", srv, " = ", "(result: " , res, ", term: ", termReceived);
+            if (termReceived != electionTerm || !res)
+                return;
 
             boost::lock_guard<boost::mutex> lk(data->m);
             if (data->discarded)
                 return;
-            data->votesReceived += res;
+            ++data->votesReceived;
             // It is guaranteed that only one transformation will be carried out.
             if (data->votesReceived > info.srvList.size() / 2) {
                 if (service.identityTransformer.transform(ServerIdentityNo::Leader)) {
 #ifdef IDENTITY_TEST
-                    for (auto & srv : info.srvList) {
-                        if (srv == info.local)
-                            continue;
-                        rpc::client c(srv.addr, srv.port);
-                        c.call("AppendEntries", 0, ServerId(), 0, 0, std::vector<LogEntry>(), 0);
-                        service.logger("Shutdown ", srv);
-                    }
+                    notifyReign();
 #endif
                 }
             }
