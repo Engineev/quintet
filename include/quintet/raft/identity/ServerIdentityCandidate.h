@@ -16,7 +16,7 @@ class ServerIdentityCandidate
 public:
     ServerIdentityCandidate(ServerState & state_,
                             ServerInfo & info_,
-                            ServerService & service_);;
+                            ServerService & service_);
 
     ~ServerIdentityCandidate() override = default;
 
