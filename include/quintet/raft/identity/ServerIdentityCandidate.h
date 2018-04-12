@@ -6,6 +6,8 @@
 #include <memory>
 #include <random>
 
+#include <boost/thread/thread.hpp>
+
 #include "ServerIdentityBase.h"
 #include "Future.h"
 
@@ -23,11 +25,7 @@ public:
     std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,
                      std::size_t prevLogIdx, Term prevLogTerm,
-                     std::vector<LogEntry> logEntries, std::size_t commitIdx) override {
-        service.logger("Candidate:AppendEntries from ", leaderId);
-        service.identityTransformer.transform(ServerIdentityNo::Follower);
-        return {0, 0};
-    };
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx) override;
 
     std::pair<Term /*current term*/, bool /*vote granted*/>
     RPCRequestVote(Term term, ServerId candidateId,
@@ -69,14 +67,26 @@ private:
 
     std::shared_ptr<ElectionData> data;
 
-    boost::upgrade_mutex currentTermM;
-
 private:
-    void requestVotes();
+    /// \brief Send RPCRequestVotes to other servers and
+    ///        count the votes
+    void requestVotes(Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm);
 
-    std::vector<FutureWrapper<RPCLIB_MSGPACK::object_handle>> sendRequests();
+#ifdef IDENTITY_TEST
+    /// \brief Notify the other servers the end of the election
+    void notifyReign(Term currentTerm) {
+        for (auto & srv : info.srvList) {
+            if (srv == info.local)
+                continue;
+            boost::thread([srv, currentTerm, this] {
+                rpc::client c(srv.addr, srv.port);
+                c.call("AppendEntries", currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0);
+                service.logger("Shutdown ", srv);
+            }).detach();
+        }
+    }
+#endif
 
-    void launchVotesChecker(std::vector<FutureWrapper<RPCLIB_MSGPACK::object_handle>> && votes);
 
 }; // class ServerIdentityCandidate
 

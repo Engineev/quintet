@@ -202,14 +202,17 @@ class Logger {
         log(args...);
     }
 
-<<<<<<< HEAD
     friend class Log;
     class Log {
     public:
         ~Log() {
-            ss << "\nend\n";
+            ss << "\nend";
             logger.log_impl(std::string(std::istreambuf_iterator<char>(ss), {}));
         }
+
+        Log(Log &&) = default;
+
+        Log & operator=(Log &&) = default;
 
         template <class... Args>
         void add(const Args&... args) {
@@ -219,10 +222,11 @@ class Logger {
 
     private:
         friend class Logger;
-        explicit Log(Logger & logger) : logger(logger) {
+        explicit Log(Logger & logger, const std::string & init)
+                : logger(logger), ss(std::stringstream()) {
             ss << boost::chrono::time_point_cast<boost::chrono::milliseconds>(
                     boost::chrono::steady_clock::now()) << ": ";
-            ss << logger.id << ": ";
+            ss << logger.id << ": " << init;;
         }
 
         void add_impl() {}
@@ -234,24 +238,18 @@ class Logger {
         };
 
     private:
-        std::stringstream ss;
         Logger & logger;
+        std::stringstream ss;
     };
 
-    Log makeLog() {
-        return Log(*this);
+    Log makeLog(std::string init = "") {
+        return Log(*this, init);
     }
 
 private:
     std::mutex    logging;
     std::string   dir;
     std::string   id;
-=======
-  private:
-    std::mutex logging;
-    std::string dir;
-    std::string id;
->>>>>>> follower
     std::ofstream fout;
 
     void log_impl();

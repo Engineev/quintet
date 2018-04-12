@@ -10,11 +10,6 @@
 // macro
 namespace quintet {
 
-#define GEN_NOT_EQUAL(NAME) \
-    bool operator!=(const NAME & lhs, const NAME & rhs) { \
-        return !(lhs == rhs); \
-    }
-
 #define GEN_DELETE_COPY(NAME) \
     NAME(const NAME &) = delete; \
     NAME & operator=(const NAME &) = delete; \
