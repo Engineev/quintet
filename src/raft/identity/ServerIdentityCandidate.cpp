@@ -1,6 +1,7 @@
 #include "ServerIdentityCandidate.h"
 
 #include <boost/thread/lock_guard.hpp>
+#include "Future.h"
 
 #include <rpc/client.h>
 #include <rpc/rpc_error.h>
@@ -10,15 +11,14 @@ quintet::ServerIdentityCandidate::ServerIdentityCandidate(quintet::ServerState &
         : ServerIdentityBase(state_, info_, service_) {}
 
 void quintet::ServerIdentityCandidate::leave() {
-    boost::unique_lock<boost::mutex> lk(data->m);
-
-    data->discarded = true;
-    // Unlock before setting m to nullptr, otherwise it
-    // may happen that this thread is the last thread
-    // which hold m and set data to nullptr will destroy
-    // the mutex before unlocking it.
-    lk.unlock();
-    data = nullptr;
+    auto log = service.logger.makeLog("Candidate::leave");
+    for (auto & t : requestingThreads)
+        t.interrupt();
+    for (auto & t : requestingThreads) {
+        t.join();
+        log.add("thread ", t.get_id(), " exits.");
+    }
+    requestingThreads.clear();
 }
 
 void quintet::ServerIdentityCandidate::init() {
@@ -36,7 +36,7 @@ void quintet::ServerIdentityCandidate::init() {
             [&] { service.identityTransformer.transform(ServerIdentityNo::Candidate); },
             electionTimeout);
 
-    data = std::make_shared<ElectionData>();
+    votesReceived = 1;
     requestVotes(state.currentTerm, info.local,
                  state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term);
 }
@@ -88,6 +88,19 @@ quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::
     return {state.currentTerm, false};
 }
 
+std::pair<quintet::Term, bool>
+quintet::ServerIdentityCandidate::sendRequestVote(quintet::ServerId target, quintet::Term currentTerm,
+                                                  quintet::ServerId local, quintet::Index lastLogIdx,
+                                                  quintet::Term lastLogTerm) {
+    rpc::client c(target.addr, target.port);
+    auto fut = toBoostFuture(c.async_call("RequestVote",
+                                          currentTerm, local, lastLogIdx, lastLogTerm));
+    if (fut.wait_for(boost::chrono::milliseconds(info.electionTimeout * 2)) != boost::future_status::ready) {
+        return {0, false}; // TODO: return
+    }
+
+    return fut.get().as<std::pair<Term, bool>>();
+}
 
 
 void quintet::ServerIdentityCandidate::requestVotes(
@@ -98,7 +111,7 @@ void quintet::ServerIdentityCandidate::requestVotes(
         if (srv == info.local)
             continue;
 
-        boost::thread([this, data = this->data, &srv,
+        auto t = boost::thread([this, &srv,
                            currentTerm, local, lastLogIdx, lastLogTerm] () mutable {
             service.logger("send RPCRequestVote to ", srv);
             rpc::client c(srv.addr, srv.port);
@@ -106,32 +119,30 @@ void quintet::ServerIdentityCandidate::requestVotes(
             Term termReceived;
             bool res;
             try {
-                // TODO: call RPCRequestVote
-                std::tie(termReceived, res) = c.call("RequestVote",
-                                                     currentTerm, local, lastLogIdx, lastLogTerm)
-                        .as<std::pair<Term, bool>>();
-            } catch (rpc::timeout & t) {
+                std::tie(termReceived, res) = sendRequestVote(srv, currentTerm, local, lastLogIdx, lastLogTerm);
+            } catch (boost::thread_interrupted & t) {
                 service.logger(srv, " TLE");
                 return;
             }
-            service.logger("Vote result from ", srv, " = ", "(result: " , res, ", term: ", termReceived);
+            service.logger("Vote result from ", srv, " = ", "(result: " , res, ", term: ", termReceived, ")");
             if (termReceived != currentTerm || !res)
                 return;
-
-            boost::lock_guard<boost::mutex> lk(data->m);
-            if (data->discarded)
-                return;
-            ++data->votesReceived;
+            votesReceived += res;
             // It is guaranteed that only one transformation will be carried out.
-            if (data->votesReceived > info.srvList.size() / 2) {
+            if (votesReceived > info.srvList.size() / 2) {
                 if (service.identityTransformer.transform(ServerIdentityNo::Leader)) {
 #ifdef IDENTITY_TEST
                     notifyReign(currentTerm);
 #endif
                 }
             }
+        });
 
-        }).detach();
+        requestingThreads.emplace_back(std::move(t));
     }
 }
+
+
+
+
 
