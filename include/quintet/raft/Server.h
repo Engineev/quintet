@@ -15,12 +15,11 @@
 
 namespace quintet {
 
-// TODO: Server: .h -> .cpp
-// TODO: thread-safe: event-driven, all the sync operations should be done at the service level ?
-// TODO: bind
 class Server {
 public:
     void init(const std::string & configDir);
+
+    void bindCommit(std::function<void(LogEntry)> commit);
 
     void run();
 

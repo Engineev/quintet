@@ -307,8 +307,13 @@ class HeartBeatController {
 namespace quintet {
 
 class Committer {
-  public:
-    void commit(LogEntry log) { throw; } // TODO
+public:
+    void bindCommit(std::function<void(LogEntry)> f);
+
+    void commit(LogEntry log);
+
+private:
+    std::function<void(LogEntry)> commit_;
 };
 
 } /* namespace quintet */

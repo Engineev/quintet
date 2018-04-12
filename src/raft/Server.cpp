@@ -87,3 +87,7 @@ quintet::Server::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId
             term, leaderId, prevLogIdx, prevLogTerm,
             std::move(logEntries), commitIdx);
 }
+
+void quintet::Server::bindCommit(std::function<void(LogEntry)> commit) {
+    service.committer.bindCommit(std::move(commit));
+}
