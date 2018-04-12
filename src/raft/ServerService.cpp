@@ -140,3 +140,12 @@ void quintet::Committer::bindCommit(std::function<void(LogEntry)> f) {
 void quintet::Committer::commit(quintet::LogEntry log) {
     commit_(std::move(log));
 }
+
+void quintet::FaultInjector::randomSleep(std::uint64_t lb, std::uint64_t ub) const {
+    std::random_device rd;
+    std::default_random_engine eg(rd());
+    boost::this_thread::sleep_for(
+            boost::chrono::milliseconds(
+            std::uniform_int_distribution<std::uint64_t>(lb, ub)(eg)
+            ));
+}

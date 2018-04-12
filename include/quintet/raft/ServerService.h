@@ -25,6 +25,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <sstream>
+#include <random>
 
 #include <boost/chrono.hpp>
 #include <boost/thread/condition_variable.hpp>
@@ -318,6 +319,23 @@ private:
 
 } /* namespace quintet */
 
+// FaultInjector
+namespace quintet {
+
+class FaultInjector {
+public:
+
+    /// \brief Let t be a random number between lb and ub.
+    ///        Make current thread sleep for t ms.
+    ///
+    /// \param lb lower bound
+    /// \param ub upper bound
+    void randomSleep(std::uint64_t lb, std::uint64_t ub) const;
+
+}; // class FaultInjector
+
+} /* namespace quintet */
+
 // ServerService
 namespace quintet {
 
@@ -327,6 +345,7 @@ struct ServerService {
     Logger logger;
     HeartBeatController heartBeatController;
     Committer committer;
+    FaultInjector faultInjector;
 }; // class ServerService
 
 } // namespace quintet

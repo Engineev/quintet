@@ -114,7 +114,6 @@ void quintet::ServerIdentityCandidate::requestVotes(
         auto t = boost::thread([this, &srv,
                            currentTerm, local, lastLogIdx, lastLogTerm] () mutable {
             service.logger("send RPCRequestVote to ", srv);
-            rpc::client c(srv.addr, srv.port);
 
             Term termReceived;
             bool res;
