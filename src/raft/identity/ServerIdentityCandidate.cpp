@@ -48,7 +48,7 @@ quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::Se
     boost::lock_guard<ServerState> lk(state);
 
     service.logger("RPCRequestVote: sleep!");
-    service.faultInjector.randomSleep(0, info.electionTimeout / 10);
+    service.faultInjector.randomSleep(0, info.electionTimeout);
     service.logger("RPCRequestVote: wake up!");
 
     auto log = service.logger.makeLog("RPCRequestVote");
@@ -86,7 +86,7 @@ quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::
     service.logger("Candidate:AppendEntries from ", leaderId);
 
     service.logger("RPCAppendEntries: sleep!");
-    service.faultInjector.randomSleep(0, info.electionTimeout / 10);
+    service.faultInjector.randomSleep(0, info.electionTimeout);
     service.logger("RPCAppendEntries: wake up!");
 
     boost::lock_guard<ServerState> lk(state);

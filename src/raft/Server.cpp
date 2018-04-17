@@ -21,6 +21,10 @@ void quintet::Server::run() {
 
 void quintet::Server::stop() {
     service.identityTransformer.transform(ServerIdentityNo::Down);
+    service.identityTransformer.stop();
+
+    service.rpcService.stop();
+    service.heartBeatController.stop();
 }
 
 void quintet::Server::initService() {

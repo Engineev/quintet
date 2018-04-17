@@ -49,6 +49,8 @@ namespace quintet {
 
 class IdentityTransformer {
 public:
+    /// \breif Stop the transformer. All the transforming
+    ///        will be finished first.
     void stop() {
         std::lock_guard<std::mutex> lk(transforming);
     }
@@ -56,7 +58,8 @@ public:
     void bind(std::function<void(ServerIdentityNo)> transform);
 
 
-    /// \breif trigger a transformation
+    /// \breif trigger a transformation. This function will
+    ///        return immediately
     ///
     /// \param  target the identity to transform to
     /// \return succeeded ?
@@ -84,6 +87,13 @@ private:
 // RpcService
 namespace quintet {
 
+/* The states of RpcService
+ * 1. Down
+ * 2. Running
+ * 3. Paused
+ *
+ *
+ */
 class RpcService {
 public:
     /// \brief Change the port to listen on to the given one.
@@ -94,6 +104,13 @@ public:
     void listen(Port port);
 
     void async_run(std::size_t worker = 1);
+
+    /// \breif stop the RPC service. All the ongoing RPCs will
+    ///        be finished first.
+    ///
+    /// Currently, please make sure that the RpcService is running
+    /// when stop() is invoked.
+    void stop();
 
     template<class Func>
     RpcService &bind(const std::string &name, Func f) {
@@ -128,28 +145,6 @@ public:
     /// \brief Resume the paused RPC service and notify all the RPCs waiting.
     void resume();
 
-    /// \brief Create a rpc::client and invoke the corresponding async_call.
-    /// The client created will be packed with the boost::future returned so
-    /// that it will not be destroyed prematurely.
-    template<typename... Args>
-    [[deprecated]] FutureWrapper<RPCLIB_MSGPACK::object_handle>
-    async_call(const std::string &addr, Port port, std::string const &func_name,
-               Args... args) {
-        auto c = std::make_unique<rpc::client>(addr, port);
-        c->set_timeout(timeOut);
-        auto fut = c->async_call(func_name, std::move(args)...);
-        return {toBoostFuture(std::move(fut)), std::move(c)};
-    }
-
-    template<typename... Args>
-    [[deprecated]] RPCLIB_MSGPACK::object_handle
-    call(const std::string &addr, Port port, std::string const &func_name,
-         Args... args) {
-        return async_call(addr, port, func_name, std::move(args)...).get();
-    }
-
-    [[deprecated]] void setTimeout(std::int64_t value);
-
 private:
     std::unique_ptr<rpc::server> srv;
 
@@ -157,8 +152,6 @@ private:
     bool paused = false;
     std::mutex pausing;
     std::condition_variable cv;
-
-    std::int64_t timeOut = std::numeric_limits<std::int64_t>::max();
 
 private:
     template<class Func, class Closure, class Ret, class... Args>

@@ -20,7 +20,7 @@ add_executable(${PROJECT_NAME}_test ${TEST_SOURCE})
 # boost
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED
-        COMPONENTS unit_test_framework thread serialization
+        COMPONENTS unit_test_framework thread serialization log
         )
 include_directories(${Boost_INCLUDE_DIR})
 add_definitions(-DBOOST_THREAD_VERSION=4)

@@ -23,6 +23,7 @@ public:
 
     void run();
 
+    /// \breif stop the server and exit all running threads
     void stop();
 
 private: /// RPCs

@@ -44,8 +44,8 @@ void quintet::RpcService::resume() {
     cv.notify_all();
 }
 
-void quintet::RpcService::setTimeout(std::int64_t value) {
-    timeOut = value;
+void quintet::RpcService::stop() {
+    srv->stop();
 }
 
 // Logger
