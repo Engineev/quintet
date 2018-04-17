@@ -1,4 +1,6 @@
 #include "ServerService.h"
+#include <thread>
+#include <chrono>
 
 // IdentityTransformer
 
@@ -142,10 +144,11 @@ void quintet::Committer::commit(quintet::LogEntry log) {
 }
 
 void quintet::FaultInjector::randomSleep(std::uint64_t lb, std::uint64_t ub) const {
+#ifdef FAULT_INJECTION
     std::random_device rd;
     std::default_random_engine eg(rd());
-    boost::this_thread::sleep_for(
-            boost::chrono::milliseconds(
-            std::uniform_int_distribution<std::uint64_t>(lb, ub)(eg)
-            ));
+    // use std::thread to disable interruption
+    std::this_thread::sleep_for(std::chrono::milliseconds(
+            std::uniform_int_distribution<std::uint64_t>(lb, ub)(eg)));
+#endif
 }

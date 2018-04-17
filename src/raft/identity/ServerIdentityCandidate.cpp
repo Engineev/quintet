@@ -2,6 +2,7 @@
 
 #include <boost/thread/lock_guard.hpp>
 #include "Future.h"
+#include "Utility.h"
 
 #include <rpc/client.h>
 #include <rpc/rpc_error.h>
@@ -46,6 +47,10 @@ quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::Se
                                                  std::size_t lastLogIdx, quintet::Term lastLogTerm) {
     boost::lock_guard<ServerState> lk(state);
 
+    service.logger("RPCRequestVote: sleep!");
+    service.faultInjector.randomSleep(0, info.electionTimeout / 10);
+    service.logger("RPCRequestVote: wake up!");
+
     auto log = service.logger.makeLog("RPCRequestVote");
     log.add("Identity = Candidate\n\tterm = ", term,
             ", from = ", candidateId, "\n\tcurrentTerm = ", state.currentTerm);
@@ -79,6 +84,11 @@ quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::
                                                    std::size_t prevLogIdx, quintet::Term prevLogTerm,
                                                    std::vector<quintet::LogEntry> logEntries, std::size_t commitIdx) {
     service.logger("Candidate:AppendEntries from ", leaderId);
+
+    service.logger("RPCAppendEntries: sleep!");
+    service.faultInjector.randomSleep(0, info.electionTimeout / 10);
+    service.logger("RPCAppendEntries: wake up!");
+
     boost::lock_guard<ServerState> lk(state);
     if (term >= state.currentTerm) {
         state.currentTerm = term;

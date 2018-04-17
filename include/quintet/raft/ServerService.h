@@ -48,7 +48,11 @@ struct ServerService;
 namespace quintet {
 
 class IdentityTransformer {
-  public:
+public:
+    void stop() {
+        std::lock_guard<std::mutex> lk(transforming);
+    }
+
     void bind(std::function<void(ServerIdentityNo)> transform);
 
 
@@ -69,20 +73,19 @@ class IdentityTransformer {
     // they can not lock the mutex. Since try_lock() is adopted,
     // they will also exit immediately.
 
-  private:
+private:
     std::function<void(ServerIdentityNo /*target*/,
                        std::unique_lock<std::mutex> &&)>
-        transform_;
+            transform_;
     std::mutex transforming;
 };
 
 } /* namespace quintet */
-
 // RpcService
 namespace quintet {
 
 class RpcService {
-  public:
+public:
     /// \brief Change the port to listen on to the given one.
     /// The original server will be stopped first and the
     /// functors bound previously will become invalid.
@@ -92,7 +95,8 @@ class RpcService {
 
     void async_run(std::size_t worker = 1);
 
-    template <class Func> RpcService &bind(const std::string &name, Func f) {
+    template<class Func>
+    RpcService &bind(const std::string &name, Func f) {
         bind_impl(name, f, &Func::operator());
         return *this;
     }
@@ -127,7 +131,7 @@ class RpcService {
     /// \brief Create a rpc::client and invoke the corresponding async_call.
     /// The client created will be packed with the boost::future returned so
     /// that it will not be destroyed prematurely.
-    template <typename... Args>
+    template<typename... Args>
     [[deprecated]] FutureWrapper<RPCLIB_MSGPACK::object_handle>
     async_call(const std::string &addr, Port port, std::string const &func_name,
                Args... args) {
@@ -137,7 +141,7 @@ class RpcService {
         return {toBoostFuture(std::move(fut)), std::move(c)};
     }
 
-    template <typename... Args>
+    template<typename... Args>
     [[deprecated]] RPCLIB_MSGPACK::object_handle
     call(const std::string &addr, Port port, std::string const &func_name,
          Args... args) {
@@ -146,7 +150,7 @@ class RpcService {
 
     [[deprecated]] void setTimeout(std::int64_t value);
 
-  private:
+private:
     std::unique_ptr<rpc::server> srv;
 
     boost::shared_mutex rpcing;
@@ -156,15 +160,15 @@ class RpcService {
 
     std::int64_t timeOut = std::numeric_limits<std::int64_t>::max();
 
-  private:
-    template <class Func, class Closure, class Ret, class... Args>
+private:
+    template<class Func, class Closure, class Ret, class... Args>
     void bind_impl(const std::string &name, Func rawF,
                    Ret (Closure::*)(Args...) const) {
         srv->bind(name, [rawF, this](Args... args) -> Ret {
             std::unique_lock<std::mutex> pauseLk(pausing);
             cv.wait(pauseLk, [&] { return !paused; });
             boost::shared_lock<boost::shared_mutex> rpcLk(
-                rpcing); // acquire this lock before releasing pauseLk !!
+                    rpcing); // acquire this lock before releasing pauseLk !!
             pauseLk.unlock();
             return rawF(std::move(args)...);
         });
@@ -179,7 +183,7 @@ class RpcService {
 namespace quintet {
 
 class Logger {
-  public:
+public:
     Logger() = default;
 
     Logger(std::string dir, std::string id);
@@ -188,7 +192,8 @@ class Logger {
 
     void set(std::string dir_, std::string id_);
 
-    template <class... Args> void log(const Args &... args) {
+    template <class... Args>
+    void log(const Args &... args) {
 #ifdef LOGGING
         std::lock_guard<std::mutex> lk(logging);
         fout << boost::chrono::time_point_cast<boost::chrono::milliseconds>(
@@ -199,7 +204,8 @@ class Logger {
 #endif
     }
 
-    template <class... Args> void operator()(const Args &... args) {
+    template <class... Args>
+    void operator()(const Args &... args) {
         log(args...);
     }
 

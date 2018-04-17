@@ -10,8 +10,8 @@
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Candidate, quintet::test::IdentityTestHelper)
 
-BOOST_AUTO_TEST_CASE(Election) {
-    BOOST_TEST_MESSAGE("Test::Identity::Candidate::Election");
+BOOST_AUTO_TEST_CASE(Naive) {
+    BOOST_TEST_MESSAGE("Test::Identity::Candidate::Naive");
     using No = quintet::ServerIdentityNo;
 
     const std::size_t SrvNum = 3;
@@ -38,6 +38,8 @@ BOOST_AUTO_TEST_CASE(Election) {
         srv->setIdentity_test(No::Candidate);
     }
     boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 30));
+    for (auto & srv : srvs)
+        srv->stop();
     BOOST_REQUIRE_EQUAL(candidate2Leader, 1);
     BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
 }
