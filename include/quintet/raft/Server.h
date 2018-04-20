@@ -44,6 +44,7 @@ private:
     ServerState   state;
     ServerInfo    info;
     ServerService service;
+    RpcService    rpc;
 
 private:
     void initService();
@@ -73,7 +74,7 @@ public:
         auto from = currentIdentity;
         currentIdentity = to;
 
-        service.rpcService.pause();
+        rpc.pause();
         service.heartBeatController.stop();
 
         if (from != ServerIdentityNo::Down)
@@ -84,7 +85,7 @@ public:
         if (to != ServerIdentityNo::Down) {
             identities[(std::size_t) to]->init();
             service.heartBeatController.start();
-            service.rpcService.resume();
+            rpc.resume();
         }
         return from;
     }

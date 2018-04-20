@@ -343,7 +343,6 @@ namespace quintet {
 
 struct ServerService {
     IdentityTransformer identityTransformer;
-    RpcService rpcService;
     Logger logger;
     HeartBeatController heartBeatController;
     Committer committer;

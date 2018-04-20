@@ -23,27 +23,27 @@ void quintet::Server::stop() {
     service.identityTransformer.transform(ServerIdentityNo::Down);
     service.identityTransformer.stop();
 
-    service.rpcService.stop();
+    rpc.stop();
     service.heartBeatController.stop();
 }
 
 void quintet::Server::initService() {
-    service.identityTransformer.bind([&](ServerIdentityNo to) {transform(to);});
+    service.identityTransformer.bind([&](ServerIdentityNo to) { transform(to); });
 
-    service.rpcService.listen(info.local.port);
-    service.rpcService.bind("AppendEntries",
-                            [&](Term term, ServerId leaderId,
-                                std::size_t prevLogIdx, Term prevLogTerm,
-                                std::vector<LogEntry> logEntries, std::size_t commitIdx) {
-                                return RPCAppendEntries(term, leaderId,  prevLogIdx, prevLogTerm,
-                                                        std::move(logEntries), commitIdx);
-                            });
-    service.rpcService.bind("RequestVote",
-                            [&](Term term, ServerId candidateId,
-                                std::size_t lastLogIdx, Term lastLogTerm) {
-                                return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
-                            });
-    service.rpcService.async_run();
+    rpc.listen(info.local.port);
+    rpc.bind("AppendEntries",
+             [&](Term term, ServerId leaderId,
+                 std::size_t prevLogIdx, Term prevLogTerm,
+                 std::vector<LogEntry> logEntries, std::size_t commitIdx) {
+                 return RPCAppendEntries(term, leaderId, prevLogIdx, prevLogTerm,
+                                         std::move(logEntries), commitIdx);
+             });
+    rpc.bind("RequestVote",
+             [&](Term term, ServerId candidateId,
+                 std::size_t lastLogIdx, Term lastLogTerm) {
+                 return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
+             });
+    rpc.async_run();
 
     service.logger.set("./", info.local.addr + "_" + std::to_string(info.local.port));
 }
@@ -56,7 +56,7 @@ void quintet::Server::transform(quintet::ServerIdentityNo to) {
     auto from = currentIdentity;
     currentIdentity = to;
 
-    service.rpcService.pause();
+    rpc.pause();
     service.heartBeatController.stop();
 
     if (from != ServerIdentityNo::Down)
@@ -68,7 +68,7 @@ void quintet::Server::transform(quintet::ServerIdentityNo to) {
         identities[(std::size_t)to]->init();
 
     service.heartBeatController.start();
-    service.rpcService.resume();
+    rpc.resume();
 }
 
 void quintet::Server::refreshState() {
