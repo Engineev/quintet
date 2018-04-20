@@ -24,7 +24,6 @@ void quintet::Server::stop() {
     service.identityTransformer.stop();
 
     rpc.stop();
-    service.heartBeatController.stop();
 }
 
 void quintet::Server::initService() {
@@ -57,7 +56,6 @@ void quintet::Server::transform(quintet::ServerIdentityNo to) {
     currentIdentity = to;
 
     rpc.pause();
-    service.heartBeatController.stop();
 
     if (from != ServerIdentityNo::Down)
         identities[(std::size_t)from]->leave();
@@ -67,7 +65,6 @@ void quintet::Server::transform(quintet::ServerIdentityNo to) {
     if (to != ServerIdentityNo::Down)
         identities[(std::size_t)to]->init();
 
-    service.heartBeatController.start();
     rpc.resume();
 }
 

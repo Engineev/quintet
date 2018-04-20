@@ -13,6 +13,7 @@ quintet::ServerIdentityCandidate::ServerIdentityCandidate(quintet::ServerState &
 
 void quintet::ServerIdentityCandidate::leave() {
     auto log = service.logger.makeLog("Candidate::leave");
+    service.heartBeatController.stop();
     for (auto & t : requestingThreads)
         t.interrupt();
     for (auto & t : requestingThreads) {

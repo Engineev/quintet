@@ -75,7 +75,6 @@ public:
         currentIdentity = to;
 
         rpc.pause();
-        service.heartBeatController.stop();
 
         if (from != ServerIdentityNo::Down)
             identities[(std::size_t)from]->leave();
@@ -84,7 +83,6 @@ public:
 
         if (to != ServerIdentityNo::Down) {
             identities[(std::size_t) to]->init();
-            service.heartBeatController.start();
             rpc.resume();
         }
         return from;
