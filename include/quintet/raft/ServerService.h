@@ -32,6 +32,7 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/thread.hpp>
 
+
 #include <rpc/client.h>
 #include <rpc/server.h>
 
@@ -266,8 +267,10 @@ private:
 // HeartBeatController
 namespace quintet {
 
+
+
 class HeartBeatController {
-  public:
+public:
     HeartBeatController() = default;
 
     HeartBeatController(std::function<void()> f, std::uint64_t periodMs);
@@ -288,7 +291,7 @@ class HeartBeatController {
 
     void stop();
 
-  private:
+private:
     std::function<void()> heartBeat;
     std::uint64_t periodMs = 0;
     std::atomic<bool> running{false};

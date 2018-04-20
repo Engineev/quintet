@@ -31,6 +31,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include/quintet/component
     ${CMAKE_SOURCE_DIR}/include/quintet/raft
     ${CMAKE_SOURCE_DIR}/include/quintet/raft/identity
+    ${CMAKE_SOURCE_DIR}/include/quintet/raft/service
 )
 
 if (IDENTITY_TEST)
