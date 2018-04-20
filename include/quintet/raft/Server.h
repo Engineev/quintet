@@ -12,6 +12,7 @@
 #include "ServerInfo.h"
 #include "ServerState.h"
 #include "ServerService.h"
+#include "RaftDefs.h"
 
 namespace quintet {
 
@@ -46,62 +47,32 @@ private:
     ServerService service;
     RpcService    rpc;
 
+    boost::mutex  transforming;
+    boost::thread transformThread;
+
+private:
+    bool triggerTransformation(ServerIdentityNo target);
+
+    void transform(ServerIdentityNo target);
+
 private:
     void initService();
 
     void refreshState();
 
-    // the following functions should never be invoked directly !!!
 
-    void transform(ServerIdentityNo to);
-
-#ifdef IDENTITY_TEST
+// IDENTITY_TEST BEGIN
 public:
-    void setTestedIdentity(ServerIdentityNo no) {
-        testedIdentity = no;
-    };
-
     // return the identity the tester wants to transform to
-    void setOnTransform(std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> f) {
-        onTransform = std::move(f);
-    }
+    void setOnTransform(std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> f);
 
-    std::uint64_t getElectionTimeout() const {
-        return info.electionTimeout;
-    }
+    std::uint64_t getElectionTimeout() const;
 
-    ServerIdentityNo /*from*/ setIdentity_test(ServerIdentityNo to) {
-        auto from = currentIdentity;
-        currentIdentity = to;
-
-        rpc.pause();
-
-        if (from != ServerIdentityNo::Down)
-            identities[(std::size_t)from]->leave();
-
-        refreshState();
-
-        if (to != ServerIdentityNo::Down) {
-            identities[(std::size_t) to]->init();
-            rpc.resume();
-        }
-        return from;
-    }
-
-    ServerIdentityNo currentIdentity_test() const {
-        return currentIdentity;
-    }
-
-    void transform_test(ServerIdentityNo to) {
-        auto actual = onTransform(currentIdentity, to);
-        setIdentity_test(actual);
-    }
+    ServerIdentityNo getCurrentIdentity() const;
 
 private:
-    ServerIdentityNo testedIdentity = ServerIdentityNo::Down;
     std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> onTransform;
-
-#endif
+// IDENTITY_TEST END
 };
 
 } // namespace quintet

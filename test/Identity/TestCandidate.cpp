@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(Naive) {
     for (auto & srv : srvs) {
         srv->setOnTransform([&](No from, No to) {
             if (from == No::Down)
-                return to;
+                return No::Candidate;
             if (from == No::Candidate && to == No::Leader) {
                 ++candidate2Leader;
                 return No::Down;
@@ -35,7 +35,6 @@ BOOST_AUTO_TEST_CASE(Naive) {
                 return No::Candidate;
             throw ;
         });
-        srv->setIdentity_test(No::Candidate);
     }
     boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 30));
     for (auto & srv : srvs)

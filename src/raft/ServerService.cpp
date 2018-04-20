@@ -2,23 +2,6 @@
 #include <thread>
 #include <chrono>
 
-// IdentityTransformer
-
-void quintet::IdentityTransformer::bind(std::function<void(ServerIdentityNo)> transform) {
-    transform_ = [transform](ServerIdentityNo to, std::unique_lock<std::mutex> && lk_) {
-        std::unique_lock<std::mutex> lk = std::move(lk_);
-        transform(to);
-    };
-}
-
-bool quintet::IdentityTransformer::transform(quintet::ServerIdentityNo target) {
-    std::unique_lock<std::mutex> lk(transforming, std::defer_lock);
-    if (!lk.try_lock())
-        return false;
-    std::thread(transform_, target, std::move(lk)).detach();
-    return true;
-}
-
 // RpcService
 
 void quintet::RpcService::listen(quintet::Port port) {

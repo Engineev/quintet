@@ -41,52 +41,13 @@
 #include "raft/RaftDefs.h"
 
 #include "HeartBeatController.h"
+#include "IdentityTransformer.h"
 
 // forward declaration
 namespace quintet {
 struct ServerService;
 }
 
-// IdentityTransformer
-namespace quintet {
-
-class IdentityTransformer {
-public:
-    /// \breif Stop the transformer. All the transforming
-    ///        will be finished first.
-    void stop() {
-        std::lock_guard<std::mutex> lk(transforming);
-    }
-
-    void bind(std::function<void(ServerIdentityNo)> transform);
-
-
-    /// \breif trigger a transformation. This function will
-    ///        return immediately
-    ///
-    /// \param  target the identity to transform to
-    /// \return succeeded ?
-    bool transform(ServerIdentityNo target);
-    // Implementation detail:
-    // There is no possibility that two identity transformations
-    // will be executed during the same identity period since
-    // before the transformation being carried out, the RPC
-    // service will be stop first. And the RPC service will wait
-    // until all the RPCs are completed. As the transformation
-    // is asynchronous, the PRC which triggered the transformation
-    // will exit almost immediately. And the other PRCs who
-    // trying to trigger another transformation will fail since
-    // they can not lock the mutex. Since try_lock() is adopted,
-    // they will also exit immediately.
-
-private:
-    std::function<void(ServerIdentityNo /*target*/,
-                       std::unique_lock<std::mutex> &&)>
-            transform_;
-    std::mutex transforming;
-};
-
-} /* namespace quintet */
 // RpcService
 namespace quintet {
 
@@ -173,7 +134,6 @@ private:
 }; // class RpcService
 
 } /* namespace quintet */
-
 
 // Committer
 namespace quintet {

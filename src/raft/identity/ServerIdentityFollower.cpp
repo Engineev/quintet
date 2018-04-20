@@ -19,7 +19,7 @@ void ServerIdentityFollower::init() {
             info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(
                     0, info.electionTimeout)(eg);
     service.heartBeatController.bind([&] {
-                                         service.identityTransformer.transform(ServerIdentityNo::Candidate);
+                                         service.identityTransformer.notify(ServerIdentityNo::Candidate);
                                      },
                                      electionTimeout);
     service.heartBeatController.start(false, false);

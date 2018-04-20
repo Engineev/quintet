@@ -35,7 +35,7 @@ void quintet::ServerIdentityCandidate::init() {
                  state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term);
 
     service.heartBeatController.bind(
-            [&] { service.identityTransformer.transform(ServerIdentityNo::Candidate); },
+            [&] { service.identityTransformer.notify(ServerIdentityNo::Candidate); },
             electionTimeout);
     service.heartBeatController.start(false, false);
 }
@@ -69,7 +69,7 @@ quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::
     boost::lock_guard<ServerState> lk(state);
     if (term >= state.currentTerm) {
         state.currentTerm = term;
-        service.identityTransformer.transform(ServerIdentityNo::Follower);
+        service.identityTransformer.notify(ServerIdentityNo::Follower);
         return {state.currentTerm, false};
     }
     return {state.currentTerm, false};
@@ -110,7 +110,7 @@ void quintet::ServerIdentityCandidate::requestVotes(
             votesReceived += res;
             // It is guaranteed that only one transformation will be carried out.
             if (votesReceived > info.srvList.size() / 2) {
-                if (service.identityTransformer.transform(ServerIdentityNo::Leader)) {
+                if (service.identityTransformer.notify(ServerIdentityNo::Leader)) {
 #ifdef IDENTITY_TEST
                     notifyReign(currentTerm);
 #endif

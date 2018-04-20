@@ -16,18 +16,18 @@ void quintet::Server::init(const std::string &configDir) {
 }
 
 void quintet::Server::run() {
-    service.identityTransformer.transform(ServerIdentityNo::Follower);
+    triggerTransformation(ServerIdentityNo::Follower);
 }
 
 void quintet::Server::stop() {
-    service.identityTransformer.transform(ServerIdentityNo::Down);
-    service.identityTransformer.stop();
-
     rpc.stop();
+    triggerTransformation(ServerIdentityNo::Down);
+    transformThread.join();
 }
 
 void quintet::Server::initService() {
-    service.identityTransformer.bind([&](ServerIdentityNo to) { transform(to); });
+    service.identityTransformer.bindNotificationSlot(
+            [&](ServerIdentityNo to) { return triggerTransformation(to); });
 
     rpc.listen(info.local.port);
     rpc.bind("AppendEntries",
@@ -45,26 +45,6 @@ void quintet::Server::initService() {
     rpc.async_run();
 }
 
-void quintet::Server::transform(quintet::ServerIdentityNo to) {
-#ifdef IDENTITY_TEST
-    transform_test(to);
-    return;
-#endif
-    auto from = currentIdentity;
-    currentIdentity = to;
-
-    rpc.pause();
-
-    if (from != ServerIdentityNo::Down)
-        identities[(std::size_t)from]->leave();
-
-    refreshState();
-
-    if (to != ServerIdentityNo::Down)
-        identities[(std::size_t)to]->init();
-
-    rpc.resume();
-}
 
 void quintet::Server::refreshState() {
     state.votedFor = NullServerId;
@@ -87,6 +67,48 @@ quintet::Server::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId
             std::move(logEntries), commitIdx);
 }
 
-void quintet::Server::bindCommit(std::function<void(LogEntry)> commit) {
+void quintet::Server::bindCommit(std::function<void(quintet::LogEntry)> commit) {
     service.committer.bindCommit(std::move(commit));
+}
+
+void quintet::Server::transform(quintet::ServerIdentityNo target) {
+    auto from = currentIdentity;
+    currentIdentity = target;
+
+    rpc.pause();
+    if (from != ServerIdentityNo::Down)
+        identities[(std::size_t)from]->leave();
+
+    refreshState();
+
+    if (target != ServerIdentityNo::Down)
+        identities[(std::size_t)target]->init();
+    rpc.resume();
+}
+
+bool quintet::Server::triggerTransformation(quintet::ServerIdentityNo target) {
+    boost::unique_lock<boost::mutex> lk(transforming, boost::defer_lock);
+    if (!lk.try_lock())
+        return false;
+    transformThread = boost::thread(
+            [lk = std::move(lk), this, target] () mutable {
+#ifdef IDENTITY_TEST
+                target = onTransform(currentIdentity, target);
+#endif
+                transform(target);
+            });
+    return true;
+}
+
+void quintet::Server::setOnTransform(
+        std::function<quintet::ServerIdentityNo(quintet::ServerIdentityNo, quintet::ServerIdentityNo)> f) {
+    onTransform = std::move(f);
+}
+
+std::uint64_t quintet::Server::getElectionTimeout() const {
+    return info.electionTimeout;
+}
+
+quintet::ServerIdentityNo quintet::Server::getCurrentIdentity() const {
+    return currentIdentity;
 }
