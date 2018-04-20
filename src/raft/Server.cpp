@@ -16,8 +16,8 @@ void quintet::Server::init(const std::string &configDir) {
 }
 
 void quintet::Server::run() {
-    if (!triggerTransformation(ServerIdentityNo::Follower))
-        throw;
+    auto res = triggerTransformation(ServerIdentityNo::Follower);
+    assert(res);
 }
 
 void quintet::Server::stop() {

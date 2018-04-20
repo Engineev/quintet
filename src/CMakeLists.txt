@@ -3,12 +3,14 @@ file(GLOB_RECURSE LIB_SOURCE *.cpp)
 add_library(${PROJECT_NAME} STATIC ${LIB_SOURCE})
 
 # dependecncies
-set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED
-        COMPONENTS thread serialization
+        COMPONENTS thread serialization log
         )
 include_directories(${Boost_INCLUDE_DIR})
-add_definitions(-DBOOST_THREAD_VERSION=4)
+add_definitions(
+        -D BOOST_THREAD_VERSION=4
+        -D BOOST_LOG_DYN_LINK
+)
 
 # librpc
 find_package(rpclib REQUIRED)

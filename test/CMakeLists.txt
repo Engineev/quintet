@@ -18,12 +18,14 @@ endif ()
 add_executable(${PROJECT_NAME}_test ${TEST_SOURCE})
 
 # boost
-set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED
         COMPONENTS unit_test_framework thread serialization log
         )
 include_directories(${Boost_INCLUDE_DIR})
-add_definitions(-DBOOST_THREAD_VERSION=4)
+add_definitions(
+    -D BOOST_THREAD_VERSION=4
+    -D BOOST_LOG_DYN_LINK
+)
 
 # link
 target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME} ${Boost_LIBRARIES})
