@@ -16,13 +16,13 @@ void ServerIdentityFollower::init() {
     std::random_device rd;
     std::default_random_engine eg(rd());
     electionTimeout =
-        info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(
-                                   0, info.electionTimeout)(eg);
-    service.heartBeatController.oneShot(
-        [&] {
-            service.identityTransformer.transform(ServerIdentityNo::Candidate);
-        },
-        electionTimeout);
+            info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(
+                    0, info.electionTimeout)(eg);
+    service.heartBeatController.bind([&] {
+                                         service.identityTransformer.transform(ServerIdentityNo::Candidate);
+                                     },
+                                     electionTimeout);
+    service.heartBeatController.start(false, false);
 }
 
 void ServerIdentityFollower::leave() {}
@@ -98,12 +98,7 @@ ServerIdentityFollower::RPCRequestVote(Term term, ServerId candidateId,
 // Private
 void ServerIdentityFollower::resetHeartBeat() {
     // Restart heart beat time
-    service.heartBeatController.resetOneShots();
-    service.heartBeatController.oneShot(
-        [&] {
-            service.identityTransformer.transform(ServerIdentityNo::Candidate);
-        },
-        electionTimeout);
+    service.heartBeatController.restart();
 }
 
 void ServerIdentityFollower::updateCurrentTerm(Term term) {

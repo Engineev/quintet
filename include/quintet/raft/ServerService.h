@@ -40,6 +40,8 @@
 #include "Utility.h"
 #include "raft/RaftDefs.h"
 
+#include "HeartBeatController.h"
+
 // forward declaration
 namespace quintet {
 struct ServerService;
@@ -172,47 +174,6 @@ private:
 
 } /* namespace quintet */
 
-// HeartBeatController
-namespace quintet {
-
-
-
-class HeartBeatController {
-public:
-    HeartBeatController() = default;
-
-    HeartBeatController(std::function<void()> f, std::uint64_t periodMs);
-
-    ~HeartBeatController();
-
-    void bind(std::function<void()> f, std::uint64_t periodMs_);
-
-    void start();
-
-    /// \brief Sleep for periodMs ms and then invoke f.
-    /// Calling stop() will disable all the waiting oneShots.
-    ///
-    /// TODO: test: oneShot
-    void oneShot(std::function<void()> f, std::uint64_t periodMs);
-
-    void resetOneShots();
-
-    void stop();
-
-private:
-    std::function<void()> heartBeat;
-    std::uint64_t periodMs = 0;
-    std::atomic<bool> running{false};
-    boost::thread beat;
-
-    std::mutex launching;
-    std::vector<boost::thread> oneShots;
-
-    void run();
-
-}; // class HeartBeatController
-
-} /* namespace quintet */
 
 // Committer
 namespace quintet {

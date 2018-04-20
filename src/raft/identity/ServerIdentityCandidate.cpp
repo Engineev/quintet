@@ -27,15 +27,17 @@ void quintet::ServerIdentityCandidate::init() {
 
     std::random_device rd;
     std::default_random_engine eg(rd());
-    auto electionTimeout = info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(0, info.electionTimeout)(eg);
-
-    service.heartBeatController.oneShot(
-            [&] { service.identityTransformer.transform(ServerIdentityNo::Candidate); },
-            electionTimeout);
+    auto electionTimeout =
+            info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(0, info.electionTimeout)(eg);
 
     votesReceived = 1;
     requestVotes(state.currentTerm, info.local,
                  state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term);
+
+    service.heartBeatController.bind(
+            [&] { service.identityTransformer.transform(ServerIdentityNo::Candidate); },
+            electionTimeout);
+    service.heartBeatController.start(false, false);
 }
 
 std::pair<quintet::Term, bool>

@@ -49,68 +49,6 @@ void quintet::RpcService::stop() {
 }
 
 
-quintet::HeartBeatController::HeartBeatController(std::function<void()> f, std::uint64_t periodMs) {
-    bind(std::move(f), periodMs);
-}
-
-quintet::HeartBeatController::~HeartBeatController() {
-    stop();
-}
-
-void quintet::HeartBeatController::bind(std::function<void()> f, std::uint64_t periodMs_) {
-    heartBeat = std::move(f);
-    periodMs  = periodMs_;
-}
-
-void quintet::HeartBeatController::start() {
-    if (!periodMs)
-        return;
-    if (!running.exchange(true))
-        beat = boost::thread(&HeartBeatController::run, this);
-}
-
-void quintet::HeartBeatController::oneShot(std::function<void()> f, std::uint64_t periodMs) {
-    std::unique_lock<std::mutex> lk(launching, std::defer_lock);
-    if (!lk.try_lock())
-        return;
-    oneShots.emplace_back([f, periodMs] {
-        try {
-            std::this_thread::sleep_for(std::chrono::milliseconds(periodMs));
-        } catch (boost::thread_interrupted) {
-            return;
-        }
-        f();
-    });
-}
-
-void quintet::HeartBeatController::stop() {
-    std::lock_guard<std::mutex> lk(launching);
-
-    beat.interrupt();
-    beat.join();
-    resetOneShots();
-}
-
-void quintet::HeartBeatController::run() {
-    while (true) {
-        heartBeat();
-        try {
-            boost::this_thread::sleep_for(boost::chrono::milliseconds(periodMs));
-        } catch (boost::thread_interrupted ) {
-            break;
-        }
-    }
-    running = false;
-}
-
-void quintet::HeartBeatController::resetOneShots() {
-    for (auto && t : oneShots)
-        t.interrupt();
-    for (auto && t : oneShots)
-        t.join();
-    oneShots.clear();
-}
-
 
 void quintet::Committer::bindCommit(std::function<void(LogEntry)> f) {
     commit_ = std::move(f);
