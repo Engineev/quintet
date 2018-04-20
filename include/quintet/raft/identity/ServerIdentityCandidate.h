@@ -65,7 +65,6 @@ private:
             boost::thread([srv, currentTerm, this] {
                 rpc::client c(srv.addr, srv.port);
                 c.call("AppendEntries", currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0);
-                service.logger("Shutdown ", srv);
             }).detach();
         }
     }

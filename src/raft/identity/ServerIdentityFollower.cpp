@@ -18,10 +18,6 @@ void ServerIdentityFollower::init() {
     electionTimeout =
         info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(
                                    0, info.electionTimeout)(eg);
-
-    service.logger("\n\tFollower::init()\n\telectionTimeout = ",
-                   electionTimeout);
-
     service.heartBeatController.oneShot(
         [&] {
             service.identityTransformer.transform(ServerIdentityNo::Candidate);

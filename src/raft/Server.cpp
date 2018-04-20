@@ -43,8 +43,6 @@ void quintet::Server::initService() {
                  return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
              });
     rpc.async_run();
-
-    service.logger.set("./", info.local.addr + "_" + std::to_string(info.local.port));
 }
 
 void quintet::Server::transform(quintet::ServerIdentityNo to) {

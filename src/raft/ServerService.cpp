@@ -48,29 +48,6 @@ void quintet::RpcService::stop() {
     srv->stop();
 }
 
-// Logger
-
-quintet::Logger::Logger(std::string dir_, std::string id_)
-        : dir(std::move(dir_)), id(std::move(id_)) {
-    auto tmp = dir + id + ".log";
-    fout.open(dir + id + ".log");
-}
-
-void quintet::Logger::set(std::string dir_, std::string id_) {
-    std::lock_guard<std::mutex> lk(logging);
-    dir = std::move(dir_);
-    id  = std::move(id_);
-    fout.close();
-    fout.open(dir + id + ".log");
-}
-
-quintet::Logger::~Logger() {
-    fout.close();
-}
-
-void quintet::Logger::log_impl() {
-    fout << std::endl;
-}
 
 quintet::HeartBeatController::HeartBeatController(std::function<void()> f, std::uint64_t periodMs) {
     bind(std::move(f), periodMs);

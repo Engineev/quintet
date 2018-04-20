@@ -172,98 +172,6 @@ private:
 
 } /* namespace quintet */
 
-// Logger
-#define LOGGING
-namespace quintet {
-
-class Logger {
-public:
-    Logger() = default;
-
-    Logger(std::string dir, std::string id);
-
-    ~Logger();
-
-    void set(std::string dir_, std::string id_);
-
-    template <class... Args>
-    void log(const Args &... args) {
-#ifdef LOGGING
-        std::lock_guard<std::mutex> lk(logging);
-        fout << boost::chrono::time_point_cast<boost::chrono::milliseconds>(
-                    boost::chrono::steady_clock::now())
-             << ": ";
-        fout << id << ": ";
-        log_impl(args...);
-#endif
-    }
-
-    template <class... Args>
-    void operator()(const Args &... args) {
-        log(args...);
-    }
-
-    friend class Log;
-    class Log {
-    public:
-        ~Log() {
-            ss << "\nend";
-            logger.log_impl(std::string(std::istreambuf_iterator<char>(ss), {}));
-        }
-
-        Log(Log &&) = default;
-
-        Log & operator=(Log &&) = default;
-
-        template <class... Args>
-        void add(const Args&... args) {
-            ss << "\n\t";
-            add_impl(args...);
-        }
-
-    private:
-        friend class Logger;
-        explicit Log(Logger & logger, const std::string & init)
-                : logger(logger), ss(std::stringstream()) {
-            ss << boost::chrono::time_point_cast<boost::chrono::milliseconds>(
-                    boost::chrono::steady_clock::now()) << ": ";
-            ss << logger.id << ": " << init;;
-        }
-
-        void add_impl() {}
-
-        template <class T, class... Args>
-        void add_impl(const T & x, const Args&... args) {
-            ss << x;
-            add_impl(args...);
-        };
-
-    private:
-        Logger & logger;
-        std::stringstream ss;
-    };
-
-    Log makeLog(std::string init = "") {
-        return Log(*this, init);
-    }
-
-private:
-    std::mutex    logging;
-    std::string   dir;
-    std::string   id;
-    std::ofstream fout;
-
-    void log_impl();
-
-    template <class T, class... Args>
-    void log_impl(const T &x, const Args &... args) {
-        fout << x;
-        log_impl(args...);
-    };
-};
-
-} /* namespace quintet */
-
 // HeartBeatController
 namespace quintet {
 
@@ -343,7 +251,6 @@ namespace quintet {
 
 struct ServerService {
     IdentityTransformer identityTransformer;
-    Logger logger;
     HeartBeatController heartBeatController;
     Committer committer;
     FaultInjector faultInjector;

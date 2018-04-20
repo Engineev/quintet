@@ -12,13 +12,11 @@ quintet::ServerIdentityCandidate::ServerIdentityCandidate(quintet::ServerState &
         : ServerIdentityBase(state_, info_, service_) {}
 
 void quintet::ServerIdentityCandidate::leave() {
-    auto log = service.logger.makeLog("Candidate::leave");
     service.heartBeatController.stop();
     for (auto & t : requestingThreads)
         t.interrupt();
     for (auto & t : requestingThreads) {
         t.join();
-        log.add("thread ", t.get_id(), " exits.");
     }
     requestingThreads.clear();
 }
@@ -30,9 +28,6 @@ void quintet::ServerIdentityCandidate::init() {
     std::random_device rd;
     std::default_random_engine eg(rd());
     auto electionTimeout = info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(0, info.electionTimeout)(eg);
-
-    service.logger("Candidate::init()\n\telectionTimeout = ", electionTimeout,
-        "\n\tTerm = ", state.currentTerm);
 
     service.heartBeatController.oneShot(
             [&] { service.identityTransformer.transform(ServerIdentityNo::Candidate); },
@@ -48,35 +43,20 @@ quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::Se
                                                  std::size_t lastLogIdx, quintet::Term lastLogTerm) {
     boost::lock_guard<ServerState> lk(state);
 
-    service.logger("RPCRequestVote: sleep!");
-    service.faultInjector.randomSleep(0, info.electionTimeout);
-    service.logger("RPCRequestVote: wake up!");
-
-    auto log = service.logger.makeLog("RPCRequestVote");
-    log.add("Identity = Candidate\n\tterm = ", term,
-            ", from = ", candidateId, "\n\tcurrentTerm = ", state.currentTerm);
-
     if (term < state.currentTerm) {
-        log.add("result = false. (term < currentTerm)");
         return {state.currentTerm, false};
     }
     if (term > state.currentTerm) {
         state.votedFor = NullServerId;
         state.currentTerm = term;
-        log.add("term > currentTerm, voteFor <- null");
     }
 
     if ((state.votedFor == NullServerId || state.votedFor == candidateId)
         && upToDate(state, lastLogIdx, lastLogTerm)) {
-        log.add("result = true");
         state.votedFor = candidateId;
         return {state.currentTerm, true};
     }
 
-    if (state.votedFor != NullServerId && state.votedFor != candidateId)
-        log.add("result = false (voted)");
-    else
-        log.add("result = false (not up-to-date)");
     return {state.currentTerm, false};
 }
 
@@ -84,12 +64,6 @@ std::pair<quintet::Term, bool>
 quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId,
                                                    std::size_t prevLogIdx, quintet::Term prevLogTerm,
                                                    std::vector<quintet::LogEntry> logEntries, std::size_t commitIdx) {
-    service.logger("Candidate:AppendEntries from ", leaderId);
-
-    service.logger("RPCAppendEntries: sleep!");
-    service.faultInjector.randomSleep(0, info.electionTimeout);
-    service.logger("RPCAppendEntries: wake up!");
-
     boost::lock_guard<ServerState> lk(state);
     if (term >= state.currentTerm) {
         state.currentTerm = term;
@@ -116,25 +90,19 @@ quintet::ServerIdentityCandidate::sendRequestVote(quintet::ServerId target, quin
 
 void quintet::ServerIdentityCandidate::requestVotes(
         Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm) {
-    service.logger("Candidate::requestVotes");
-
     for (auto & srv : info.srvList) {
         if (srv == info.local)
             continue;
 
         auto t = boost::thread([this, &srv,
                            currentTerm, local, lastLogIdx, lastLogTerm] () mutable {
-            service.logger("send RPCRequestVote to ", srv);
-
             Term termReceived;
             bool res;
             try {
                 std::tie(termReceived, res) = sendRequestVote(srv, currentTerm, local, lastLogIdx, lastLogTerm);
             } catch (boost::thread_interrupted & t) {
-                service.logger(srv, " TLE");
                 return;
             }
-            service.logger("Vote result from ", srv, " = ", "(result: " , res, ", term: ", termReceived, ")");
             if (termReceived != currentTerm || !res)
                 return;
             votesReceived += res;

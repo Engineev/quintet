@@ -94,10 +94,6 @@ public:
 
     void transform_test(ServerIdentityNo to) {
         auto actual = onTransform(currentIdentity, to);
-
-        service.logger("transform from ", IdentityNames[(int)currentIdentity],
-            " to ", IdentityNames[(int)to], ". Actually to ", IdentityNames[(int)actual]);
-
         setIdentity_test(actual);
     }
 
