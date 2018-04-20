@@ -31,6 +31,7 @@ bool quintet::HeartBeatController::start(bool immediate, bool repeat) {
                     period = period, f = func,
                     immediate = immediate, repeat = repeat] {
         if (immediate) {
+            BOOST_LOG(lg) << "Triggered.";
             f();
             if (!repeat)
                 return ;
@@ -42,6 +43,7 @@ bool quintet::HeartBeatController::start(bool immediate, bool repeat) {
                 BOOST_LOG(lg) << "Interrupted.";
                 return;
             }
+            BOOST_LOG(lg) << "Triggered.";
             f();
         } while (repeat);
     });

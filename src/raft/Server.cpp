@@ -16,11 +16,14 @@ void quintet::Server::init(const std::string &configDir) {
 }
 
 void quintet::Server::run() {
-    triggerTransformation(ServerIdentityNo::Follower);
+    if (!triggerTransformation(ServerIdentityNo::Follower))
+        throw;
 }
 
 void quintet::Server::stop() {
     rpc.stop();
+    service.identityTransformer.stop();
+
     triggerTransformation(ServerIdentityNo::Down);
     transformThread.join();
 }
@@ -28,6 +31,7 @@ void quintet::Server::stop() {
 void quintet::Server::initService() {
     service.identityTransformer.bindNotificationSlot(
             [&](ServerIdentityNo to) { return triggerTransformation(to); });
+    service.identityTransformer.start();
 
     rpc.listen(info.local.port);
     rpc.bind("AppendEntries",

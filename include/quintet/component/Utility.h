@@ -14,7 +14,6 @@ namespace quintet {
 #define GEN_DELETE_MOVE(NAME) \
     NAME(NAME &&) = delete; \
     NAME & operator=(NAME &&) = delete;
-
 } /* namespace quintet */
 
 // random

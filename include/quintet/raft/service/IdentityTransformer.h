@@ -4,6 +4,7 @@
 #include <functional>
 #include <thread>
 #include <mutex>
+#include <atomic>
 
 #include "RaftDefs.h"
 
@@ -12,6 +13,16 @@ namespace quintet {
 
 class IdentityTransformer {
 public:
+    void start() {
+        std::lock_guard<std::mutex> lk(m);
+        running = true;
+    }
+
+    void stop() {
+        std::lock_guard<std::mutex> lk(m);
+        running = false;
+    }
+
     /// \brief Bind the transformation slot. See param for details.
     ///
     /// \param slot Requirement: 'slot' should try to trigger a transformation
@@ -28,12 +39,18 @@ public:
     ///
     /// \param target The target identity
     /// \return Whether the server will carry out the transformation.
+    ///         If the transformer has been stopped, return false too.
     bool notify(ServerIdentityNo target) {
+        std::lock_guard<std::mutex> lk(m);
+        if (!running)
+            return false;
         return notifySlot(target);
     }
 
 private:
     std::function<bool(quintet::ServerIdentityNo)> notifySlot;
+    std::mutex m;
+    bool running = false;
 };
 
 } /* namespace quintet */

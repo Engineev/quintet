@@ -36,15 +36,17 @@ BOOST_AUTO_TEST_CASE(Naive) {
             throw ;
         });
         srv->setAfterTransform([&](No from, No to) {
-            if (from == No::Candidate && to == No::Leader)
+            if (from == No::Candidate && to == No::Leader) {
                 srv->sendHeartBeat();
+            }
         });
+        srv->run();
     }
     boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 30));
     for (auto & srv : srvs)
         srv->stop();
-//    BOOST_REQUIRE_EQUAL(candidate2Leader, 1);
-//    BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
+    BOOST_REQUIRE_EQUAL(candidate2Leader, 1);
+    BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
