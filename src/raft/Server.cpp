@@ -45,7 +45,6 @@ void quintet::Server::initService() {
     rpc.async_run();
 }
 
-
 void quintet::Server::refreshState() {
     state.votedFor = NullServerId;
 }
@@ -72,17 +71,26 @@ void quintet::Server::bindCommit(std::function<void(quintet::LogEntry)> commit) 
 }
 
 void quintet::Server::transform(quintet::ServerIdentityNo target) {
-    auto from = currentIdentity;
-    currentIdentity = target;
-
     rpc.pause();
+
+    auto from = currentIdentity;
+    auto actualTarget = target;
+#ifdef IDENTITY_TEST
+    actualTarget = beforeTransform(from, target);
+#endif
+    currentIdentity = actualTarget;
+
     if (from != ServerIdentityNo::Down)
         identities[(std::size_t)from]->leave();
 
     refreshState();
 
     if (target != ServerIdentityNo::Down)
-        identities[(std::size_t)target]->init();
+        identities[(std::size_t)actualTarget]->init();
+#ifdef IDENTITY_TEST
+    afterTransform(from, target);
+#endif
+
     rpc.resume();
 }
 
@@ -92,17 +100,14 @@ bool quintet::Server::triggerTransformation(quintet::ServerIdentityNo target) {
         return false;
     transformThread = boost::thread(
             [lk = std::move(lk), this, target] () mutable {
-#ifdef IDENTITY_TEST
-                target = onTransform(currentIdentity, target);
-#endif
                 transform(target);
             });
     return true;
 }
 
-void quintet::Server::setOnTransform(
+void quintet::Server::setBeforeTransform(
         std::function<quintet::ServerIdentityNo(quintet::ServerIdentityNo, quintet::ServerIdentityNo)> f) {
-    onTransform = std::move(f);
+    beforeTransform = std::move(f);
 }
 
 std::uint64_t quintet::Server::getElectionTimeout() const {
@@ -111,4 +116,23 @@ std::uint64_t quintet::Server::getElectionTimeout() const {
 
 quintet::ServerIdentityNo quintet::Server::getCurrentIdentity() const {
     return currentIdentity;
+}
+
+void quintet::Server::setAfterTransform(
+        std::function<void(quintet::ServerIdentityNo, quintet::ServerIdentityNo)> f) {
+    afterTransform = std::move(f);
+}
+
+void quintet::Server::sendHeartBeat() {
+    std::vector<boost::thread> ts;
+    for (auto & srv : info.srvList) {
+        if (srv == info.local)
+            continue;
+        ts.emplace_back(boost::thread([srv, currentTerm = state.currentTerm, this] {
+            rpc::client c(srv.addr, srv.port);
+            c.call("AppendEntries", currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0);
+        }));
+    }
+    for (auto & t : ts)
+        t.join();
 }

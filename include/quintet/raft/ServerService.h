@@ -1,17 +1,6 @@
 #ifndef QUINTET_SERVERSERVICE_H
 #define QUINTET_SERVERSERVICE_H
 
-/**
- *  The services required to apply the Raft algorithm
- *  such as RPC and identity transformation.
- *  Services:
- *    - IdentityTransformer
- *    - RpcService
- *    - Logger
- *    - HeartBeatController
- *    - Committer
- */
-
 #include <condition_variable>
 #include <fstream>
 #include <functional>
@@ -42,11 +31,6 @@
 
 #include "HeartBeatController.h"
 #include "IdentityTransformer.h"
-
-// forward declaration
-namespace quintet {
-struct ServerService;
-}
 
 // RpcService
 namespace quintet {

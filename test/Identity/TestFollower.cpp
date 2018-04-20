@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE(StartElection, *boost::unit_test::disabled()) {
     const auto ElectionTimeout = srvs.front()->getElectionTimeout();
     std::atomic<int> transformPerformed{0}; // count: follower -> candidate
     for (auto & srv : srvs) {
-        srv->setOnTransform([&](quintet::ServerIdentityNo from, quintet::ServerIdentityNo to) {
+        srv->setBeforeTransform([&](quintet::ServerIdentityNo from, quintet::ServerIdentityNo to) {
             if (from == quintet::ServerIdentityNo::Down)
                 return to;
             if (from != quintet::ServerIdentityNo::Follower

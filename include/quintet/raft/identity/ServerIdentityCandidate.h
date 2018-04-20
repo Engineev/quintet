@@ -55,22 +55,6 @@ private:
 
     std::pair<Term, bool> sendRequestVote(ServerId target,
                                           Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm);
-
-#ifdef IDENTITY_TEST
-    /// \brief Notify the other servers the end of the election
-    void notifyReign(Term currentTerm) {
-        for (auto & srv : info.srvList) {
-            if (srv == info.local)
-                continue;
-            boost::thread([srv, currentTerm, this] {
-                rpc::client c(srv.addr, srv.port);
-                c.call("AppendEntries", currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0);
-            }).detach();
-        }
-    }
-#endif
-
-
 }; // class ServerIdentityCandidate
 
 } // namespace quintet

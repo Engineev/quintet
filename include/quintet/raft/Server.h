@@ -64,14 +64,20 @@ private:
 // IDENTITY_TEST BEGIN
 public:
     // return the identity the tester wants to transform to
-    void setOnTransform(std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> f);
+    void setBeforeTransform(std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> f);
+
+    void setAfterTransform(std::function<void(ServerIdentityNo from, ServerIdentityNo to)> f);
 
     std::uint64_t getElectionTimeout() const;
 
     ServerIdentityNo getCurrentIdentity() const;
 
+    /// \brief send empty RPCAppendEntries to other servers. (sync)
+    void sendHeartBeat();
+
 private:
-    std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> onTransform;
+    std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> beforeTransform;
+    std::function<void(ServerIdentityNo from, ServerIdentityNo to)> afterTransform;
 // IDENTITY_TEST END
 };
 

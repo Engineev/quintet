@@ -110,11 +110,7 @@ void quintet::ServerIdentityCandidate::requestVotes(
             votesReceived += res;
             // It is guaranteed that only one transformation will be carried out.
             if (votesReceived > info.srvList.size() / 2) {
-                if (service.identityTransformer.notify(ServerIdentityNo::Leader)) {
-#ifdef IDENTITY_TEST
-                    notifyReign(currentTerm);
-#endif
-                }
+                service.identityTransformer.notify(ServerIdentityNo::Leader);
             }
         });
 
