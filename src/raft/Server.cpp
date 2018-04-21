@@ -3,6 +3,8 @@
 #include <cassert>
 #include <boost/log/attributes/constant.hpp>
 
+#include "log/Common.h"
+
 void quintet::Server::init(const std::string &configDir) {
     info.load(configDir);
     initService();
@@ -17,7 +19,7 @@ void quintet::Server::init(const std::string &configDir) {
 }
 
 void quintet::Server::run() {
-    auto res = triggerTransformation(ServerIdentityNo::Follower);
+    auto res = triggerTransformation(ServerIdentityNo::Follower, InvalidTerm);
     assert(res);
 }
 
@@ -25,13 +27,14 @@ void quintet::Server::stop() {
     rpc.stop();
     service.identityTransformer.stop();
 
-    triggerTransformation(ServerIdentityNo::Down);
+    triggerTransformation(ServerIdentityNo::Down, InvalidTerm);
     transformThread.join();
 }
 
 void quintet::Server::initService() {
     service.identityTransformer.bindNotificationSlot(
-            [&](ServerIdentityNo to) { return triggerTransformation(to); });
+            [this](ServerIdentityNo to, Term term) { return triggerTransformation(to, term); });
+    service.identityTransformer.configLogger(info.local.toString());
     service.identityTransformer.start();
 
     service.heartBeatController.configLogger(info.local.toString());
@@ -40,14 +43,14 @@ void quintet::Server::initService() {
 
     rpc.listen(info.local.port);
     rpc.bind("AppendEntries",
-             [&](Term term, ServerId leaderId,
+             [this](Term term, ServerId leaderId,
                  std::size_t prevLogIdx, Term prevLogTerm,
                  std::vector<LogEntry> logEntries, std::size_t commitIdx) {
                  return RPCAppendEntries(term, leaderId, prevLogIdx, prevLogTerm,
                                          std::move(logEntries), commitIdx);
              });
     rpc.bind("RequestVote",
-             [&](Term term, ServerId candidateId,
+             [this](Term term, ServerId candidateId,
                  std::size_t lastLogIdx, Term lastLogTerm) {
                  return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
              });
@@ -80,8 +83,7 @@ void quintet::Server::bindCommit(std::function<void(quintet::LogEntry)> commit) 
 }
 
 void quintet::Server::transform(quintet::ServerIdentityNo target) {
-    rpc.pause();
-
+    BOOST_LOG(service.logger) << "start transformation";
     auto from = currentIdentity;
     auto actualTarget = target;
 #ifdef IDENTITY_TEST
@@ -89,26 +91,43 @@ void quintet::Server::transform(quintet::ServerIdentityNo target) {
 #endif
     currentIdentity = actualTarget;
 
+    BOOST_LOG(service.logger) << "transform from " << IdentityNames[(int)from]
+                              << " to " << IdentityNames[(int)target]
+                              << " (actually to " << IdentityNames[(int)actualTarget] << ")";
+
+    rpc.pause();
+
     if (from != ServerIdentityNo::Down)
         identities[(std::size_t)from]->leave();
 
     refreshState();
 
-    if (target != ServerIdentityNo::Down)
+    if (actualTarget != ServerIdentityNo::Down)
         identities[(std::size_t)actualTarget]->init();
 #ifdef IDENTITY_TEST
     afterTransform(from, target);
 #endif
 
     rpc.resume();
+    BOOST_LOG(service.logger) << "Transformation completed.";
 }
 
-bool quintet::Server::triggerTransformation(quintet::ServerIdentityNo target) {
-    boost::unique_lock<boost::mutex> lk(transforming, boost::defer_lock);
-    if (!lk.try_lock())
+bool quintet::Server::triggerTransformation(quintet::ServerIdentityNo target, Term term) {
+    boost::lock_guard<boost::mutex> lk(transforming);
+    BOOST_LOG(service.logger) << "triggerTransformation: target = " << IdentityNames[(int)target]
+                              << ", term = " << term << ", termTransformed = " << termTransformed;
+    if (termTransformed != InvalidTerm && term <= termTransformed) {
+        BOOST_LOG(service.logger) << "A transformation been triggered in this term.";
         return false;
+    }
+
+    termTransformed = term;
+    BOOST_LOG(service.logger) << "Succeed to trigger a transformation.";
+    transformThread.join();
+    BOOST_LOG(service.logger) << "Joined";
     transformThread = boost::thread(
-            [lk = std::move(lk), this, target] () mutable {
+            [this, target] {
+                BOOST_LOG(service.logger) << "Launched";
                 transform(target);
             });
     return true;
