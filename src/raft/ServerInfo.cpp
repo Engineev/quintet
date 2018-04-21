@@ -45,5 +45,5 @@ void quintet::ServerInfo::save(const std::string &filename) {
 }
 
 std::string quintet::ServerId::toString() const {
-    return addr + ":" + std::to_string(port);
+    return addr + "-" + std::to_string(port);
 }

@@ -6,11 +6,8 @@
 #include <boost/log/attributes/named_scope.hpp>
 
 void quintet::HeartBeatController::stop() {
-    BOOST_LOG(lg) << "HeartBeatController: stop()";
     th.interrupt();
-    BOOST_LOG(lg) << "HeartBeatController: interrupted()";
     th.join();
-    BOOST_LOG(lg) << "HeartBeatController: joined()";
 }
 
 void quintet::HeartBeatController::restart() {
@@ -34,7 +31,7 @@ bool quintet::HeartBeatController::start(bool immediate, bool repeat) {
                     immediate = immediate, repeat = repeat] {
         boost::this_thread::disable_interruption di;
         if (immediate) {
-            BOOST_LOG(lg) << "HeartBeatController: beat!";
+            BOOST_LOG(lg) << "beat!";
             f();
             if (!repeat)
                 return ;
@@ -44,10 +41,10 @@ bool quintet::HeartBeatController::start(bool immediate, bool repeat) {
                 boost::this_thread::restore_interruption ri(di);
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(period));
             } catch (boost::thread_interrupted) {
-                BOOST_LOG(lg) << "HeartBeatController: interrupted.";
+                BOOST_LOG(lg) << "interrupted.";
                 return;
             }
-            BOOST_LOG(lg) << "HeartBeatController: beat!";
+            BOOST_LOG(lg) << "beat!";
             f();
         } while (repeat);
     });
@@ -67,5 +64,6 @@ quintet::HeartBeatController::~HeartBeatController() {
 
 void quintet::HeartBeatController::configLogger(const std::string &id) {
     using namespace logging;
+    lg.add_attribute("ServiceType", attrs::constant<std::string>("HeartBeatController"));
     lg.add_attribute("ServerId", attrs::constant<std::string>(id));
 }
