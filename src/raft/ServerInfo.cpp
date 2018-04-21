@@ -43,3 +43,7 @@ void quintet::ServerInfo::save(const std::string &filename) {
         tree.put("serverList.serverId", id);
     pt::write_json(filename, tree);
 }
+
+std::string quintet::ServerId::toString() const {
+    return addr + ":" + std::to_string(port);
+}

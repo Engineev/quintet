@@ -33,6 +33,8 @@ void quintet::Server::initService() {
             [&](ServerIdentityNo to) { return triggerTransformation(to); });
     service.identityTransformer.start();
 
+    service.heartBeatController.configLogger(info.local.toString());
+
     rpc.listen(info.local.port);
     rpc.bind("AppendEntries",
              [&](Term term, ServerId leaderId,

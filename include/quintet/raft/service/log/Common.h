@@ -19,8 +19,6 @@ namespace sinks    = boost::log::sinks;
 namespace attrs    = boost::log::attributes;
 namespace expr     = boost::log::expressions;
 
-BOOST_LOG_ATTRIBUTE_KEYWORD(serverId, "ServerID", std::string)
-
 } // namespace logging
 } // namespace quintet
 
