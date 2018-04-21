@@ -21,7 +21,10 @@ BOOST_AUTO_TEST_CASE(Naive) {
     std::atomic<int> candidate2Follower{0}, candidate2Leader{0};
     for (auto & srv : srvs) {
         srv->setBeforeTransform([&](No from, No to) {
-            if (from == No::Down)
+            if (to == No::Down)
+                return No::Down;
+
+            if (from == No::Down && to == No::Follower)
                 return No::Candidate;
             if (from == No::Candidate && to == No::Leader) {
                 ++candidate2Leader;
@@ -42,6 +45,7 @@ BOOST_AUTO_TEST_CASE(Naive) {
         });
         srv->run();
     }
+    BOOST_TEST_MESSAGE("sleep for " << ElectionTimeout * 30 << " ms.");
     boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 30));
     for (auto & srv : srvs)
         srv->stop();

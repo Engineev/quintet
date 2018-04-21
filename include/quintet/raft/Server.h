@@ -47,11 +47,13 @@ private:
     ServerService service;
     RpcService    rpc;
 
+
     boost::mutex  transforming;
+    Term          termTransformed = InvalidTerm;
     boost::thread transformThread;
 
 private:
-    bool triggerTransformation(ServerIdentityNo target);
+    bool triggerTransformation(ServerIdentityNo target, Term term);
 
     void transform(ServerIdentityNo target);
 

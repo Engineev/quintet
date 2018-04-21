@@ -1,41 +1,57 @@
 #include "ServerIdentityCandidate.h"
 
+#include <memory>
+
 #include <boost/thread/lock_guard.hpp>
-#include "Future.h"
-#include "Utility.h"
 
 #include <rpc/client.h>
 #include <rpc/rpc_error.h>
+
+#include "Future.h"
+#include "Utility.h"
+#include "log/Common.h"
+
+#include <cstdlib>
 
 quintet::ServerIdentityCandidate::ServerIdentityCandidate(quintet::ServerState &state_, quintet::ServerInfo &info_,
                                                           quintet::ServerService &service_)
         : ServerIdentityBase(state_, info_, service_) {}
 
 void quintet::ServerIdentityCandidate::leave() {
+    BOOST_LOG(service.logger) << "Candidate::leave()";
     service.heartBeatController.stop();
+    BOOST_LOG(service.logger) << "interrupt threads";
     for (auto & t : requestingThreads)
         t.interrupt();
-    for (auto & t : requestingThreads) {
+    BOOST_LOG(service.logger) << "join";
+    for (auto & t : requestingThreads)
         t.join();
-    }
     requestingThreads.clear();
 }
 
 void quintet::ServerIdentityCandidate::init() {
+    BOOST_LOG(service.logger) << "Candidate::init()";
     ++state.currentTerm;
     state.votedFor = info.local;
 
-    std::random_device rd;
-    std::default_random_engine eg(rd());
+//    std::random_device rd;
+//    std::default_random_engine eg(rd());
+//    auto electionTimeout =
+//            info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(0, info.electionTimeout)(eg);
     auto electionTimeout =
-            info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(0, info.electionTimeout)(eg);
+            info.electionTimeout + rand() % info.electionTimeout;
+
+    BOOST_LOG(service.logger) << "Set electionTime = " << electionTimeout;
 
     votesReceived = 1;
     requestVotes(state.currentTerm, info.local,
                  state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term);
 
     service.heartBeatController.bind(
-            [&] { service.identityTransformer.notify(ServerIdentityNo::Candidate); },
+            [&, term = state.currentTerm] {
+                BOOST_LOG(service.logger) << "Times out. Restart the election.";
+                service.identityTransformer.notify(ServerIdentityNo::Candidate, term);
+            },
             electionTimeout);
     service.heartBeatController.start(false, false);
 }
@@ -69,7 +85,7 @@ quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::
     boost::lock_guard<ServerState> lk(state);
     if (term >= state.currentTerm) {
         state.currentTerm = term;
-        service.identityTransformer.notify(ServerIdentityNo::Follower);
+        service.identityTransformer.notify(ServerIdentityNo::Follower, state.currentTerm);
         return {state.currentTerm, false};
     }
     return {state.currentTerm, false};
@@ -98,19 +114,24 @@ void quintet::ServerIdentityCandidate::requestVotes(
 
         auto t = boost::thread([this, &srv,
                            currentTerm, local, lastLogIdx, lastLogTerm] () mutable {
+            boost::this_thread::disable_interruption di;
             Term termReceived;
             bool res;
             try {
+                boost::this_thread::restore_interruption ri(di);
+                BOOST_LOG(service.logger) << "Send RPCRequestVote to " << srv.toString();
                 std::tie(termReceived, res) = sendRequestVote(srv, currentTerm, local, lastLogIdx, lastLogTerm);
             } catch (boost::thread_interrupted & t) {
                 return;
             }
+            BOOST_LOG(service.logger) << "Receive the result of RPCRequestVote from " << srv.toString()
+                                      << ". TermReceived = " << termReceived << ", res = " << res;
             if (termReceived != currentTerm || !res)
                 return;
             votesReceived += res;
             // It is guaranteed that only one transformation will be carried out.
             if (votesReceived > info.srvList.size() / 2) {
-                service.identityTransformer.notify(ServerIdentityNo::Leader);
+                service.identityTransformer.notify(ServerIdentityNo::Leader, currentTerm);
             }
         });
 

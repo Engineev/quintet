@@ -6,8 +6,11 @@
 #include <boost/log/attributes/named_scope.hpp>
 
 void quintet::HeartBeatController::stop() {
+    BOOST_LOG(lg) << "HeartBeatController: stop()";
     th.interrupt();
+    BOOST_LOG(lg) << "HeartBeatController: interrupted()";
     th.join();
+    BOOST_LOG(lg) << "HeartBeatController: joined()";
 }
 
 void quintet::HeartBeatController::restart() {
@@ -19,7 +22,6 @@ bool quintet::HeartBeatController::start(bool immediate, bool repeat) {
     BOOST_LOG_FUNCTION();
     boost::unique_lock<boost::mutex> lk(m, boost::defer_lock);
     if (!lk.try_lock()) {
-        BOOST_LOG(lg) << "Failed to start HeartBeat.";
         return false;
     }
 
@@ -30,25 +32,25 @@ bool quintet::HeartBeatController::start(bool immediate, bool repeat) {
             [this, lk = std::move(lk),
                     period = period, f = func,
                     immediate = immediate, repeat = repeat] {
+        boost::this_thread::disable_interruption di;
         if (immediate) {
-            BOOST_LOG(lg) << "Triggered.";
+            BOOST_LOG(lg) << "HeartBeatController: beat!";
             f();
             if (!repeat)
                 return ;
         }
         do {
             try {
+                boost::this_thread::restore_interruption ri(di);
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(period));
             } catch (boost::thread_interrupted) {
-                BOOST_LOG(lg) << "Interrupted.";
+                BOOST_LOG(lg) << "HeartBeatController: interrupted.";
                 return;
             }
-            BOOST_LOG(lg) << "Triggered.";
+            BOOST_LOG(lg) << "HeartBeatController: beat!";
             f();
         } while (repeat);
     });
-
-    BOOST_LOG(lg) << "Succeed to start HeartBeat.";
     return true;
 }
 
@@ -60,6 +62,7 @@ void quintet::HeartBeatController::bind(std::function<void()> f, std::uint64_t p
 quintet::HeartBeatController::~HeartBeatController() {
     BOOST_LOG_FUNCTION();
     stop();
+    BOOST_LOG(lg) << "HeartBeatController: dtor";
 }
 
 void quintet::HeartBeatController::configLogger(const std::string &id) {
