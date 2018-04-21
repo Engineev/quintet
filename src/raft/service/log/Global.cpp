@@ -12,11 +12,23 @@
 #include "log/Common.h"
 #include "log/Sinks.h"
 
-void quintet::logging::init() {
-    static std::once_flag flag;
-    std::call_once(flag, [] {
-        logging::add_common_attributes();
-        logging::core::get()->add_global_attribute("Scope", attrs::named_scope());
-        logging::core::get()->add_sink(makeGlobalSink());
-    });
+quintet::logging::Initializer &quintet::logging::Initializer::getInstance() {
+    static Initializer inst;
+    return inst;
+}
+
+void quintet::logging::Initializer::init() {
+    logging::add_common_attributes();
+    auto core = logging::core::get();
+    auto sinks = makeGlobalSink(idList, prefix);
+    for (auto & sink : sinks)
+        core->add_sink(sink);
+}
+
+void quintet::logging::Initializer::addId(std::string id) {
+    idList.emplace_back(std::move(id));
+}
+
+void quintet::logging::Initializer::setPrefix(std::string prefix_) {
+    prefix = std::move(prefix_);
 }

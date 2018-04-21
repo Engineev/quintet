@@ -13,7 +13,9 @@ BOOST_AUTO_TEST_CASE(HelloWorld) {
 
 struct GlobalFixture {
     GlobalFixture() {
-        quintet::logging::init();
+        auto & initializer = quintet::logging::Initializer::getInstance();
+        initializer.addId("foo");
+        initializer.init();
     }
 
     ~GlobalFixture() {}
