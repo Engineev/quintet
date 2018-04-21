@@ -19,6 +19,7 @@ public:
     ///        other functions being called.
     void configLogger(const std::string &id) {
         using namespace logging;
+        lg.add_attribute("ServiceType", attrs::constant<std::string>("IdentityTransformer"));
         lg.add_attribute("ServerId", attrs::constant<std::string>(id));
     }
 
@@ -54,7 +55,7 @@ public:
     ///         If the transformer has been stopped, return false too.
     bool notify(ServerIdentityNo target, Term term) {
         std::lock_guard<std::mutex> lk(m);
-        BOOST_LOG(lg) << "IdentityTransformer: notify";
+        BOOST_LOG(lg) << "notify";
         if (!running)
             return false;
         return notifySlot(target, term);

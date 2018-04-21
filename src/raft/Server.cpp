@@ -64,6 +64,7 @@ void quintet::Server::refreshState() {
 std::pair<quintet::Term, bool>
 quintet::Server::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId, std::size_t lastLogIdx,
                                 quintet::Term lastLogTerm) {
+    BOOST_LOG(service.logger) << "RPCRequestVote from " << candidateId.toString();
     if (currentIdentity == ServerIdentityNo::Down)
         return {-1, false};
     return identities[(int)currentIdentity]->RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
@@ -73,6 +74,7 @@ std::pair<quintet::Term, bool>
 quintet::Server::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId, std::size_t prevLogIdx,
                                   quintet::Term prevLogTerm, std::vector<quintet::LogEntry> logEntries,
                                   std::size_t commitIdx) {
+    BOOST_LOG(service.logger) << "RPCAppendEntries from " << leaderId.toString();
     return identities[(int)currentIdentity]->RPCAppendEntries(
             term, leaderId, prevLogIdx, prevLogTerm,
             std::move(logEntries), commitIdx);
@@ -83,7 +85,6 @@ void quintet::Server::bindCommit(std::function<void(quintet::LogEntry)> commit) 
 }
 
 void quintet::Server::transform(quintet::ServerIdentityNo target) {
-    BOOST_LOG(service.logger) << "start transformation";
     auto from = currentIdentity;
     auto actualTarget = target;
 #ifdef IDENTITY_TEST
@@ -114,8 +115,6 @@ void quintet::Server::transform(quintet::ServerIdentityNo target) {
 
 bool quintet::Server::triggerTransformation(quintet::ServerIdentityNo target, Term term) {
     boost::lock_guard<boost::mutex> lk(transforming);
-    BOOST_LOG(service.logger) << "triggerTransformation: target = " << IdentityNames[(int)target]
-                              << ", term = " << term << ", termTransformed = " << termTransformed;
     if (termTransformed != InvalidTerm && term <= termTransformed) {
         BOOST_LOG(service.logger) << "A transformation been triggered in this term.";
         return false;
@@ -124,10 +123,8 @@ bool quintet::Server::triggerTransformation(quintet::ServerIdentityNo target, Te
     termTransformed = term;
     BOOST_LOG(service.logger) << "Succeed to trigger a transformation.";
     transformThread.join();
-    BOOST_LOG(service.logger) << "Joined";
     transformThread = boost::thread(
             [this, target] {
-                BOOST_LOG(service.logger) << "Launched";
                 transform(target);
             });
     return true;

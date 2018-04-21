@@ -14,9 +14,9 @@ BOOST_AUTO_TEST_CASE(HelloWorld) {
 struct GlobalFixture {
     GlobalFixture() {
         auto & initializer = quintet::logging::Initializer::getInstance();
-        initializer.addId("localhost:8000"); // TODO
-        initializer.addId("localhost:8001");
-        initializer.addId("localhost:8002");
+        initializer.addId("localhost-8000"); // TODO
+        initializer.addId("localhost-8001");
+        initializer.addId("localhost-8002");
         initializer.init();
     }
 

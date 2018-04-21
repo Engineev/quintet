@@ -20,10 +20,8 @@ quintet::ServerIdentityCandidate::ServerIdentityCandidate(quintet::ServerState &
 void quintet::ServerIdentityCandidate::leave() {
     BOOST_LOG(service.logger) << "Candidate::leave()";
     service.heartBeatController.stop();
-    BOOST_LOG(service.logger) << "interrupt threads";
     for (auto & t : requestingThreads)
         t.interrupt();
-    BOOST_LOG(service.logger) << "join";
     for (auto & t : requestingThreads)
         t.join();
     requestingThreads.clear();
