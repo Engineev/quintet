@@ -1,6 +1,7 @@
 #include "Server.h"
 
 #include <cassert>
+#include <boost/log/attributes/constant.hpp>
 
 void quintet::Server::init(const std::string &configDir) {
     info.load(configDir);
@@ -34,6 +35,8 @@ void quintet::Server::initService() {
     service.identityTransformer.start();
 
     service.heartBeatController.configLogger(info.local.toString());
+
+    service.logger.add_attribute("ServerId", logging::attrs::constant<std::string>(info.local.toString()));
 
     rpc.listen(info.local.port);
     rpc.bind("AppendEntries",

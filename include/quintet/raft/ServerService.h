@@ -1,36 +1,22 @@
 #ifndef QUINTET_SERVERSERVICE_H
 #define QUINTET_SERVERSERVICE_H
 
-#include <condition_variable>
-#include <fstream>
 #include <functional>
-#include <memory>
+#include <condition_variable>
 #include <mutex>
-#include <thread>
-#include <vector>
-#include <functional>
-#include <memory>
-#include <condition_variable>
-#include <fstream>
-#include <stdexcept>
-#include <sstream>
-#include <random>
 
-#include <boost/chrono.hpp>
-#include <boost/thread/condition_variable.hpp>
 #include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/thread.hpp>
-
 
 #include <rpc/client.h>
 #include <rpc/server.h>
 
 #include "Future.h"
 #include "Utility.h"
-#include "raft/RaftDefs.h"
+#include "RaftDefs.h"
 
 #include "HeartBeatController.h"
 #include "IdentityTransformer.h"
+#include "log/Common.h"
 
 // RpcService
 namespace quintet {
@@ -134,31 +120,14 @@ private:
 
 } /* namespace quintet */
 
-// FaultInjector
-namespace quintet {
-
-class FaultInjector {
-public:
-
-    /// \brief Let t be a random number between lb and ub.
-    ///        Make current thread sleep for t ms.
-    ///
-    /// \param lb lower bound
-    /// \param ub upper bound
-    void randomSleep(std::uint64_t lb, std::uint64_t ub) const;
-
-}; // class FaultInjector
-
-} /* namespace quintet */
-
 // ServerService
 namespace quintet {
 
 struct ServerService {
-    IdentityTransformer identityTransformer;
-    HeartBeatController heartBeatController;
+    IdentityTransformer  identityTransformer;
+    HeartBeatController  heartBeatController;
+    logging::src::logger logger;
     Committer committer;
-    FaultInjector faultInjector;
 }; // class ServerService
 
 } // namespace quintet

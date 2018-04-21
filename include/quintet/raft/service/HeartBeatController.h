@@ -56,7 +56,7 @@ private: // cached parameters
     bool repeatCache = false;
 
 private: // logging
-    boost::log::sources::logger_mt lg;
+    logging::src::logger_mt lg;
 
 
 }; // class HeartBeatController

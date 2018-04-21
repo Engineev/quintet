@@ -24,8 +24,8 @@ quintet::logging::makeGlobalSink(
         frontEnd->set_formatter(
                 expr::stream
                         << "[" << expr::format_date_time<boost::posix_time::ptime>(
-                                "TimeStamp", "%Y-%m-%d %H:%M:%S.%f")
-                        << "] " << expr::smessage);
+                                "TimeStamp", "%Y-%m-%d %H:%M:%S.%f") << "] "
+                        << expr::smessage);
         return frontEnd;
     };
 
