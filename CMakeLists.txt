@@ -47,6 +47,8 @@ configure_file (
     ${CMAKE_SOURCE_DIR}/include/quintet/QuintetConfig.h
 )
 
+file(GLOB_RECURSE INCLUDE_DIRECTORIES *.h)
+
 # source
 add_subdirectory(src)
 
