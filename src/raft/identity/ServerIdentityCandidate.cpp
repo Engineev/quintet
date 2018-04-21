@@ -32,12 +32,7 @@ void quintet::ServerIdentityCandidate::init() {
     ++state.currentTerm;
     state.votedFor = info.local;
 
-//    std::random_device rd;
-//    std::default_random_engine eg(rd());
-//    auto electionTimeout =
-//            info.electionTimeout + std::uniform_int_distribution<std::uint64_t>(0, info.electionTimeout)(eg);
-    auto electionTimeout =
-            info.electionTimeout + rand() % info.electionTimeout;
+    auto electionTimeout = Rand(info.electionTimeout, info.electionTimeout * 2)();
 
     BOOST_LOG(service.logger) << "Set electionTime = " << electionTimeout;
 

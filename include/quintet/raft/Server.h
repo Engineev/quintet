@@ -6,6 +6,8 @@
 #include <array>
 #include <memory>
 #include <mutex>
+#include <utility>
+#include <atomic>
 #include <thread>
 
 #include "ServerIdentity.h"
@@ -77,9 +79,15 @@ public:
     /// \brief send empty RPCAppendEntries to other servers. (sync)
     void sendHeartBeat();
 
+    void setRpcLatency(std::uint64_t lb, std::uint64_t ub) {
+        rpcLatencyLb = lb;
+        rpcLatencyUb = ub;
+    }
+
 private:
     std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> beforeTransform;
     std::function<void(ServerIdentityNo from, ServerIdentityNo to)> afterTransform;
+    std::uint64_t rpcLatencyLb = 0, rpcLatencyUb = 0;
 // IDENTITY_TEST END
 };
 

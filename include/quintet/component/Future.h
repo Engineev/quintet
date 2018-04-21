@@ -29,40 +29,7 @@ boost::future<T> toBoostFuture(std::future<T> && fut) {
     return res;
 }
 
-template <class T, class Item = std::unique_ptr<rpc::client>>
-class FutureWrapper {
-public:
-    FutureWrapper(boost::future<T> && fut, Item && item) noexcept
-            : fut_(std::move(fut)), item_(std::move(item)) {}
 
-    FutureWrapper(FutureWrapper && o) noexcept
-            : fut_(std::move(o.fut_)), item_(std::move(o.item_)) {}
-
-    FutureWrapper & operator=(FutureWrapper && o) noexcept {
-        if (this == &o)
-            return *this;
-        fut_  = std::move(o.fut_);
-        item_ = std::move(o.item_);
-        return *this;
-    }
-
-    T get() {
-        return fut_.get();
-    }
-
-    bool ready() const {
-        return fut_.wait_for(boost::chrono::seconds(0)) == boost::future_status::ready;
-    }
-
-    template <class Func>
-    decltype(auto) then(Func f) {
-        return fut_.then(std::move(f));
-    }
-
-private:
-    boost::future<T> fut_;
-    Item item_;
-};
 
 }
 

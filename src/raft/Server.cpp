@@ -1,9 +1,12 @@
 #include "Server.h"
 
 #include <cassert>
+#include <chrono>
+#include <thread>
 #include <boost/log/attributes/constant.hpp>
 
 #include "log/Common.h"
+#include "Utility.h"
 
 void quintet::Server::init(const std::string &configDir) {
     info.load(configDir);
@@ -24,11 +27,14 @@ void quintet::Server::run() {
 }
 
 void quintet::Server::stop() {
+    BOOST_LOG(service.logger) << "Server::stop()";
     rpc.stop();
     service.identityTransformer.stop();
-
-    triggerTransformation(ServerIdentityNo::Down, InvalidTerm);
+    boost::lock_guard<boost::mutex> lk(transforming);
     transformThread.join();
+
+    if (currentIdentity != ServerIdentityNo::Down)
+        identities[(std::size_t)currentIdentity]->leave();
 }
 
 void quintet::Server::initService() {
@@ -65,6 +71,11 @@ std::pair<quintet::Term, bool>
 quintet::Server::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId, std::size_t lastLogIdx,
                                 quintet::Term lastLogTerm) {
     BOOST_LOG(service.logger) << "RPCRequestVote from " << candidateId.toString();
+    if (rpcLatencyUb > 0) {
+        auto time = Rand(rpcLatencyLb, rpcLatencyUb)();
+        BOOST_LOG(service.logger) << "RPCLatency = " << time << " ms.";
+        std::this_thread::sleep_for(std::chrono::milliseconds(time));
+    }
     if (currentIdentity == ServerIdentityNo::Down)
         return {-1, false};
     return identities[(int)currentIdentity]->RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
