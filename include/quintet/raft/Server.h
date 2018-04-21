@@ -12,18 +12,19 @@
 #include "ServerInfo.h"
 #include "ServerState.h"
 #include "ServerService.h"
+#include "RaftDefs.h"
 
 namespace quintet {
 
-// TODO: Server: .h -> .cpp
-// TODO: thread-safe: event-driven, all the sync operations should be done at the service level ?
-// TODO: bind
 class Server {
 public:
     void init(const std::string & configDir);
 
+    void bindCommit(std::function<void(LogEntry)> commit);
+
     void run();
 
+    /// \breif stop the server and exit all running threads
     void stop();
 
 private: /// RPCs
@@ -44,69 +45,40 @@ private:
     ServerState   state;
     ServerInfo    info;
     ServerService service;
+    RpcService    rpc;
+
+    boost::mutex  transforming;
+    boost::thread transformThread;
+
+private:
+    bool triggerTransformation(ServerIdentityNo target);
+
+    void transform(ServerIdentityNo target);
 
 private:
     void initService();
 
     void refreshState();
 
-    // the following functions should never be invoked directly !!!
 
-    void transform(ServerIdentityNo to);
-
-#ifdef IDENTITY_TEST
+// IDENTITY_TEST BEGIN
 public:
-    void setTestedIdentity(ServerIdentityNo no) {
-        testedIdentity = no;
-    };
-
     // return the identity the tester wants to transform to
-    void setOnTransform(std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> f) {
-        onTransform = std::move(f);
-    }
+    void setBeforeTransform(std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> f);
 
-    std::uint64_t getElectionTimeout() const {
-        return info.electionTimeout;
-    }
+    void setAfterTransform(std::function<void(ServerIdentityNo from, ServerIdentityNo to)> f);
 
-    ServerIdentityNo /*from*/ setIdentity_test(ServerIdentityNo to) {
-        auto from = currentIdentity;
-        currentIdentity = to;
+    std::uint64_t getElectionTimeout() const;
 
-        service.rpcService.pause();
-        service.heartBeatController.stop();
+    ServerIdentityNo getCurrentIdentity() const;
 
-        if (from != ServerIdentityNo::Down)
-            identities[(std::size_t)from]->leave();
-
-        refreshState();
-
-        if (to != ServerIdentityNo::Down) {
-            identities[(std::size_t) to]->init();
-            service.heartBeatController.start();
-            service.rpcService.resume();
-        }
-        return from;
-    }
-
-    ServerIdentityNo currentIdentity_test() const {
-        return currentIdentity;
-    }
-
-    void transform_test(ServerIdentityNo to) {
-        auto actual = onTransform(currentIdentity, to);
-
-        service.logger("transform from ", IdentityNames[(int)currentIdentity],
-            " to ", IdentityNames[(int)to], ". Actually to ", IdentityNames[(int)actual]);
-
-        setIdentity_test(actual);
-    }
+    /// \brief send empty RPCAppendEntries to other servers. (sync)
+    void sendHeartBeat();
 
 private:
-    ServerIdentityNo testedIdentity = ServerIdentityNo::Down;
-    std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> onTransform;
-
-#endif
+    std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> beforeTransform;
+    std::function<void(ServerIdentityNo from, ServerIdentityNo to)> afterTransform;
+// IDENTITY_TEST END
 };
 
 } // namespace quintet

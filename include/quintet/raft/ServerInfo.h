@@ -23,6 +23,8 @@ struct ServerId {
     std::string addr = "";
     Port port = 0;
 
+    std::string toString() const;
+
     MSGPACK_DEFINE_ARRAY(addr, port);
 };
 

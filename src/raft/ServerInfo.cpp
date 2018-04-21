@@ -7,7 +7,10 @@ bool quintet::operator==(const quintet::ServerId &lhs, const quintet::ServerId &
     return std::tie(lhs.addr, lhs.port) == std::tie(rhs.addr, rhs.port);
 }
 
-GEN_NOT_EQUAL(quintet::ServerId);
+bool quintet::operator!=(const quintet::ServerId &lhs, const quintet::ServerId &rhs) {
+    return !(lhs == rhs);
+}
+
 
 std::istream & quintet::operator>>(std::istream &in, quintet::ServerId &id) {
     in >> id.addr >> id.port;
@@ -39,4 +42,8 @@ void quintet::ServerInfo::save(const std::string &filename) {
     for (auto && id : srvList)
         tree.put("serverList.serverId", id);
     pt::write_json(filename, tree);
+}
+
+std::string quintet::ServerId::toString() const {
+    return addr + ":" + std::to_string(port);
 }
