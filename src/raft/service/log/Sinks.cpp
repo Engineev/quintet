@@ -28,7 +28,7 @@ quintet::logging::makeGlobalSink(
                 << "[" << expr::format_date_time<boost::posix_time::ptime>(
                     "TimeStamp", "%Y-%m-%d %H:%M:%S.%f") << "] "
                 << expr::if_(expr::has_attr<std::string>("ServiceType"))[
-                    expr::stream << "[" << std::setw(11) << std:: << expr::attr<std::string>("ServiceType") << "] "
+                    expr::stream << "[" << std::setw(11) << expr::attr<std::string>("ServiceType") << "] "
                 ].else_[
                     expr::stream << "[" << std::setw(11) << " " << "] "
                 ]

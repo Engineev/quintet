@@ -15,6 +15,11 @@ public:
 
     virtual ~ServerIdentityBase() = default;
 
+    // client's requests
+    virtual bool localAppendEntries(std::vector<LogEntry> logEntries) {
+        throw ;
+    }
+
     /// RPCs
 
     virtual std::pair<Term /*current term*/, bool /*success*/>
@@ -34,9 +39,6 @@ protected:
     ServerState &state;
     ServerService &service;
     const ServerInfo &info;
-    boost::upgrade_mutex entriesM;
-
-
 }; // class ServerIdentityBase
 
 } // namespace quintet

@@ -29,6 +29,9 @@ public:
     /// \breif stop the server and exit all running threads
     void stop();
 
+public:
+    bool localAppendEntries(std::vector<LogEntry> logEntries);
+
 private: /// RPCs
     std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,

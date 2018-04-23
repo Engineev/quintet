@@ -36,7 +36,7 @@ class ServerIdentityFollower : public ServerIdentityBase {
 
   private:
     boost::shared_mutex currentTermM;
-
+    boost::upgrade_mutex entriesM;
     std::uint64_t electionTimeout;
 
     void resetHeartBeat();

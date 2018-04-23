@@ -179,3 +179,10 @@ void quintet::Server::sendHeartBeat() {
     for (auto & t : ts)
         t.join();
 }
+
+bool quintet::Server::localAppendEntries(std::vector<quintet::LogEntry> logEntries) {
+    boost::lock_guard<boost::mutex> lk(transforming);
+    if (currentIdentity != ServerIdentityNo::Leader)
+        return false;
+    return identities[(std::size_t)currentIdentity]->localAppendEntries(std::move(logEntries));
+}
