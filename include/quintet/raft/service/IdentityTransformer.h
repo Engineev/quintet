@@ -19,7 +19,7 @@ public:
     ///        other functions being called.
     void configLogger(const std::string &id) {
         using namespace logging;
-        lg.add_attribute("ServiceType", attrs::constant<std::string>("IdentityTransformer"));
+        lg.add_attribute("ServiceType", attrs::constant<std::string>("Transformer"));
         lg.add_attribute("ServerId", attrs::constant<std::string>(id));
     }
 

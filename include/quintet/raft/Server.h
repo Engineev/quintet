@@ -48,6 +48,7 @@ private:
     ServerInfo    info;
     ServerService service;
     RpcService    rpc;
+    logging::src::logger_mt rpcLg;
 
 
     boost::mutex  transforming;

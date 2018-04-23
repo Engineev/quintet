@@ -48,6 +48,8 @@ void quintet::Server::initService() {
     service.logger.add_attribute("ServerId", logging::attrs::constant<std::string>(info.local.toString()));
 
     rpc.listen(info.local.port);
+    rpcLg.add_attribute("ServerId", logging::attrs::constant<std::string>(info.local.toString()));
+    rpcLg.add_attribute("ServiceType", logging::attrs::constant<std::string>("RPC"));
     rpc.bind("AppendEntries",
              [this](Term term, ServerId leaderId,
                  std::size_t prevLogIdx, Term prevLogTerm,
@@ -70,10 +72,10 @@ void quintet::Server::refreshState() {
 std::pair<quintet::Term, bool>
 quintet::Server::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId, std::size_t lastLogIdx,
                                 quintet::Term lastLogTerm) {
-    BOOST_LOG(service.logger) << "RPCRequestVote from " << candidateId.toString();
+    BOOST_LOG(rpcLg) << "RPCRequestVote from " << candidateId.toString();
     if (rpcLatencyUb > 0) {
         auto time = Rand(rpcLatencyLb, rpcLatencyUb)();
-        BOOST_LOG(service.logger) << "RPCLatency = " << time << " ms.";
+        BOOST_LOG(rpcLg) << "RPCLatency = " << time << " ms.";
         std::this_thread::sleep_for(std::chrono::milliseconds(time));
     }
     if (currentIdentity == ServerIdentityNo::Down)
@@ -85,7 +87,12 @@ std::pair<quintet::Term, bool>
 quintet::Server::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId, std::size_t prevLogIdx,
                                   quintet::Term prevLogTerm, std::vector<quintet::LogEntry> logEntries,
                                   std::size_t commitIdx) {
-    BOOST_LOG(service.logger) << "RPCAppendEntries from " << leaderId.toString();
+    BOOST_LOG(rpcLg) << "RPCAppendEntries from " << leaderId.toString();
+    if (rpcLatencyUb > 0) {
+        auto time = Rand(rpcLatencyLb, rpcLatencyUb)();
+        BOOST_LOG(rpcLg) << "RPCLatency = " << time << " ms.";
+        std::this_thread::sleep_for(std::chrono::milliseconds(time));
+    }
     return identities[(int)currentIdentity]->RPCAppendEntries(
             term, leaderId, prevLogIdx, prevLogTerm,
             std::move(logEntries), commitIdx);

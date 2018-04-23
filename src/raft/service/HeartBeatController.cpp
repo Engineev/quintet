@@ -64,6 +64,6 @@ quintet::HeartBeatController::~HeartBeatController() {
 
 void quintet::HeartBeatController::configLogger(const std::string &id) {
     using namespace logging;
-    lg.add_attribute("ServiceType", attrs::constant<std::string>("HeartBeatController"));
+    lg.add_attribute("ServiceType", attrs::constant<std::string>("HeartBeat"));
     lg.add_attribute("ServerId", attrs::constant<std::string>(id));
 }
