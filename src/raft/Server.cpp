@@ -62,7 +62,7 @@ void quintet::Server::initService() {
                  std::size_t lastLogIdx, Term lastLogTerm) {
                  return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
              });
-    rpc.async_run();
+    rpc.async_run(3);
 }
 
 void quintet::Server::refreshState() {
