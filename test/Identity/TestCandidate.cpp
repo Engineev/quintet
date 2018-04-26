@@ -10,7 +10,7 @@
 namespace utf = boost::unit_test;
 
 BOOST_AUTO_TEST_SUITE(Identity)
-BOOST_FIXTURE_TEST_SUITE(Candidate, quintet::test::IdentityTestHelper)
+BOOST_FIXTURE_TEST_SUITE(Candidate, quintet::test::IdentityTestHelper, *utf::disabled())
 
 BOOST_AUTO_TEST_CASE(Naive) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::Naive");
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(PoorNetwork) {
         auto & srv = srvs[i];
         srv->setBeforeTransform([&times, i](No from, No to) {
             times[i]++;
-            if (times[i] >= 10)
+            if (times[i] >= 5)
                 return No::Down;
             return No::Candidate;
         });
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(PoorNetwork) {
         srv->setRpcLatency(ElectionTimeout, ElectionTimeout * 2);
         srv->run();
     }
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 100));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 50));
     for (auto & srv : srvs)
         BOOST_REQUIRE_NO_THROW(srv->stop());
 }

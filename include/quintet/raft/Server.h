@@ -88,6 +88,10 @@ public:
         rpcLatencyUb = ub;
     }
 
+    ServerInfo getInfo() const {
+        return info;
+    }
+
 private:
     std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> beforeTransform;
     std::function<void(ServerIdentityNo from, ServerIdentityNo to)> afterTransform;
