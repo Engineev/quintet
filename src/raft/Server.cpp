@@ -54,7 +54,7 @@ void quintet::Server::initService() {
                  std::size_t lastLogIdx, Term lastLogTerm) {
                  return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
              });
-    rpc.async_run();
+    rpc.async_run(3);
 }
 
 void quintet::Server::refreshState() {
@@ -64,7 +64,8 @@ void quintet::Server::refreshState() {
 std::pair<quintet::Term, bool>
 quintet::Server::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId, std::size_t lastLogIdx,
                                 quintet::Term lastLogTerm) {
-    BOOST_LOG(service.logger) << "RPCRequestVote from " << candidateId.toString();
+    BOOST_LOG(service.logger) << "RPCRequestVote from " << candidateId.toString() << ", currentIdentity = " << (int)currentIdentity
+		<< ", term = " << term;
     if (currentIdentity == ServerIdentityNo::Down)
         return {-1, false};
     return identities[(int)currentIdentity]->RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);

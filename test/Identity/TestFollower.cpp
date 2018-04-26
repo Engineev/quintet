@@ -9,29 +9,38 @@
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Follower, quintet::test::IdentityTestHelper)
 
-BOOST_AUTO_TEST_CASE(StartElection, *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(StartElection) {
     BOOST_TEST_MESSAGE("Test::Identity::Follower::StartElection");
 
-    const std::size_t SrvNum = 5;
-
+    const std::size_t SrvNum = 3;
     auto srvs = makeServers(SrvNum);
-
     const auto ElectionTimeout = srvs.front()->getElectionTimeout();
-    std::atomic<int> transformPerformed{0}; // count: follower -> candidate
-    for (auto & srv : srvs) {
-        srv->setBeforeTransform([&](quintet::ServerIdentityNo from, quintet::ServerIdentityNo to) {
-            if (from == quintet::ServerIdentityNo::Down)
-                return to;
-            if (from != quintet::ServerIdentityNo::Follower
-                || to != quintet::ServerIdentityNo::Candidate)
-                throw ;
-            ++transformPerformed;
-            return quintet::ServerIdentityNo::Down;
+
+    std::atomic<int> follower2Candidate{0}; // count: follower -> candidate
+    for (auto &srv : srvs) {
+        srv->setBeforeTransform([&](No from, No to) {
+            if (from == No::Down) return No::Follower;
+            if (from == No::Follower && to == No::Candidate) {
+                ++follower2Candidate;
+                return No::Down;
+            }
+            if (from == No::Follower && to != No::Candidate) throw;
+            return No::Down;
+
         });
+        srv->setAfterTransform([&](No from, No to) {
+            if (from == No::Candidate && to == No::Leader) {
+                srv->sendHeartBeat();
+            }
+        });
+        srv->run();
     }
-    runServers(srvs);
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 3));
-    BOOST_REQUIRE_EQUAL(transformPerformed, SrvNum);
+    boost::this_thread::sleep_for(
+        boost::chrono::milliseconds(ElectionTimeout * 5));
+    for (auto &srv : srvs) {
+        srv->stop();
+    }
+    BOOST_REQUIRE_EQUAL(follower2Candidate, SrvNum);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
