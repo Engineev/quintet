@@ -7,6 +7,8 @@
 #include "IdentityTestHelper.h"
 #include "QuintetConfig.h"
 
+namespace utf = boost::unit_test;
+
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Follower, quintet::test::IdentityTestHelper)
 
@@ -16,7 +18,6 @@ BOOST_AUTO_TEST_CASE(StartElection) {
     const std::size_t SrvNum = SERVER_NUM;
 
     auto srvs = makeServers(SrvNum);
-
     const auto ElectionTimeout = srvs.front()->getElectionTimeout();
     std::atomic<int> transformPerformed{0}; // count: follower -> candidate
     for (auto & srv : srvs) {
