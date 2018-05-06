@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(Naive, *utf::disabled()) {
 }
 
 BOOST_AUTO_TEST_CASE(SendHeartBeat) {
-    BOOST_TEST_MESSAGE(Test::Identity::Candidate::SendHeartBeat);
+    BOOST_TEST_MESSAGE("Test::Identity::Candidate::SendHeartBeat");
     using No = quintet::ServerIdentityNo;
     const std::size_t SrvNum = 3;
     auto srvs = makeServers(SrvNum);
@@ -69,10 +69,12 @@ BOOST_AUTO_TEST_CASE(SendHeartBeat) {
         srv->run();
     }
 
-    
+    for (auto & srv : srvs)
+        srv->stop();
+    std::this_thread::sleep_for(std::chrono::seconds(5));
 }
 
-BOOST_AUTO_TEST_CASE(PoorNetwork) {
+BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::PoorNetwork");
     using No = quintet::ServerIdentityNo;
 

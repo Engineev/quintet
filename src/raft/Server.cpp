@@ -28,6 +28,7 @@ void quintet::Server::run() {
 
 void quintet::Server::stop() {
     BOOST_LOG(service.logger) << "Server::stop()";
+
     rpc.stop();
     service.identityTransformer.stop();
     boost::lock_guard<boost::mutex> lk(transforming);
@@ -136,11 +137,12 @@ void quintet::Server::transform(quintet::ServerIdentityNo target) {
 
     refreshState();
 
-    if (actualTarget != ServerIdentityNo::Down)
-        identities[(std::size_t)actualTarget]->init();
 #ifdef IDENTITY_TEST
     afterTransform(from, target);
 #endif
+
+    if (actualTarget != ServerIdentityNo::Down)
+        identities[(std::size_t)actualTarget]->init();
 
     rpc.resume();
     BOOST_LOG(service.logger) << "Transformation completed.";
@@ -204,4 +206,11 @@ bool quintet::Server::localAppendEntries(std::vector<quintet::LogEntry> logEntri
     if (currentIdentity != ServerIdentityNo::Leader)
         return false;
     return identities[(std::size_t)currentIdentity]->localAppendEntries(std::move(logEntries));
+}
+
+quintet::Server::Server() {
+//    std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> beforeTransform;
+//    std::function<void(ServerIdentityNo from, ServerIdentityNo to)> afterTransform;
+    beforeTransform = [] (ServerIdentityNo from, ServerIdentityNo to) { return to; };
+    afterTransform = [] (ServerIdentityNo from, ServerIdentityNo to) {};
 }

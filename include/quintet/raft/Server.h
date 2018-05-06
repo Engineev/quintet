@@ -20,6 +20,8 @@ namespace quintet {
 
 class Server {
 public:
+    Server();
+
     void init(const std::string & configDir);
 
     void bindCommit(std::function<void(LogEntry)> commit);
