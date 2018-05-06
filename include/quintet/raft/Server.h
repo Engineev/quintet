@@ -95,7 +95,7 @@ public:
 private:
     std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> beforeTransform;
     std::function<void(ServerIdentityNo from, ServerIdentityNo to)> afterTransform;
-    std::uint64_t rpcLatencyLb = 0, rpcLatencyUb = 0;
+    std::atomic<uint64_t> rpcLatencyLb{0}, rpcLatencyUb{0};
 // IDENTITY_TEST END
 };
 

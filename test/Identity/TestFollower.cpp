@@ -10,7 +10,7 @@
 namespace utf = boost::unit_test;
 
 BOOST_AUTO_TEST_SUITE(Identity)
-BOOST_FIXTURE_TEST_SUITE(Follower, quintet::test::IdentityTestHelper)
+BOOST_FIXTURE_TEST_SUITE(Follower, quintet::test::IdentityTestHelper, *utf::disabled())
 
 BOOST_AUTO_TEST_CASE(StartElection) {
     BOOST_TEST_MESSAGE("Test::Identity::Follower::StartElection");

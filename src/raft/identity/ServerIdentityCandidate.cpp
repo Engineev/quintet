@@ -52,7 +52,11 @@ void quintet::ServerIdentityCandidate::init() {
 std::pair<quintet::Term, bool>
 quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId,
                                                  std::size_t lastLogIdx, quintet::Term lastLogTerm) {
+    BOOST_LOG(service.logger) << "Candidate: Vote";
     boost::lock_guard<ServerState> lk(state);
+    std::shared_ptr<void> defer(nullptr, [this](void*) {
+        BOOST_LOG(service.logger) << "Candidate: voted";
+    });
 
     if (term < state.currentTerm) {
         return {state.currentTerm, false};
@@ -75,7 +79,11 @@ std::pair<quintet::Term, bool>
 quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId,
                                                    std::size_t prevLogIdx, quintet::Term prevLogTerm,
                                                    std::vector<quintet::LogEntry> logEntries, std::size_t commitIdx) {
+    BOOST_LOG(service.logger) << "Candidate: Append";
     boost::lock_guard<ServerState> lk(state);
+    std::shared_ptr<void> defer(nullptr, [this](void*) {
+        BOOST_LOG(service.logger) << "Candidate: Appended";
+    });
     if (term >= state.currentTerm) {
         state.currentTerm = term;
         service.identityTransformer.notify(ServerIdentityNo::Follower, state.currentTerm);

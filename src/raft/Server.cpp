@@ -1,5 +1,6 @@
 #include "Server.h"
 
+#include <iostream>
 #include <cassert>
 #include <chrono>
 #include <thread>
@@ -18,7 +19,6 @@ void quintet::Server::init(const std::string &configDir) {
     identities[(std::size_t)ServerIdentityNo::Leader]
             = std::make_unique<ServerIdentityLeader>(state, info, service);
     currentIdentity = ServerIdentityNo::Down;
-
 }
 
 void quintet::Server::run() {
@@ -47,6 +47,7 @@ void quintet::Server::initService() {
 
     service.logger.add_attribute("ServerId", logging::attrs::constant<std::string>(info.local.toString()));
 
+    rpc.configLogger(info.local.toString());
     rpc.listen(info.local.port);
     rpcLg.add_attribute("ServerId", logging::attrs::constant<std::string>(info.local.toString()));
     rpcLg.add_attribute("ServiceType", logging::attrs::constant<std::string>("RPC"));
@@ -62,7 +63,7 @@ void quintet::Server::initService() {
                  std::size_t lastLogIdx, Term lastLogTerm) {
                  return RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
              });
-    rpc.async_run(3);
+    rpc.async_run(2);
 }
 
 void quintet::Server::refreshState() {
@@ -73,13 +74,20 @@ std::pair<quintet::Term, bool>
 quintet::Server::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId, std::size_t lastLogIdx,
                                 quintet::Term lastLogTerm) {
     BOOST_LOG(rpcLg) << "RPCRequestVote from " << candidateId.toString();
-    if (rpcLatencyUb > 0) {
-        auto time = Rand(rpcLatencyLb, rpcLatencyUb)();
+    std::size_t ub = rpcLatencyUb, lb = rpcLatencyLb;
+    if (ub < lb)
+        std::swap(lb, ub);
+    if (ub > 0) {
+        auto time = Rand(lb, ub)();
         BOOST_LOG(rpcLg) << "RPCLatency = " << time << " ms.";
         std::this_thread::sleep_for(std::chrono::milliseconds(time));
     }
     if (currentIdentity == ServerIdentityNo::Down)
         return {-1, false};
+    BOOST_LOG(rpcLg) << "RPCRequestVote (" << candidateId.toString() << ") Reply";
+    std::shared_ptr<void> defer(nullptr, [&] (void*) {
+        BOOST_LOG(rpcLg) << "RPCRequestVote (" << candidateId.toString() << ") Replied";
+    });
     return identities[(int)currentIdentity]->RPCRequestVote(term, candidateId, lastLogIdx, lastLogTerm);
 }
 
@@ -88,11 +96,18 @@ quintet::Server::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId
                                   quintet::Term prevLogTerm, std::vector<quintet::LogEntry> logEntries,
                                   std::size_t commitIdx) {
     BOOST_LOG(rpcLg) << "RPCAppendEntries from " << leaderId.toString();
-    if (rpcLatencyUb > 0) {
-        auto time = Rand(rpcLatencyLb, rpcLatencyUb)();
+    std::size_t ub = rpcLatencyUb, lb = rpcLatencyLb;
+    if (ub < lb)
+        std::swap(lb, ub);
+    if (ub > 0) {
+        auto time = Rand(lb, ub)();
         BOOST_LOG(rpcLg) << "RPCLatency = " << time << " ms.";
         std::this_thread::sleep_for(std::chrono::milliseconds(time));
     }
+    BOOST_LOG(rpcLg) << "RPCAppendEntries (" << leaderId.toString() << ") Reply";
+    std::shared_ptr<void> defer(nullptr, [&] (void*) {
+        BOOST_LOG(rpcLg) << "RPCAppendEntries (" << leaderId.toString() << ") Replied";
+    });
     return identities[(int)currentIdentity]->RPCAppendEntries(
             term, leaderId, prevLogIdx, prevLogTerm,
             std::move(logEntries), commitIdx);
@@ -167,13 +182,17 @@ void quintet::Server::setAfterTransform(
 }
 
 void quintet::Server::sendHeartBeat() {
+    BOOST_LOG(service.logger) << "Send HeartBeat";
     std::vector<boost::thread> ts;
     for (auto & srv : info.srvList) {
         if (srv == info.local)
             continue;
         ts.emplace_back(boost::thread([srv, currentTerm = state.currentTerm, this] {
             rpc::client c(srv.addr, srv.port);
-            c.call("AppendEntries", currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0);
+            BOOST_LOG(service.logger) << "calling " << srv.addr << ":" << srv.port;
+            auto res = c.call("AppendEntries", currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0)
+                .get().as<std::pair<Term, bool>>();
+            BOOST_LOG(service.logger) << "res from " << srv.addr << ":" << srv.port << " = " << res.first << " " << res.second;
         }));
     }
     for (auto & t : ts)
