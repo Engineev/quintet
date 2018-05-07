@@ -12,7 +12,7 @@ namespace utf = boost::unit_test;
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Candidate, quintet::test::IdentityTestHelper)
 
-BOOST_AUTO_TEST_CASE(Naive, *utf::disabled()) {
+BOOST_AUTO_TEST_CASE(Naive) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::Naive");
     using No = quintet::ServerIdentityNo;
 
@@ -54,10 +54,10 @@ BOOST_AUTO_TEST_CASE(Naive, *utf::disabled()) {
     BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
 }
 
-BOOST_AUTO_TEST_CASE(SendHeartBeat) {
+BOOST_AUTO_TEST_CASE(SendHeartBeat, *utf::disabled()) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::SendHeartBeat");
     using No = quintet::ServerIdentityNo;
-    const std::size_t SrvNum = 3;
+    const std::size_t SrvNum = 1;
     auto srvs = makeServers(SrvNum);
     const auto ElectionTimeout = srvs.front()->getElectionTimeout();
 
@@ -69,12 +69,13 @@ BOOST_AUTO_TEST_CASE(SendHeartBeat) {
         srv->run();
     }
 
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     for (auto & srv : srvs)
         srv->stop();
-    std::this_thread::sleep_for(std::chrono::seconds(5));
 }
 
-BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
+BOOST_AUTO_TEST_CASE(PoorNetwork) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::PoorNetwork");
     using No = quintet::ServerIdentityNo;
 
@@ -95,7 +96,7 @@ BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
                 srv->sendHeartBeat();
             }
         });
-//        srv->setRpcLatency(ElectionTimeout, ElectionTimeout * 2);
+        srv->setRpcLatency(ElectionTimeout, ElectionTimeout * 2);
         srv->run();
     }
     boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 50));

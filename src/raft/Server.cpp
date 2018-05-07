@@ -4,6 +4,9 @@
 #include <cassert>
 #include <chrono>
 #include <thread>
+#include <algorithm>
+#include <iterator>
+
 #include <boost/log/attributes/constant.hpp>
 
 #include "log/Common.h"
@@ -30,6 +33,7 @@ void quintet::Server::stop() {
     BOOST_LOG(service.logger) << "Server::stop()";
 
     rpc.stop();
+    service.rpcClients.stop();
     service.identityTransformer.stop();
     boost::lock_guard<boost::mutex> lk(transforming);
     transformThread.join();
@@ -39,15 +43,27 @@ void quintet::Server::stop() {
 }
 
 void quintet::Server::initService() {
+    // identity Transformer
     service.identityTransformer.bindNotificationSlot(
             [this](ServerIdentityNo to, Term term) { return triggerTransformation(to, term); });
     service.identityTransformer.configLogger(info.local.toString());
     service.identityTransformer.start();
 
+    // heart beat controller
     service.heartBeatController.configLogger(info.local.toString());
 
+    // logger
     service.logger.add_attribute("ServerId", logging::attrs::constant<std::string>(info.local.toString()));
 
+    // rpc clients
+    std::vector<ServerId> srvs;
+    std::copy_if(info.srvList.begin(), info.srvList.end(),
+                 std::back_inserter(srvs), [local = info.local] (const ServerId & id) {
+        return local != id;
+    });
+    service.rpcClients.createClients(srvs);
+
+    // rpc server
     rpc.configLogger(info.local.toString());
     rpc.listen(info.local.port);
     rpcLg.add_attribute("ServerId", logging::attrs::constant<std::string>(info.local.toString()));
@@ -190,10 +206,16 @@ void quintet::Server::sendHeartBeat() {
         if (srv == info.local)
             continue;
         ts.emplace_back(boost::thread([srv, currentTerm = state.currentTerm, this] {
-            rpc::client c(srv.addr, srv.port);
             BOOST_LOG(service.logger) << "calling " << srv.addr << ":" << srv.port;
-            auto res = c.call("AppendEntries", currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0)
-                .get().as<std::pair<Term, bool>>();
+            std::pair<Term, bool> res;
+            try {
+                res = service.rpcClients.call(srv, "AppendEntries",
+                                              currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0)
+                    .get().as<std::pair<Term, bool>>();
+            } catch (RpcDisconnected &) {
+                BOOST_LOG(service.logger) << srv.toString() << " is offline";
+                return;
+            }
             BOOST_LOG(service.logger) << "res from " << srv.addr << ":" << srv.port << " = " << res.first << " " << res.second;
         }));
     }

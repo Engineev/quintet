@@ -14,6 +14,7 @@
 #include "HeartBeatController.h"
 #include "IdentityTransformer.h"
 #include "RpcService.h"
+#include "RpcClients.h"
 #include "log/Common.h"
 
 
@@ -39,6 +40,7 @@ namespace quintet {
 struct ServerService {
     IdentityTransformer  identityTransformer;
     HeartBeatController  heartBeatController;
+    RpcClients           rpcClients;
     logging::src::logger logger;
     Committer committer;
 }; // class ServerService

@@ -4,11 +4,9 @@
 
 #include <boost/thread/lock_guard.hpp>
 
-#include <rpc/client.h>
-#include <rpc/rpc_error.h>
-
 #include "Future.h"
 #include "Utility.h"
+#include "ServerService.h"
 #include "log/Common.h"
 
 #include <cstdlib>
@@ -22,8 +20,11 @@ void quintet::ServerIdentityCandidate::leave() {
     service.heartBeatController.stop();
     for (auto & t : requestingThreads)
         t.interrupt();
-    for (auto & t : requestingThreads)
+    BOOST_LOG(service.logger) << requestingThreads.size() << " threads to join";
+    for (auto & t : requestingThreads) {
         t.join();
+        BOOST_LOG(service.logger) << "joint!";
+    }
     requestingThreads.clear();
 }
 
@@ -96,9 +97,15 @@ std::pair<quintet::Term, bool>
 quintet::ServerIdentityCandidate::sendRequestVote(quintet::ServerId target, quintet::Term currentTerm,
                                                   quintet::ServerId local, quintet::Index lastLogIdx,
                                                   quintet::Term lastLogTerm) {
-    rpc::client c(target.addr, target.port);
-    auto fut = toBoostFuture(c.async_call("RequestVote",
-                                          currentTerm, local, lastLogIdx, lastLogTerm));
+    boost::future<RPCLIB_MSGPACK::object_handle> fut;
+    try {
+        fut = service.rpcClients.async_call(target, "RequestVote",
+                                            currentTerm, local, lastLogIdx, lastLogTerm);
+    } catch (RpcDisconnected & e) {
+        BOOST_LOG(service.logger) << target.toString() << " is offline";
+        return {0, false};
+    }
+
     if (fut.wait_for(boost::chrono::milliseconds(info.electionTimeout * 2)) != boost::future_status::ready) {
         return {0, false}; // TODO: return
     }
@@ -123,6 +130,7 @@ void quintet::ServerIdentityCandidate::requestVotes(
                 BOOST_LOG(service.logger) << "Send RPCRequestVote to " << srv.toString();
                 std::tie(termReceived, res) = sendRequestVote(srv, currentTerm, local, lastLogIdx, lastLogTerm);
             } catch (boost::thread_interrupted & t) {
+                BOOST_LOG(service.logger) << "Be interrupted!";
                 return;
             }
             BOOST_LOG(service.logger) << "Receive the result of RPCRequestVote from " << srv.toString()

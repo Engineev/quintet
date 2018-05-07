@@ -6,13 +6,18 @@
 #include <utility>
 #include <memory>
 #include <unordered_map>
+#include <stdexcept>
 
 #include <rpc/client.h>
+#include <rpc/server.h>
+#include <rpc/rpc_error.h>
 
 #include "ServerInfo.h"
 #include "Future.h"
 
 namespace quintet {
+
+class RpcDisconnected : public std::exception {};
 
 class RpcClients {
 public:
@@ -26,11 +31,19 @@ public:
 
     template <typename... Args>
     boost::future<RPCLIB_MSGPACK::object_handle> async_call(
-        ServerId srv, const std::string & name, Args... args);
+        ServerId srv, const std::string & name, Args... args) {
+        auto & c = *clients.at(srv.toString());
+        if (c.get_connection_state() != rpc::client::connection_state::connected)
+            throw RpcDisconnected();
+        auto fut = c.async_call(name, std::move(args)...);
+        return toBoostFuture(std::move(fut));
+    }
 
     template <typename... Args>
     RPCLIB_MSGPACK::object_handle call(
-        ServerId srv, const std::string & name, Args... args);
+        ServerId srv, const std::string & name, Args... args) {
+        return async_call(srv, name, std::move(args)...).get();
+    }
 
     void stop();
 

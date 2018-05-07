@@ -61,8 +61,9 @@ BOOST_AUTO_TEST_CASE(HeartBeat) {
             try {
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout) / 5);
                 for (auto & srv : srvs) {
-                    rpc::client c(srv->getInfo().local.addr, srv->getInfo().local.port);
-                    c.call("AppendEntries", 100000, quintet::ServerId(), 0, 0, std::vector<quintet::LogEntry>(), 0);
+                    throw ;
+//                    rpc::client c(srv->getInfo().local.addr, srv->getInfo().local.port);
+//                    c.call("AppendEntries", 100000, quintet::ServerId(), 0, 0, std::vector<quintet::LogEntry>(), 0);
                 }
             } catch (boost::thread_interrupted & e) {
                 return;
