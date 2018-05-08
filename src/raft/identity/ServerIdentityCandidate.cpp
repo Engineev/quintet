@@ -104,10 +104,9 @@ quintet::ServerIdentityCandidate::sendRequestVote(quintet::ServerId target, quin
     } catch (rpc::timeout & e) {
         BOOST_LOG(service.logger) << e.what();
         return {0, false};
-    }
-
-    if (fut.wait_for(boost::chrono::milliseconds(info.electionTimeout * 2)) != boost::future_status::ready) {
-        return {0, false}; // TODO: return
+    } catch (RpcServerNotExists & e) {
+        BOOST_LOG(service.logger) << e.what();
+        return {0, false};
     }
 
     return fut.get().as<std::pair<Term, bool>>();

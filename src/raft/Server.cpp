@@ -33,13 +33,14 @@ void quintet::Server::stop() {
     BOOST_LOG(service.logger) << "Server::stop()";
 
     rpc.stop();
-    service.rpcClients.stop();
     service.identityTransformer.stop();
     boost::lock_guard<boost::mutex> lk(transforming);
     transformThread.join();
 
     if (currentIdentity != ServerIdentityNo::Down)
         identities[(std::size_t)currentIdentity]->leave();
+
+    service.rpcClients.stop();
 }
 
 void quintet::Server::initService() {
@@ -212,8 +213,11 @@ void quintet::Server::sendHeartBeat() {
                 res = service.rpcClients.call(srv, "AppendEntries",
                                               currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0)
                     .get().as<std::pair<Term, bool>>();
-            } catch (rpc::timeout & c) {
-                BOOST_LOG(service.logger) << c.what();
+            } catch (rpc::timeout & e) {
+                BOOST_LOG(service.logger) << e.what();
+                return;
+            } catch (RpcServerNotExists & e) {
+                BOOST_LOG(service.logger) << e.what();
                 return;
             }
             BOOST_LOG(service.logger) << "res from " << srv.addr << ":" << srv.port << " = " << res.first << " " << res.second;
