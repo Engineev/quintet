@@ -212,8 +212,8 @@ void quintet::Server::sendHeartBeat() {
                 res = service.rpcClients.call(srv, "AppendEntries",
                                               currentTerm, info.local, 0, 0, std::vector<LogEntry>(), 0)
                     .get().as<std::pair<Term, bool>>();
-            } catch (RpcDisconnected &) {
-                BOOST_LOG(service.logger) << srv.toString() << " is offline";
+            } catch (rpc::timeout & c) {
+                BOOST_LOG(service.logger) << c.what();
                 return;
             }
             BOOST_LOG(service.logger) << "res from " << srv.addr << ":" << srv.port << " = " << res.first << " " << res.second;

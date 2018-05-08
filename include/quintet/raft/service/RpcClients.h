@@ -27,14 +27,14 @@ public:
     ///
     /// \param srvs The servers which the clients created
     ///             connected to.
-    void createClients(const std::vector<ServerId> & srvs);
+    void createClients(const std::vector<ServerId> & srvs, std::uint64_t timeOut = 1000);
 
     template <typename... Args>
     boost::future<RPCLIB_MSGPACK::object_handle> async_call(
         ServerId srv, const std::string & name, Args... args) {
         auto & c = *clients.at(srv.toString());
-        if (c.get_connection_state() != rpc::client::connection_state::connected)
-            throw RpcDisconnected();
+//        if (c.get_connection_state() != rpc::client::connection_state::connected)
+//            throw RpcDisconnected();
         auto fut = c.async_call(name, std::move(args)...);
         return toBoostFuture(std::move(fut));
     }

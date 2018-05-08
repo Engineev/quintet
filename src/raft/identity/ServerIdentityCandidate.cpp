@@ -101,8 +101,8 @@ quintet::ServerIdentityCandidate::sendRequestVote(quintet::ServerId target, quin
     try {
         fut = service.rpcClients.async_call(target, "RequestVote",
                                             currentTerm, local, lastLogIdx, lastLogTerm);
-    } catch (RpcDisconnected & e) {
-        BOOST_LOG(service.logger) << target.toString() << " is offline";
+    } catch (rpc::timeout & e) {
+        BOOST_LOG(service.logger) << e.what();
         return {0, false};
     }
 
