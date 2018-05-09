@@ -5,6 +5,7 @@
 #include <memory>
 #include <condition_variable>
 #include <mutex>
+#include <atomic>
 
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/log/sources/logger.hpp>
@@ -47,34 +48,39 @@ public:
         return *this;
     }
 
-    void pause() {
-        BOOST_LOG(lg) << "pause";
-        paused.lock();
-        boost::unique_lock<boost::shared_mutex> lk(rpcing);
-    }
+    void pause();
 
     /// \brief Resume the paused RPC service and notify all the RPCs waiting.
-    void resume() {
-        BOOST_LOG(lg) << "resume";
-        paused.unlock();
-    }
+    void resume();
 
 private:
-    std::unique_ptr<rpc::server> srv;
-    std::mutex paused;
-    boost::shared_mutex rpcing;
-
     logging::src::logger_mt lg;
+    std::unique_ptr<rpc::server> srv;
+
+    // sync stop() and rpc
+    // pause() will not influence the increasing of numRpcRemaining
+    std::mutex stopping;
+    std::atomic<std::size_t> numRpcRemaining{0};
+    std::condition_variable modifiedNumRpcRemaining;
+
+    // sync pause()/resume() and rpc
+    boost::shared_mutex rpcing;
+    std::mutex paused;
 
 private:
     template<class Func, class Closure, class Ret, class... Args>
     void bind_impl(const std::string &name, Func rawF,
                    Ret (Closure::*)(Args...) const) {
         srv->bind(name, [rawF, this](Args... args) -> Ret {
-            boost::unique_lock<std::mutex> lk(paused);
-            boost::shared_lock<boost::shared_mutex> rpcLk(
-                rpcing); // acquire this lock before releasing pauseLk !!
-            lk.unlock();
+            ++numRpcRemaining;
+            std::unique_lock<std::mutex> plk(paused);
+            boost::shared_lock<boost::shared_mutex> lk(rpcing);
+            plk.unlock();
+
+            std::shared_ptr<void> defer(nullptr, [this](void *) {
+                --numRpcRemaining;
+                modifiedNumRpcRemaining.notify_all();
+            });
             return rawF(std::move(args)...);
         });
     }
