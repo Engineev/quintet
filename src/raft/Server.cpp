@@ -122,7 +122,6 @@ Server::RPCRequestVote(Term term, ServerId candidateId,
 
 } /* namespace quintet */
 
-
 /* ------------------ helper functions -------------------------------------- */
 
 namespace quintet {

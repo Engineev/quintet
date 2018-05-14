@@ -4,13 +4,13 @@ project(quintet)
 
 # option
 option(UNIT_TEST "unit test"
-        OFF)
+        ON)
 option(FAULT_INJECTION "random sleep"
         OFF)
 option(MISC_TEST "test components and services"
-        OFF)
-option(IDENTITY_TEST "test the identities resepectively"
         ON)
+option(IDENTITY_TEST "test the identities resepectively"
+        OFF)
 option(COMPREHENSIVE_TEST "test with normal identity transformation enabled"
         OFF)
 
