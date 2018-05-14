@@ -1,26 +1,21 @@
-// Maybe this file can be merged into Raft.h
-
 #ifndef QUINTET_SERVER_H
 #define QUINTET_SERVER_H
 
-#include <array>
 #include <memory>
-#include <mutex>
+#include <string>
+#include <vector>
 #include <utility>
-#include <atomic>
-#include <thread>
 
-#include "ServerIdentity.h"
-#include "ServerInfo.h"
-#include "ServerState.h"
-#include "ServerService.h"
 #include "RaftDefs.h"
+#include "ServerInfo.h"
 
 namespace quintet {
 
 class Server {
 public:
     Server();
+
+    ~Server();
 
     void init(const std::string & configDir);
 
@@ -31,8 +26,7 @@ public:
     /// \breif stop the server and exit all running threads
     void stop();
 
-public:
-    bool localAppendEntries(std::vector<LogEntry> logEntries);
+    bool localAppendEntries(std::vector<LogEntry> logEntries) {}
 
 private: /// RPCs
     std::pair<Term /*current term*/, bool /*success*/>
@@ -44,64 +38,32 @@ private: /// RPCs
     RPCRequestVote(Term term, ServerId candidateId,
                    std::size_t lastLogIdx, Term lastLogTerm);;
 
+private:
+    struct Impl;
+    std::unique_ptr<Impl> pImpl;
 
 private:
-    std::array<std::unique_ptr<ServerIdentityBase>, 3> identities;
-    ServerIdentityNo currentIdentity = ServerIdentityNo::Down;
+    void initRpcServer();
 
-    ServerState   state;
-    ServerInfo    info;
-    ServerService service;
-    RpcService    rpc;
-    logging::src::logger_mt rpcLg;
-
-
-    boost::mutex  transforming;
-    Term          termTransformed = InvalidTerm;
-    boost::thread transformThread;
-
-private:
-    bool triggerTransformation(ServerIdentityNo target, Term term);
-
-    void transform(ServerIdentityNo target);
-
-private:
-    void initService();
+    void initServerService();
 
     void refreshState();
 
+    bool triggerTransformation(ServerIdentityNo target, Term term);
 
-// IDENTITY_TEST BEGIN
+    void transform(quintet::ServerIdentityNo target);
+
+    void rpcSleep() {}
+
+    /// Wait until the current transformation (if exists) finishes
+    void waitTransformation() {}
+
+#ifdef UNIT_TEST
 public:
-    // return the identity the tester wants to transform to
-    void setBeforeTransform(std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> f);
-
-    void setAfterTransform(std::function<void(ServerIdentityNo from, ServerIdentityNo to)> f);
-
-    std::uint64_t getElectionTimeout() const;
-
-    ServerIdentityNo getCurrentIdentity() const;
-
-    /// \brief send empty RPCAppendEntries to other servers. (sync)
-    void sendHeartBeat();
-
-    void setRpcLatency(std::uint64_t lb, std::uint64_t ub) {
-        rpcLatencyLb = lb;
-        rpcLatencyUb = ub;
-    }
-
-    ServerInfo getInfo() const {
-        return info;
-    }
-
 private:
-    std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> beforeTransform;
-    std::function<void(ServerIdentityNo from, ServerIdentityNo to)> afterTransform;
-    std::atomic<uint64_t> rpcLatencyLb{0}, rpcLatencyUb{0};
-// IDENTITY_TEST END
-};
+#endif
+}; // class Server
 
 } // namespace quintet
-
 
 #endif //QUINTET_SERVER_H

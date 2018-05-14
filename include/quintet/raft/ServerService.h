@@ -17,8 +17,6 @@
 #include "RpcClients.h"
 #include "log/Common.h"
 
-
-
 // Committer
 namespace quintet {
 
@@ -29,7 +27,7 @@ public:
     void commit(LogEntry log);
 
 private:
-    std::function<void(LogEntry)> commit_;
+    std::function<void(LogEntry)> commit_ = {};
 };
 
 } /* namespace quintet */
@@ -38,11 +36,13 @@ private:
 namespace quintet {
 
 struct ServerService {
-    IdentityTransformer  identityTransformer;
-    HeartBeatController  heartBeatController;
-    RpcClients           rpcClients;
-    logging::src::logger logger;
     Committer committer;
+    IdentityTransformer identityTransformer;
+    HeartBeatController heartBeatController;
+    RpcClients rpcClients;
+    logging::src::logger_mt logger;
+
+    void configLogger(const std::string & id);;
 }; // class ServerService
 
 } // namespace quintet

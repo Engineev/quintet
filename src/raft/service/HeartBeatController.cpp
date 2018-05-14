@@ -16,7 +16,8 @@ void quintet::HeartBeatController::restart() {
 }
 
 bool quintet::HeartBeatController::start(bool immediate, bool repeat) {
-    BOOST_LOG_FUNCTION();
+    assert(period);
+
     boost::unique_lock<boost::mutex> lk(m, boost::defer_lock);
     if (!lk.try_lock()) {
         return false;
@@ -31,7 +32,6 @@ bool quintet::HeartBeatController::start(bool immediate, bool repeat) {
                     immediate = immediate, repeat = repeat] {
         boost::this_thread::disable_interruption di;
         if (immediate) {
-            BOOST_LOG(lg) << "beat!";
             f();
             if (!repeat)
                 return ;
@@ -41,25 +41,22 @@ bool quintet::HeartBeatController::start(bool immediate, bool repeat) {
                 boost::this_thread::restore_interruption ri(di);
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(period));
             } catch (boost::thread_interrupted) {
-                BOOST_LOG(lg) << "interrupted.";
                 return;
             }
-            BOOST_LOG(lg) << "beat!";
             f();
         } while (repeat);
     });
     return true;
 }
 
-void quintet::HeartBeatController::bind(std::function<void()> f, std::uint64_t periodMs) {
+void quintet::HeartBeatController::bind(
+    std::function<void()> f, std::uint64_t periodMs) {
     func = std::move(f);
     period = periodMs;
 }
 
 quintet::HeartBeatController::~HeartBeatController() {
-    BOOST_LOG_FUNCTION();
     stop();
-    BOOST_LOG(lg) << "HeartBeatController: dtor";
 }
 
 void quintet::HeartBeatController::configLogger(const std::string &id) {

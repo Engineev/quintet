@@ -47,9 +47,9 @@ public:
 
 private:
     boost::mutex m;
-    std::function<void()> func;
+    std::function<void()> func = {};
     boost::thread th;
-    std::uint64_t period;
+    std::uint64_t period = 0;
 
 private: // cached parameters
     bool immediateCache = false;

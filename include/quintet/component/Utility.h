@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <random>
+#include <functional>
 
 // macro
 namespace quintet {
@@ -42,6 +43,5 @@ private:
 }; // class Rand
 
 } // namespace quintet
-
 
 #endif //QUINTET_UTILITY_H

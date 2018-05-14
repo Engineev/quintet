@@ -4,9 +4,9 @@ project(quintet)
 
 # option
 option(UNIT_TEST "unit test"
-        ON)
+        OFF)
 option(FAULT_INJECTION "random sleep"
-        ON)
+        OFF)
 option(MISC_TEST "test components and services"
         OFF)
 option(IDENTITY_TEST "test the identities resepectively"
@@ -37,11 +37,14 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include/quintet/raft/service
 )
 
-if (IDENTITY_TEST)
-    add_definitions(-D IDENTITY_TEST)
-endif ()
-if (FAULT_INJECTION)
-    add_definitions(-D FAULT_INJECTION)
+if (UNIT_TEST)
+    add_definitions(-D UNIT_TEST)
+    if (IDENTITY_TEST)
+        add_definitions(-D IDENTITY_TEST)
+    endif ()
+    if (FAULT_INJECTION)
+        add_definitions(-D FAULT_INJECTION)
+    endif ()
 endif ()
 
 # config

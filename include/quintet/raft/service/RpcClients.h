@@ -37,7 +37,8 @@ public:
     ///
     /// \param srvs The servers which the clients created
     ///             connected to.
-    void createClients(const std::vector<ServerId> & srvs, std::uint64_t timeOut = 1000);
+    void createClients(const std::vector<ServerId> & srvs,
+                       std::uint64_t timeOut = 1000);
 
     template <typename... Args>
     boost::future<RPCLIB_MSGPACK::object_handle> async_call(
