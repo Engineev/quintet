@@ -53,14 +53,29 @@ private:
 
     void transform(quintet::ServerIdentityNo target);
 
-    void rpcSleep() {}
-
     /// Wait until the current transformation (if exists) finishes
-    void waitTransformation() {}
+    void waitTransformation();
 
 #ifdef UNIT_TEST
 public:
+    void setBeforeTransform(std::function<
+        ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)> f);
+
+    void setAfterTransform(std::function<
+        void(ServerIdentityNo from, ServerIdentityNo to)> f);
+
+    void setRpcLatency(std::uint64_t lb, std::uint64_t ub);
+
+    void rpcSleep();
+
+    ServerInfo getInfo() const;
+
+    Term getCurrentTerm() const;
+
 private:
+    struct TestImpl;
+    std::unique_ptr<TestImpl> tpImpl;
+
 #endif
 }; // class Server
 

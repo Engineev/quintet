@@ -42,7 +42,7 @@ public:
     bool notify(ServerIdentityNo target, Term term);
 
 private:
-    std::function<bool(quintet::ServerIdentityNo, Term)> notifySlot = {};
+    std::function<bool(quintet::ServerIdentityNo, Term)> notifySlot{nullptr};
     std::mutex m;
     bool running = false;
 

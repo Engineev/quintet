@@ -4,6 +4,10 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <thread>
+#include <chrono>
+#include <algorithm>
+#include <iterator>
 
 #include "Identity/IdentityTestHelper.h"
 
@@ -17,7 +21,8 @@ BOOST_AUTO_TEST_CASE(Basic) {
     using No = quintet::ServerIdentityNo;
     const std::size_t SrvNum = 1;
     auto srvs = makeServers(SrvNum);
-    const auto ElectionTimeout = srvs.front()->getElectionTimeout();
+
+    BOOST_TEST_CHECKPOINT("Made servers");
 
     for (int i = 0; i < (int)srvs.size(); ++i) {
         auto & srv = srvs[i];
@@ -25,12 +30,16 @@ BOOST_AUTO_TEST_CASE(Basic) {
             return No::Candidate;
         });
         srv->run();
+        BOOST_TEST_CHECKPOINT("Server " + std::to_string(i) + " is running.");
     }
+
+    BOOST_TEST_CHECKPOINT("All servers are running");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     for (auto & srv : srvs)
         BOOST_REQUIRE_NO_THROW(srv->stop());
+    BOOST_TEST_CHECKPOINT("All servers have been stopped");
 }
 
 BOOST_AUTO_TEST_CASE(Naive) {
@@ -39,7 +48,7 @@ BOOST_AUTO_TEST_CASE(Naive) {
 
     const std::size_t SrvNum = 3;
     auto srvs = makeServers(SrvNum);
-    const auto ElectionTimeout = srvs.front()->getElectionTimeout();
+    const auto ElectionTimeout = srvs.front()->getInfo().electionTimeout;
 
     std::atomic<int> candidate2Follower{0}, candidate2Leader{0};
     for (auto & srv : srvs) {
@@ -63,12 +72,13 @@ BOOST_AUTO_TEST_CASE(Naive) {
         });
         srv->setAfterTransform([&](No from, No to) {
             if (from == No::Candidate && to == No::Leader) {
-                srv->sendHeartBeat();
+                sendHeartBeat(srv->getInfo().srvList, srv->getInfo().local,
+                    srv->getCurrentTerm());
             }
         });
         srv->run();
     }
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 15));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ElectionTimeout * 15));
     for (auto & srv : srvs)
         srv->stop();
     BOOST_REQUIRE_EQUAL(candidate2Leader, 1);
@@ -82,7 +92,7 @@ BOOST_AUTO_TEST_CASE(PoorNetwork) {
     const std::size_t SrvNum = 3;
     auto srvs = makeServers(SrvNum);
     std::vector<int> times(SrvNum, 0);
-    const auto ElectionTimeout = srvs.front()->getElectionTimeout();
+    const auto ElectionTimeout = srvs.front()->getInfo().electionTimeout;
     for (int i = 0; i < (int)srvs.size(); ++i) {
         auto & srv = srvs[i];
         srv->setBeforeTransform([&times, i](No from, No to) {
@@ -93,13 +103,14 @@ BOOST_AUTO_TEST_CASE(PoorNetwork) {
         });
         srv->setAfterTransform([&](No from, No to) {
             if (from == No::Candidate && to == No::Leader) {
-                srv->sendHeartBeat();
+                sendHeartBeat(srv->getInfo().srvList, srv->getInfo().local,
+                              srv->getCurrentTerm());
             }
         });
         srv->setRpcLatency(ElectionTimeout, ElectionTimeout * 2);
         srv->run();
     }
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(ElectionTimeout * 50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ElectionTimeout * 50));
     for (auto & srv : srvs)
         BOOST_REQUIRE_NO_THROW(srv->stop());
 }

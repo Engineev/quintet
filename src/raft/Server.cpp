@@ -5,6 +5,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include "ServerIdentity.h"
 #include "ServerInfo.h"
@@ -17,10 +18,20 @@
 
 namespace quintet {
 
+#ifdef UNIT_TEST
+
+Server::Server()
+    : pImpl(std::make_unique<Impl>()),
+      tpImpl(std::make_unique<TestImpl>()) {}
+
+#else
+
 Server::Server()
     : pImpl(std::make_unique<Impl>()) {}
 
-Server::~Server() { stop(); };
+#endif
+
+Server::~Server() = default;
 
 struct Server::Impl {
     std::array<std::unique_ptr<ServerIdentityBase>, 3> identities;
@@ -34,6 +45,16 @@ struct Server::Impl {
     boost::mutex  triggerTransformation;
     Term          termTransformed = InvalidTerm;
     boost::thread transformThread;
+};
+
+struct Server::TestImpl {
+    std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)>
+        beforeTransform = [](ServerIdentityNo from, ServerIdentityNo to) {
+        return to;
+    };
+    std::function<void(ServerIdentityNo from, ServerIdentityNo to)>
+        afterTransform = [](ServerIdentityNo from, ServerIdentityNo to) {};
+    std::atomic<uint64_t> rpcLatencyLb{0}, rpcLatencyUb{0};
 };
 
 } /* namespace quintet */
@@ -70,15 +91,22 @@ void Server::run() {
 
 void Server::stop() {
     BOOST_LOG(pImpl->service.logger) << "Server::stop()";
+    BOOST_TEST_CHECKPOINT("Server::stop()");
 
     pImpl->rpc.stop();
+    BOOST_TEST_CHECKPOINT("RPC has been stopped");
     pImpl->service.identityTransformer.stop();
+    BOOST_TEST_CHECKPOINT("IdentityTransformer has been stopped");
     waitTransformation();
+    BOOST_TEST_CHECKPOINT("Ongoing transformation has been finished");
 
     if (pImpl->currentIdentity != ServerIdentityNo::Down)
         pImpl->identities[(int)pImpl->currentIdentity]->leave();
+    pImpl->currentIdentity = ServerIdentityNo::Down;
+    BOOST_TEST_CHECKPOINT("leave() has been invoked");
 
     pImpl->service.rpcClients.stop();
+    BOOST_TEST_CHECKPOINT("RpcClients has been stopped");
 }
 
 
@@ -95,7 +123,9 @@ Server::RPCAppendEntries(Term term, ServerId leaderId, std::size_t prevLogIdx,
     BOOST_LOG_FUNCTION();
     BOOST_LOG(pImpl->service.logger)
         << "RPCAppendEntries from " << leaderId.toString();
+#ifdef UNIT_TEST
     rpcSleep();
+#endif
 
     if (pImpl->currentIdentity == ServerIdentityNo::Down)
         return {-1, false};
@@ -110,7 +140,9 @@ Server::RPCRequestVote(Term term, ServerId candidateId,
     BOOST_LOG_FUNCTION();
     BOOST_LOG(pImpl->service.logger)
         << "RPCRequestVote from " << candidateId.toString();
+#ifdef UNIT_TEST
     rpcSleep();
+#endif
 
     if (pImpl->currentIdentity == ServerIdentityNo::Down)
         return {-1, false};
@@ -180,15 +212,16 @@ void Server::transform(quintet::ServerIdentityNo target) {
     // transforming ...
     auto actualTarget = target;
 #ifdef IDENTITY_TEST
-    actualTarget = beforeTransform(from, target);
+    actualTarget = tpImpl->beforeTransform(from, target);
 #endif
     BOOST_LOG(pImpl->service.logger)
         << "transform from " << IdentityNames[(int)from]
         << " to " << IdentityNames[(int)target]
         << " (actually to " << IdentityNames[(int)actualTarget] << ")";
+    pImpl->currentIdentity = actualTarget;
     refreshState();
 #ifdef IDENTITY_TEST
-    afterTransform(from, target);
+    tpImpl->afterTransform(from, target);
 #endif
 
     // restart !
@@ -222,5 +255,48 @@ void Server::refreshState() {
     pImpl->state.votedFor = NullServerId;
 }
 
+void Server::waitTransformation() {
+    pImpl->transformThread.join();
+}
+
+} /* namespace quintet */
+
+/* --------------------- Test ----------------------------------------------- */
+
+namespace quintet {
+
+void Server::setBeforeTransform(std::function<
+    ServerIdentityNo(ServerIdentityNo, ServerIdentityNo)> f) {
+    tpImpl->beforeTransform = std::move(f);
+}
+
+void Server::setAfterTransform(std::function<
+    void(ServerIdentityNo, ServerIdentityNo)> f) {
+    tpImpl->afterTransform = std::move(f);
+}
+
+ServerInfo Server::getInfo() const {
+    return pImpl->info;
+}
+
+void Server::setRpcLatency(std::uint64_t lb, std::uint64_t ub) {
+    tpImpl->rpcLatencyLb = lb;
+    tpImpl->rpcLatencyUb = ub;
+}
+
+void Server::rpcSleep() {
+    std::size_t ub = tpImpl->rpcLatencyUb, lb = tpImpl->rpcLatencyLb;
+    if (ub < lb)
+        std::swap(lb, ub);
+    if (ub > 0) {
+        auto time = Rand(lb, ub)();
+        BOOST_LOG(pImpl->service.logger) << "RPCLatency = " << time << " ms.";
+        std::this_thread::sleep_for(std::chrono::milliseconds(time));
+    }
+}
+
+Term Server::getCurrentTerm() const {
+    return pImpl->state.currentTerm;
+}
 
 } /* namespace quintet */

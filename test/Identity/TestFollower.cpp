@@ -12,6 +12,8 @@ namespace utf = boost::unit_test;
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Follower, quintet::test::IdentityTestHelper, *utf::disabled())
 
+#ifdef false
+
 BOOST_AUTO_TEST_CASE(StartElection) {
     BOOST_TEST_MESSAGE("Test::Identity::Follower::StartElection");
 
@@ -79,6 +81,8 @@ BOOST_AUTO_TEST_CASE(HeartBeat) {
         srv->stop();
     BOOST_REQUIRE_EQUAL(0, transform);
 }
+
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()
