@@ -70,12 +70,12 @@ void Server::init(const std::string &configDir) {
 
     info.load(configDir);
     initServerService();
-    pImpl->identities[(std::size_t)ServerIdentityNo::Follower]
-        = std::make_unique<ServerIdentityFollower>(state, info, service);
+//    pImpl->identities[(std::size_t)ServerIdentityNo::Follower]
+//        = std::make_unique<ServerIdentityFollower>(state, info, service);
     pImpl->identities[(std::size_t)ServerIdentityNo::Candidate]
         = std::make_unique<ServerIdentityCandidate>(state, info, service);
-    pImpl->identities[(std::size_t)ServerIdentityNo::Leader]
-        = std::make_unique<ServerIdentityLeader>(state, info, service);
+//    pImpl->identities[(std::size_t)ServerIdentityNo::Leader]
+//        = std::make_unique<ServerIdentityLeader>(state, info, service);
     pImpl->currentIdentity = ServerIdentityNo::Down;
     initRpcServer();
 }
@@ -112,7 +112,7 @@ void Server::stop() {
 
 } /* namespace quintet */
 
-/* ---------------------- RPCs ---------------------------------------------- */
+
 
 namespace quintet {
 

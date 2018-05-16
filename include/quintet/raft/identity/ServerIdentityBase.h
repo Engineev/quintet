@@ -1,6 +1,8 @@
 #ifndef QUINTET_SERVERIDENTITYBASE_H
 #define QUINTET_SERVERIDENTITYBASE_H
 
+#include <memory>
+
 #include "RaftDefs.h"
 #include "ServerInfo.h"
 #include "ServerService.h"
@@ -8,11 +10,18 @@
 
 namespace quintet {
 
+struct IdentityBaseImpl {
+    IdentityBaseImpl(ServerState & state,
+                     ServerInfo & info,
+                     ServerService &service);
+
+    ServerState & state;
+    ServerService &service;
+    const ServerInfo &info;
+};
+
 class ServerIdentityBase {
 public:
-    ServerIdentityBase(ServerState &state_, ServerInfo &info_,
-                       ServerService &service_);
-
     virtual ~ServerIdentityBase() = default;
 
     // client's requests
@@ -34,11 +43,6 @@ public:
     virtual void leave() { throw; }
 
     virtual void init() { throw; }
-
-protected:
-    ServerState &state;
-    ServerService &service;
-    const ServerInfo &info;
 }; // class ServerIdentityBase
 
 } // namespace quintet

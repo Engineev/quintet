@@ -1,5 +1,7 @@
 #include "ServerIdentityFollower.h"
 
+#ifdef false
+
 #include <ctime>
 #include <random>
 
@@ -108,3 +110,5 @@ void ServerIdentityFollower::updateCurrentTerm(Term term) {
     }
 }
 } // namespace quintet
+
+#endif

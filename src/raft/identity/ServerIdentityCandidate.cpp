@@ -1,8 +1,11 @@
 #include "ServerIdentityCandidate.h"
 
+#include <cassert>
 #include <memory>
+#include <random>
 
 #include <boost/thread/lock_guard.hpp>
+#include <boost/thread/thread.hpp>
 
 #include "Future.h"
 #include "Utility.h"
@@ -11,25 +14,63 @@
 
 #include <cstdlib>
 
-quintet::ServerIdentityCandidate::ServerIdentityCandidate(quintet::ServerState &state_, quintet::ServerInfo &info_,
-                                                          quintet::ServerService &service_)
-        : ServerIdentityBase(state_, info_, service_) {}
 
-void quintet::ServerIdentityCandidate::leave() {
+namespace quintet {
+
+/* -------------- constructors, destructors and Impl ------------------------ */
+
+ServerIdentityCandidate::~ServerIdentityCandidate() = default;
+
+struct ServerIdentityCandidate::Impl : public IdentityBaseImpl {
+    Impl(ServerState & state, ServerInfo & info, ServerService & service)
+        : IdentityBaseImpl(state, info, service) {}
+
+    std::atomic<std::size_t> votesReceived{0};
+    std::vector<boost::thread> requestingThreads;
+
+    /// \brief Send RPCRequestVotes to other servers and count the votes
+    void requestVotes(Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm);
+
+    std::pair<Term, bool> sendRequestVote(
+        ServerId target, Term currentTerm, ServerId local,
+        Index lastLogIdx, Term lastLogTerm);
+};
+
+ServerIdentityCandidate::ServerIdentityCandidate(
+    ServerState &state, ServerInfo &info, ServerService &service)
+    : pImpl(std::make_unique<Impl>(state, info, service))
+{}
+
+struct ServerIdentityCandidate::TestImpl {
+
+};
+
+} /* namespace quintet */
+
+/* ---------------- public member functions --------------------------------- */
+
+namespace quintet {
+
+void ServerIdentityCandidate::leave() {
+    auto & service = pImpl->service;
     BOOST_LOG(service.logger) << "Candidate::leave()";
     service.heartBeatController.stop();
-    for (auto & t : requestingThreads)
+    for (auto & t : pImpl->requestingThreads)
         t.interrupt();
-    BOOST_LOG(service.logger) << requestingThreads.size() << " threads to join";
-    for (auto & t : requestingThreads) {
+    BOOST_LOG(service.logger) << pImpl->requestingThreads.size() << " threads to join";
+    for (auto & t : pImpl->requestingThreads) {
         t.join();
         BOOST_LOG(service.logger) << "joint!";
     }
-    requestingThreads.clear();
+    pImpl->requestingThreads.clear();
 }
 
-void quintet::ServerIdentityCandidate::init() {
-    BOOST_LOG(service.logger) << "Candidate::init()";
+void ServerIdentityCandidate::init() {
+    auto & service = pImpl->service;
+    auto & state = pImpl->state;
+    auto & info = pImpl->info;
+    BOOST_LOG(service.logger)
+        << "Candidate::init(). new term = " << state.currentTerm + 1;
     ++state.currentTerm;
     state.votedFor = info.local;
 
@@ -37,27 +78,34 @@ void quintet::ServerIdentityCandidate::init() {
 
     BOOST_LOG(service.logger) << "Set electionTime = " << electionTimeout;
 
-    votesReceived = 1;
-    requestVotes(state.currentTerm, info.local,
+    pImpl->votesReceived = 1;
+    pImpl->requestVotes(state.currentTerm, info.local,
                  state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term);
 
     service.heartBeatController.bind(
-            [&, term = state.currentTerm] {
-                BOOST_LOG(service.logger) << "Times out. Restart the election.";
-                service.identityTransformer.notify(ServerIdentityNo::Candidate, term);
-            },
-            electionTimeout);
+        [&, term = state.currentTerm] {
+            BOOST_LOG(service.logger) << "Times out. Restart the election.";
+            service.identityTransformer.notify(ServerIdentityNo::Candidate, term);
+        },
+        electionTimeout);
     service.heartBeatController.start(false, false);
 }
 
-std::pair<quintet::Term, bool>
-quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::ServerId candidateId,
-                                                 std::size_t lastLogIdx, quintet::Term lastLogTerm) {
-    BOOST_LOG(service.logger) << "Candidate: Vote";
+
+} /* namespace quintet */
+
+/* ---------------------- RPCs ---------------------------------------------- */
+
+namespace quintet {
+
+std::pair<Term, bool>
+ServerIdentityCandidate::RPCRequestVote(
+    Term term, ServerId candidateId, std::size_t lastLogIdx, Term lastLogTerm) {
+    auto & service = pImpl->service;
+    auto & state = pImpl->state;
+    auto & info = pImpl->info;
+
     boost::lock_guard<ServerState> lk(state);
-    std::shared_ptr<void> defer(nullptr, [this](void*) {
-        BOOST_LOG(service.logger) << "Candidate: voted";
-    });
 
     if (term < state.currentTerm) {
         return {state.currentTerm, false};
@@ -76,13 +124,18 @@ quintet::ServerIdentityCandidate::RPCRequestVote(quintet::Term term, quintet::Se
     return {state.currentTerm, false};
 }
 
-std::pair<quintet::Term, bool>
-quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::ServerId leaderId,
-                                                   std::size_t prevLogIdx, quintet::Term prevLogTerm,
-                                                   std::vector<quintet::LogEntry> logEntries, std::size_t commitIdx) {
+std::pair<Term, bool>
+ServerIdentityCandidate::RPCAppendEntries(
+    Term term, ServerId leaderId,
+    std::size_t prevLogIdx, Term prevLogTerm,
+    std::vector<LogEntry> logEntries, std::size_t commitIdx) {
+    auto & service = pImpl->service;
+    auto & state = pImpl->state;
+    auto & info = pImpl->info;
+
     BOOST_LOG(service.logger) << "Candidate: Append";
     boost::lock_guard<ServerState> lk(state);
-    std::shared_ptr<void> defer(nullptr, [this](void*) {
+    std::shared_ptr<void> defer(nullptr, [&service](void*) {
         BOOST_LOG(service.logger) << "Candidate: Appended";
     });
     if (term >= state.currentTerm) {
@@ -93,34 +146,41 @@ quintet::ServerIdentityCandidate::RPCAppendEntries(quintet::Term term, quintet::
     return {state.currentTerm, false};
 }
 
-std::pair<quintet::Term, bool>
-quintet::ServerIdentityCandidate::sendRequestVote(quintet::ServerId target, quintet::Term currentTerm,
-                                                  quintet::ServerId local, quintet::Index lastLogIdx,
-                                                  quintet::Term lastLogTerm) {
+
+} /* namespace quintet */
+
+/* -------------------- Impl functions -------------------------------------- */
+
+namespace quintet {
+
+std::pair<Term, bool>
+ServerIdentityCandidate::Impl::sendRequestVote(
+    ServerId target, Term currentTerm,
+    ServerId local, Index lastLogIdx, Term lastLogTerm) {
     boost::future<RPCLIB_MSGPACK::object_handle> fut;
     try {
         fut = service.rpcClients.async_call(target, "RequestVote",
                                             currentTerm, local, lastLogIdx, lastLogTerm);
     } catch (rpc::timeout & e) {
         BOOST_LOG(service.logger) << e.what();
-        return {0, false};
+        return {InvalidTerm, false};
     } catch (RpcServerNotExists & e) {
         BOOST_LOG(service.logger) << e.what();
-        return {0, false};
+        return {InvalidTerm, false};
     }
 
     return fut.get().as<std::pair<Term, bool>>();
 }
 
 
-void quintet::ServerIdentityCandidate::requestVotes(
-        Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm) {
+void ServerIdentityCandidate::Impl::requestVotes(
+    Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm) {
     for (auto & srv : info.srvList) {
         if (srv == info.local)
             continue;
 
         auto t = boost::thread([this, &srv,
-                           currentTerm, local, lastLogIdx, lastLogTerm] () mutable {
+                                   currentTerm, local, lastLogIdx, lastLogTerm] () mutable {
             boost::this_thread::disable_interruption di;
             Term termReceived;
             bool res;
@@ -146,6 +206,15 @@ void quintet::ServerIdentityCandidate::requestVotes(
         requestingThreads.emplace_back(std::move(t));
     }
 }
+
+} /* namespace quintet */
+
+/* --------------------- Test ----------------------------------------------- */
+
+namespace quintet {
+
+} /* namespace quintet */
+
 
 
 

@@ -1,5 +1,9 @@
 #include "ServerIdentityBase.h"
 
-quintet::ServerIdentityBase::ServerIdentityBase(quintet::ServerState &state_, quintet::ServerInfo &info_,
-                                                quintet::ServerService &service_)
-        : state(state_), service(service_), info(info_) {}
+namespace quintet {
+
+IdentityBaseImpl::IdentityBaseImpl(
+    ServerState &state, ServerInfo &info, ServerService &service)
+    : state(state), service(service), info(info) {}
+
+} // namespace quintet

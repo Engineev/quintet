@@ -1,6 +1,7 @@
 #include "RpcClients.h"
 
-void quintet::RpcClients::createClients(const std::vector<quintet::ServerId> &srvs,  std::uint64_t timeOut) {
+void quintet::RpcClients::createClients(
+    const std::vector<quintet::ServerId> &srvs,std::uint64_t timeOut) {
     for (auto & c : clients)
         c.second->wait_all_responses();
     clients.clear();

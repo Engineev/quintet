@@ -1,5 +1,6 @@
 #include <boost/test/unit_test.hpp>
 #include "Server.h"
+#include "ServerIdentityCandidate.h"
 
 #include <memory>
 #include <vector>
@@ -9,12 +10,27 @@
 #include <algorithm>
 #include <iterator>
 
+
 #include "Identity/IdentityTestHelper.h"
 
 namespace utf = boost::unit_test;
 
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Candidate, quintet::test::IdentityTestHelper)
+
+BOOST_FIXTURE_TEST_SUITE(WithoutServer, quintet::test::PseudoServer)
+
+BOOST_AUTO_TEST_CASE(Basic) {
+    BOOST_TEST_MESSAGE("Test::Identity::Candidate::WithoutServer::Basic");
+    quintet::ServerIdentityCandidate candidate(state, info, service);
+
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+
+BOOST_AUTO_TEST_SUITE(WithServer, *utf::disabled())
 
 BOOST_AUTO_TEST_CASE(Basic) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::Basic");
@@ -73,7 +89,7 @@ BOOST_AUTO_TEST_CASE(Naive) {
         srv->setAfterTransform([&](No from, No to) {
             if (from == No::Candidate && to == No::Leader) {
                 sendHeartBeat(srv->getInfo().srvList, srv->getInfo().local,
-                    srv->getCurrentTerm());
+                              srv->getCurrentTerm());
             }
         });
         srv->run();
@@ -85,7 +101,7 @@ BOOST_AUTO_TEST_CASE(Naive) {
     BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
 }
 
-BOOST_AUTO_TEST_CASE(PoorNetwork) {
+BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::PoorNetwork");
     using No = quintet::ServerIdentityNo;
 
@@ -114,6 +130,8 @@ BOOST_AUTO_TEST_CASE(PoorNetwork) {
     for (auto & srv : srvs)
         BOOST_REQUIRE_NO_THROW(srv->stop());
 }
+
+BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

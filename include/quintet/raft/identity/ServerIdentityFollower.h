@@ -1,6 +1,8 @@
 #ifndef QUINTET_SERVERIDENTITYFOLLOWER_H
 #define QUINTET_SERVERIDENTITYFOLLOWER_H
 
+#ifdef false
+
 #include <memory>
 #include <random>
 
@@ -45,5 +47,7 @@ class ServerIdentityFollower : public ServerIdentityBase {
 }; // class ServerIdentityFollower
 
 } // namespace quintet
+
+#endif
 
 #endif // QUINTET_SERVERIDENTITYFOLLOWER_H

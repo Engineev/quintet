@@ -10,6 +10,9 @@
 #include <rpc/client.h>
 
 #include "Server.h"
+#include "ServerState.h"
+#include "ServerInfo.h"
+#include "ServerService.h"
 
 
 namespace quintet {
@@ -31,6 +34,21 @@ private:
 };
 
 } // namespace test
+
+namespace test {
+
+class PseudoServer {
+public:
+    ServerState state;
+    ServerInfo info;
+    ServerService service;
+
+private:
+
+};
+
+} // namespace test
+
 } // namespace quintet
 
 

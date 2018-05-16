@@ -1,15 +1,11 @@
 #ifndef QUINTET_SERVERIDENTITYCANDIDATE_H
 #define QUINTET_SERVERIDENTITYCANDIDATE_H
 
-#include <cassert>
 #include <vector>
 #include <memory>
-#include <random>
-
-#include <boost/thread/thread.hpp>
 
 #include "ServerIdentityBase.h"
-#include "Future.h"
+
 
 namespace quintet {
 
@@ -20,7 +16,7 @@ public:
                             ServerInfo & info_,
                             ServerService & service_);
 
-    ~ServerIdentityCandidate() override = default;
+    ~ServerIdentityCandidate() override;
 
     std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,
@@ -46,15 +42,15 @@ public:
     void leave() override;
 
 private:
-    std::atomic<std::size_t>      votesReceived{0};
-    std::vector<boost::thread>    requestingThreads;
+    struct Impl;
+    std::unique_ptr<Impl> pImpl;
 
+#ifdef UNIT_TEST
 private:
-    /// \brief Send RPCRequestVotes to other servers and count the votes
-    void requestVotes(Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm);
+    struct TestImpl;
+    std::unique_ptr<TestImpl> tpImpl;
+#endif
 
-    std::pair<Term, bool> sendRequestVote(ServerId target,
-                                          Term currentTerm, ServerId local, Index lastLogIdx, Term lastLogTerm);
 }; // class ServerIdentityCandidate
 
 } // namespace quintet

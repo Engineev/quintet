@@ -1,6 +1,8 @@
 #ifndef QUINTET_SERVERIDENTITYLEADER_H
 #define QUINTET_SERVERIDENTITYLEADER_H
 
+#ifdef false
+
 #include "raft/identity/ServerIdentityBase.h"
 
 namespace quintet {
@@ -34,5 +36,6 @@ private:
 
 } // namespace quintet
 
+#endif
 
 #endif //QUINTET_SERVERIDENTITYLEADER_H
