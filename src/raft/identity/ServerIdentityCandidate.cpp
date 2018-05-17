@@ -3,6 +3,7 @@
 #include <cassert>
 #include <memory>
 #include <random>
+#include <chrono>
 
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/thread.hpp>
@@ -51,20 +52,6 @@ struct ServerIdentityCandidate::TestImpl {
 
 namespace quintet {
 
-void ServerIdentityCandidate::leave() {
-    auto & service = pImpl->service;
-    BOOST_LOG(service.logger) << "Candidate::leave()";
-    service.heartBeatController.stop();
-    for (auto & t : pImpl->requestingThreads)
-        t.interrupt();
-    BOOST_LOG(service.logger) << pImpl->requestingThreads.size() << " threads to join";
-    for (auto & t : pImpl->requestingThreads) {
-        t.join();
-        BOOST_LOG(service.logger) << "joint!";
-    }
-    pImpl->requestingThreads.clear();
-}
-
 void ServerIdentityCandidate::init() {
     auto & service = pImpl->service;
     auto & state = pImpl->state;
@@ -80,7 +67,7 @@ void ServerIdentityCandidate::init() {
 
     pImpl->votesReceived = 1;
     pImpl->requestVotes(state.currentTerm, info.local,
-                 state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term);
+                        state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term);
 
     service.heartBeatController.bind(
         [&, term = state.currentTerm] {
@@ -91,6 +78,25 @@ void ServerIdentityCandidate::init() {
     service.heartBeatController.start(false, false);
 }
 
+void ServerIdentityCandidate::leave() {
+    auto & service = pImpl->service;
+    BOOST_LOG(service.logger)
+        << "Candidate::leave(), term = " << pImpl->state.currentTerm;
+    service.heartBeatController.stop();
+    for (auto & t : pImpl->requestingThreads)
+        t.interrupt();
+    BOOST_LOG(service.logger)
+        << pImpl->requestingThreads.size() << " threads to join";
+    for (auto & t : pImpl->requestingThreads) {
+        auto start = std::chrono::high_resolution_clock::now();
+        t.join();
+        BOOST_LOG(service.logger)
+            << "joint! Spent "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::high_resolution_clock::now() - start).count() << " ms";
+    }
+    pImpl->requestingThreads.clear();
+}
 
 } /* namespace quintet */
 
@@ -101,9 +107,7 @@ namespace quintet {
 std::pair<Term, bool>
 ServerIdentityCandidate::RPCRequestVote(
     Term term, ServerId candidateId, std::size_t lastLogIdx, Term lastLogTerm) {
-    auto & service = pImpl->service;
     auto & state = pImpl->state;
-    auto & info = pImpl->info;
 
     boost::lock_guard<ServerState> lk(state);
 
@@ -131,7 +135,6 @@ ServerIdentityCandidate::RPCAppendEntries(
     std::vector<LogEntry> logEntries, std::size_t commitIdx) {
     auto & service = pImpl->service;
     auto & state = pImpl->state;
-    auto & info = pImpl->info;
 
     BOOST_LOG(service.logger) << "Candidate: Append";
     boost::lock_guard<ServerState> lk(state);
@@ -157,19 +160,20 @@ std::pair<Term, bool>
 ServerIdentityCandidate::Impl::sendRequestVote(
     ServerId target, Term currentTerm,
     ServerId local, Index lastLogIdx, Term lastLogTerm) {
-    boost::future<RPCLIB_MSGPACK::object_handle> fut;
     try {
-        fut = service.rpcClients.async_call(target, "RequestVote",
-                                            currentTerm, local, lastLogIdx, lastLogTerm);
+        return service.rpcClients.call(
+            target, "RequestVote", currentTerm, local, lastLogIdx, lastLogTerm
+            ).as<std::pair<Term, bool>>();
     } catch (rpc::timeout & e) {
         BOOST_LOG(service.logger) << e.what();
         return {InvalidTerm, false};
-    } catch (RpcServerNotExists & e) {
+    } catch (RpcClientNotExists & e) {
         BOOST_LOG(service.logger) << e.what();
         return {InvalidTerm, false};
+    } catch (RpcNotConnected & e) {
+        BOOST_LOG(service.logger) << "RpcNotConnected";
+        return {InvalidTerm, false};
     }
-
-    return fut.get().as<std::pair<Term, bool>>();
 }
 
 
@@ -179,21 +183,24 @@ void ServerIdentityCandidate::Impl::requestVotes(
         if (srv == info.local)
             continue;
 
-        auto t = boost::thread([this, &srv,
-                                   currentTerm, local, lastLogIdx, lastLogTerm] () mutable {
+        auto t = boost::thread([
+            this, &srv, currentTerm, local, lastLogIdx, lastLogTerm] () mutable {
             boost::this_thread::disable_interruption di;
             Term termReceived;
             bool res;
             try {
                 boost::this_thread::restore_interruption ri(di);
-                BOOST_LOG(service.logger) << "Send RPCRequestVote to " << srv.toString();
-                std::tie(termReceived, res) = sendRequestVote(srv, currentTerm, local, lastLogIdx, lastLogTerm);
+                BOOST_LOG(service.logger)
+                    << "Send RPCRequestVote to " << srv.toString();
+                std::tie(termReceived, res) =
+                    sendRequestVote(srv, currentTerm, local, lastLogIdx, lastLogTerm);
             } catch (boost::thread_interrupted & t) {
                 BOOST_LOG(service.logger) << "Be interrupted!";
                 return;
             }
-            BOOST_LOG(service.logger) << "Receive the result of RPCRequestVote from " << srv.toString()
-                                      << ". TermReceived = " << termReceived << ", res = " << res;
+            BOOST_LOG(service.logger)
+                << "Receive the result of RPCRequestVote from " << srv.toString()
+                << ". TermReceived = " << termReceived << ", res = " << res;
             if (termReceived != currentTerm || !res)
                 return;
             votesReceived += res;

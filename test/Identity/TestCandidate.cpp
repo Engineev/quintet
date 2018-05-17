@@ -18,7 +18,7 @@ namespace utf = boost::unit_test;
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Candidate, quintet::test::IdentityTestHelper)
 
-BOOST_FIXTURE_TEST_SUITE(WithoutServer, quintet::test::PseudoServer)
+BOOST_FIXTURE_TEST_SUITE(WithoutServer, quintet::test::PseudoServer, *utf::disabled())
 
 BOOST_AUTO_TEST_CASE(Basic) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::WithoutServer::Basic");
@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_SUITE_END()
 
 
 
-BOOST_AUTO_TEST_SUITE(WithServer, *utf::disabled())
+BOOST_AUTO_TEST_SUITE(WithServer)
 
 BOOST_AUTO_TEST_CASE(Basic) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::Basic");
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(Naive) {
     BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
 }
 
-BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
+BOOST_AUTO_TEST_CASE(PoorNetwork) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::PoorNetwork");
     using No = quintet::ServerIdentityNo;
 

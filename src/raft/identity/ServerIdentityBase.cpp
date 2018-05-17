@@ -2,7 +2,7 @@
 
 namespace quintet {
 
-IdentityBaseImpl::IdentityBaseImpl(
+ServerIdentityBase::IdentityBaseImpl::IdentityBaseImpl(
     ServerState &state, ServerInfo &info, ServerService &service)
     : state(state), service(service), info(info) {}
 

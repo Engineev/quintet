@@ -46,6 +46,9 @@ private:
     std::unique_ptr<Impl> pImpl;
 
 #ifdef UNIT_TEST
+public:
+
+
 private:
     struct TestImpl;
     std::unique_ptr<TestImpl> tpImpl;

@@ -10,15 +10,7 @@
 
 namespace quintet {
 
-struct IdentityBaseImpl {
-    IdentityBaseImpl(ServerState & state,
-                     ServerInfo & info,
-                     ServerService &service);
 
-    ServerState & state;
-    ServerService &service;
-    const ServerInfo &info;
-};
 
 class ServerIdentityBase {
 public:
@@ -43,6 +35,18 @@ public:
     virtual void leave() { throw; }
 
     virtual void init() { throw; }
+
+protected:
+    struct IdentityBaseImpl {
+        IdentityBaseImpl(ServerState & state,
+                         ServerInfo & info,
+                         ServerService &service);
+
+        ServerState & state;
+        ServerService &service;
+        const ServerInfo &info;
+    };
+
 }; // class ServerIdentityBase
 
 } // namespace quintet

@@ -17,11 +17,11 @@
 
 namespace quintet {
 
-class RpcDisconnected : public std::exception {};
-class RpcServerNotExists : public std::exception {
+class RpcNotConnected : public std::exception {};
+class RpcClientNotExists : public std::exception {
 public:
-    RpcServerNotExists() = default;
-    RpcServerNotExists(std::string str) : e(std::move(str)) {}
+    RpcClientNotExists() = default;
+    RpcClientNotExists(std::string str) : e(std::move(str)) {}
 
     const char * what() const noexcept override { return e.c_str(); }
 
@@ -45,8 +45,10 @@ public:
         ServerId srv, const std::string & name, Args... args) {
         auto iter = clients.find(srv.toString());
         if (iter == clients.end())
-            throw RpcServerNotExists(srv.toString() + " does not exists");
+            throw RpcClientNotExists(srv.toString() + " does not exists");
         auto & c = *(iter->second);
+        if (c.get_connection_state() != rpc::client::connection_state::connected)
+            throw RpcNotConnected();
         auto fut = c.async_call(name, std::move(args)...);
         return toBoostFuture(std::move(fut));
     }
