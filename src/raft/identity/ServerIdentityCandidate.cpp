@@ -61,13 +61,14 @@ void ServerIdentityCandidate::init() {
     ++state.currentTerm;
     state.votedFor = info.local;
 
-    auto electionTimeout = Rand(info.electionTimeout, info.electionTimeout * 2)();
+    auto electionTimeout = intRand(info.electionTimeout, info.electionTimeout * 2);
 
     BOOST_LOG(service.logger) << "Set electionTime = " << electionTimeout;
 
     pImpl->votesReceived = 1;
-    pImpl->requestVotes(state.currentTerm, info.local,
-                        state.entries.size() - 1, state.entries.empty() ? InvalidTerm : state.entries.back().term);
+    pImpl->requestVotes(
+        state.currentTerm, info.local, state.entries.size() - 1,
+        state.entries.empty() ? InvalidTerm : state.entries.back().term);
 
     service.heartBeatController.bind(
         [&, term = state.currentTerm] {
@@ -117,6 +118,8 @@ ServerIdentityCandidate::RPCRequestVote(
     if (term > state.currentTerm) {
         state.votedFor = NullServerId;
         state.currentTerm = term;
+        pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower, term);
+//        return {state.currentTerm, false};
     }
 
     if ((state.votedFor == NullServerId || state.votedFor == candidateId)
@@ -198,9 +201,11 @@ void ServerIdentityCandidate::Impl::requestVotes(
                 BOOST_LOG(service.logger) << "Be interrupted!";
                 return;
             }
-            BOOST_LOG(service.logger)
-                << "Receive the result of RPCRequestVote from " << srv.toString()
-                << ". TermReceived = " << termReceived << ", res = " << res;
+            if (termReceived != InvalidTerm) {
+                BOOST_LOG(service.logger)
+                    << "Receive the result of RPCRequestVote from " << srv.toString()
+                    << ". TermReceived = " << termReceived << ", res = " << res;
+            }
             if (termReceived != currentTerm || !res)
                 return;
             votesReceived += res;

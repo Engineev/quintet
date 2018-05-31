@@ -29,7 +29,6 @@ BOOST_AUTO_TEST_CASE(Basic) {
 BOOST_AUTO_TEST_SUITE_END()
 
 
-
 BOOST_AUTO_TEST_SUITE(WithServer)
 
 BOOST_AUTO_TEST_CASE(Basic) {
@@ -101,7 +100,7 @@ BOOST_AUTO_TEST_CASE(Naive) {
     BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
 }
 
-BOOST_AUTO_TEST_CASE(PoorNetwork) {
+BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
     BOOST_TEST_MESSAGE("Test::Identity::Candidate::PoorNetwork");
     using No = quintet::ServerIdentityNo;
 

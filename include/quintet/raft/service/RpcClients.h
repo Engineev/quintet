@@ -38,7 +38,7 @@ public:
     /// \param srvs The servers which the clients created
     ///             connected to.
     void createClients(const std::vector<ServerId> & srvs,
-                       std::uint64_t timeOut = 1000);
+                       std::uint64_t timeOut = 80);
 
     template <typename... Args>
     boost::future<RPCLIB_MSGPACK::object_handle> async_call(
@@ -47,8 +47,9 @@ public:
         if (iter == clients.end())
             throw RpcClientNotExists(srv.toString() + " does not exists");
         auto & c = *(iter->second);
-        if (c.get_connection_state() != rpc::client::connection_state::connected)
+        if (c.get_connection_state() != rpc::client::connection_state::connected) {
             throw RpcNotConnected();
+        }
         auto fut = c.async_call(name, std::move(args)...);
         return toBoostFuture(std::move(fut));
     }

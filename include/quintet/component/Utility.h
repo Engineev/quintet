@@ -2,8 +2,6 @@
 #define QUINTET_UTILITY_H
 
 #include <cstdint>
-#include <random>
-#include <functional>
 
 // macro
 namespace quintet {
@@ -20,27 +18,7 @@ namespace quintet {
 // random
 namespace quintet {
 
-class Rand {
-public:
-    /*
-    Rand(std::int64_t lb, std::int64_t up)
-            : eng(std::random_device()()), dist(lb, up) {}
-
-    std::int64_t operator()() {
-        return dist(eng);
-    }
-     */
-    Rand(std::int64_t lb, std::int64_t ub) : lb(lb), ub(ub) {}
-
-    std::int64_t operator()() const {
-        return lb + rand() % (ub - lb);
-    }
-
-private:
-    std::int64_t lb, ub;
-//    std::default_random_engine eng;
-//    std::uniform_int_distribution<std::int64_t> dist;
-}; // class Rand
+std::int64_t intRand(std::int64_t lb, std::int64_t ub);
 
 } // namespace quintet
 

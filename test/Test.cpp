@@ -6,8 +6,7 @@
 #include <boost/log/trivial.hpp>
 
 BOOST_AUTO_TEST_CASE(HelloWorld) {
-    BOOST_TEST_MESSAGE("Test: Hello World!");
-    BOOST_LOG_TRIVIAL(trace) << "A trace severity message";
+    BOOST_TEST_MESSAGE("Test::Hello World!");
     BOOST_REQUIRE(true);
 }
 

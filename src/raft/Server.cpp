@@ -112,7 +112,7 @@ void Server::stop() {
 
 } /* namespace quintet */
 
-
+/* ---------------------- RPCs ---------------------------------------------- */
 
 namespace quintet {
 
@@ -194,10 +194,10 @@ bool Server::triggerTransformation(ServerIdentityNo target, Term term) {
     }
 
     BOOST_LOG(pImpl->service.logger)
-        << "Succeed to trigger a transformation. "
+        << "Succeed to trigger a transformation. termTransformed: "
         << pImpl->termTransformed << " -> " << term;
-    waitTransformation();
     pImpl->termTransformed = term;
+    waitTransformation();
     pImpl->transformThread = boost::thread([this, target] { transform(target); });
     return true;
 }
@@ -286,10 +286,13 @@ void Server::setRpcLatency(std::uint64_t lb, std::uint64_t ub) {
 
 void Server::rpcSleep() {
     std::size_t ub = tpImpl->rpcLatencyUb, lb = tpImpl->rpcLatencyLb;
-    if (ub < lb)
-        std::swap(lb, ub);
+    if (ub < lb) {
+        auto t = lb;
+        lb = ub;
+        ub = t;
+    }
     if (ub > 0) {
-        auto time = Rand(lb, ub)();
+        auto time = intRand(lb, ub);
         BOOST_LOG(pImpl->service.logger) << "RPCLatency = " << time << " ms.";
         std::this_thread::sleep_for(std::chrono::milliseconds(time));
     }
