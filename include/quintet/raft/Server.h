@@ -28,33 +28,9 @@ public:
 
 //    bool localAppendEntries(std::vector<LogEntry> logEntries) {}
 
-private: /// RPCs
-    std::pair<Term /*current term*/, bool /*success*/>
-    RPCAppendEntries(Term term, ServerId leaderId,
-                     std::size_t prevLogIdx, Term prevLogTerm,
-                     std::vector<LogEntry> logEntries, std::size_t commitIdx);
-
-    std::pair<Term /*current term*/, bool /*vote granted*/>
-    RPCRequestVote(Term term, ServerId candidateId,
-                   std::size_t lastLogIdx, Term lastLogTerm);;
-
 private:
     struct Impl;
     std::unique_ptr<Impl> pImpl;
-
-private:
-    void initRpcServer();
-
-    void initServerService();
-
-    void refreshState();
-
-    bool triggerTransformation(ServerIdentityNo target, Term term);
-
-    void transform(quintet::ServerIdentityNo target);
-
-    /// Wait until the current transformation (if exists) finishes
-    void waitTransformation();
 
 #ifdef UNIT_TEST
 public:

@@ -42,9 +42,33 @@ struct Server::Impl {
     ServerService service;
     RpcService    rpc;
 
-    boost::mutex  triggerTransformation;
+    boost::mutex  triggerTransformationM;
     Term          termTransformed = InvalidTerm;
     boost::thread transformThread;
+
+    // RPCs
+    std::pair<Term /*current term*/, bool /*success*/>
+    RPCAppendEntries(Term term, ServerId leaderId,
+                     std::size_t prevLogIdx, Term prevLogTerm,
+                     std::vector<LogEntry> logEntries, std::size_t commitIdx);
+
+    std::pair<Term /*current term*/, bool /*vote granted*/>
+    RPCRequestVote(Term term, ServerId candidateId,
+                   std::size_t lastLogIdx, Term lastLogTerm);
+
+    // helper functions
+    void initRpcServer();
+
+    void initServerService();
+
+    void refreshState();
+
+    bool triggerTransformation(ServerIdentityNo target, Term term);
+
+    void transform(quintet::ServerIdentityNo target);
+
+    /// Wait until the current transformation (if exists) finishes
+    void waitTransformation();
 };
 
 struct Server::TestImpl {
@@ -69,7 +93,7 @@ void Server::init(const std::string &configDir) {
     auto & service = pImpl->service;
 
     info.load(configDir);
-    initServerService();
+    pImpl->initServerService();
 //    pImpl->identities[(std::size_t)ServerIdentityNo::Follower]
 //        = std::make_unique<ServerIdentityFollower>(state, info, service);
     pImpl->identities[(std::size_t)ServerIdentityNo::Candidate]
@@ -77,7 +101,7 @@ void Server::init(const std::string &configDir) {
 //    pImpl->identities[(std::size_t)ServerIdentityNo::Leader]
 //        = std::make_unique<ServerIdentityLeader>(state, info, service);
     pImpl->currentIdentity = ServerIdentityNo::Down;
-    initRpcServer();
+    pImpl->initRpcServer();
 }
 
 void Server::bindCommit(std::function<void(LogEntry)> commit) {
@@ -85,7 +109,7 @@ void Server::bindCommit(std::function<void(LogEntry)> commit) {
 }
 
 void Server::run() {
-    auto res = triggerTransformation(ServerIdentityNo::Follower, InvalidTerm);
+    auto res = pImpl->triggerTransformation(ServerIdentityNo::Follower, InvalidTerm);
     assert(res);
 }
 
@@ -97,7 +121,7 @@ void Server::stop() {
     BOOST_TEST_CHECKPOINT("RPC has been stopped");
     pImpl->service.identityTransformer.stop();
     BOOST_TEST_CHECKPOINT("IdentityTransformer has been stopped");
-    waitTransformation();
+    pImpl->waitTransformation();
     BOOST_TEST_CHECKPOINT("Ongoing transformation has been finished");
 
     if (pImpl->currentIdentity != ServerIdentityNo::Down)
@@ -117,36 +141,36 @@ void Server::stop() {
 namespace quintet {
 
 std::pair<Term /*current term*/, bool /*success*/>
-Server::RPCAppendEntries(Term term, ServerId leaderId, std::size_t prevLogIdx,
+Server::Impl::RPCAppendEntries(Term term, ServerId leaderId, std::size_t prevLogIdx,
                          Term prevLogTerm, std::vector<LogEntry> logEntries,
                          std::size_t commitIdx) {
     BOOST_LOG_FUNCTION();
-    BOOST_LOG(pImpl->service.logger)
+    BOOST_LOG(service.logger)
         << "RPCAppendEntries from " << leaderId.toString();
-#ifdef UNIT_TEST
-    rpcSleep();
-#endif
+//#ifdef UNIT_TEST
+//    rpcSleep();
+//#endif
 
-    if (pImpl->currentIdentity == ServerIdentityNo::Down)
+    if (currentIdentity == ServerIdentityNo::Down)
         return {-1, false};
-    return pImpl->identities[(int)pImpl->currentIdentity]->RPCAppendEntries(
+    return identities[(int)currentIdentity]->RPCAppendEntries(
         term, leaderId, prevLogIdx, prevLogTerm,
         std::move(logEntries), commitIdx);
 }
 
 std::pair<Term /*current term*/, bool /*vote granted*/>
-Server::RPCRequestVote(Term term, ServerId candidateId,
+Server::Impl::RPCRequestVote(Term term, ServerId candidateId,
                        std::size_t lastLogIdx, Term lastLogTerm) {
     BOOST_LOG_FUNCTION();
-    BOOST_LOG(pImpl->service.logger)
+    BOOST_LOG(service.logger)
         << "RPCRequestVote from " << candidateId.toString();
-#ifdef UNIT_TEST
-    rpcSleep();
-#endif
+//#ifdef UNIT_TEST
+//    rpcSleep();
+//#endif
 
-    if (pImpl->currentIdentity == ServerIdentityNo::Down)
+    if (currentIdentity == ServerIdentityNo::Down)
         return {-1, false};
-    return pImpl->identities[(int)pImpl->currentIdentity]->RPCRequestVote(
+    return identities[(int)currentIdentity]->RPCRequestVote(
         term, candidateId, lastLogIdx, lastLogTerm);
 }
 
@@ -158,10 +182,7 @@ Server::RPCRequestVote(Term term, ServerId candidateId,
 
 namespace quintet {
 
-void Server::initServerService() {
-    auto & service = pImpl->service;
-    auto & info = pImpl->info;
-
+void Server::Impl::initServerService() {
     service.configLogger(info.local.toString());
 
     // identity transformer
@@ -184,58 +205,57 @@ void Server::initServerService() {
     service.rpcClients.createClients(srvs);
 }
 
-bool Server::triggerTransformation(ServerIdentityNo target, Term term) {
-    boost::lock_guard<boost::mutex> lk(pImpl->triggerTransformation);
-    if (pImpl->termTransformed != InvalidTerm && term <= pImpl->termTransformed) {
-        BOOST_LOG(pImpl->service.logger)
+bool Server::Impl::triggerTransformation(ServerIdentityNo target, Term term) {
+    boost::lock_guard<boost::mutex> lk(triggerTransformationM);
+    if (termTransformed != InvalidTerm && term <= termTransformed) {
+        BOOST_LOG(service.logger)
             << "A transformation been triggered in this term. "
-            << "(" << term << " <= " << pImpl->termTransformed << ")";
+            << "(" << term << " <= " << termTransformed << ")";
         return false;
     }
 
-    BOOST_LOG(pImpl->service.logger)
+    BOOST_LOG(service.logger)
         << "Succeed to trigger a transformation. termTransformed: "
-        << pImpl->termTransformed << " -> " << term;
-    pImpl->termTransformed = term;
+        << termTransformed << " -> " << term;
+    termTransformed = term;
     waitTransformation();
-    pImpl->transformThread = boost::thread([this, target] { transform(target); });
+    transformThread = boost::thread([this, target] { transform(target); });
     return true;
 }
 
-void Server::transform(quintet::ServerIdentityNo target) {
+void Server::Impl::transform(quintet::ServerIdentityNo target) {
     // leaving ...
-    auto from = pImpl->currentIdentity;
-    pImpl->rpc.pause();
+    auto from = currentIdentity;
+    rpc.pause();
     if (from != ServerIdentityNo::Down)
-        pImpl->identities[(std::size_t)from]->leave();
+        identities[(std::size_t)from]->leave();
 
     // transforming ...
     auto actualTarget = target;
-#ifdef IDENTITY_TEST
-    actualTarget = tpImpl->beforeTransform(from, target);
-#endif
-    BOOST_LOG(pImpl->service.logger)
+//#ifdef IDENTITY_TEST
+//    actualTarget = tpImpl->beforeTransform(from, target);
+//#endif
+    BOOST_LOG(service.logger)
         << "transform from " << IdentityNames[(int)from]
         << " to " << IdentityNames[(int)target]
         << " (actually to " << IdentityNames[(int)actualTarget] << ")";
-    pImpl->currentIdentity = actualTarget;
+    currentIdentity = actualTarget;
     refreshState();
-#ifdef IDENTITY_TEST
-    tpImpl->afterTransform(from, target);
-#endif
+//#ifdef IDENTITY_TEST
+//    tpImpl->afterTransform(from, target);
+//#endif
 
     // restart !
     if (actualTarget != ServerIdentityNo::Down)
-        pImpl->identities[(int)actualTarget]->init();
+        identities[(int)actualTarget]->init();
 
-    pImpl->rpc.resume();
-    BOOST_LOG(pImpl->service.logger) << "Transformation completed.";
+    rpc.resume();
+    BOOST_LOG(service.logger) << "Transformation completed.";
 }
 
-void Server::initRpcServer() {
-    auto & rpc = pImpl->rpc;
-    rpc.configLogger(pImpl->info.local.toString());
-    rpc.listen(pImpl->info.local.port);
+void Server::Impl::initRpcServer() {
+    rpc.configLogger(info.local.toString());
+    rpc.listen(info.local.port);
     rpc.bind("AppendEntries",
              [this](Term term, ServerId leaderId,
                     std::size_t prevLogIdx, Term prevLogTerm,
@@ -251,12 +271,12 @@ void Server::initRpcServer() {
     rpc.async_run(2);
 }
 
-void Server::refreshState() {
-    pImpl->state.votedFor = NullServerId;
+void Server::Impl::refreshState() {
+    state.votedFor = NullServerId;
 }
 
-void Server::waitTransformation() {
-    pImpl->transformThread.join();
+void Server::Impl::waitTransformation() {
+    transformThread.join();
 }
 
 } /* namespace quintet */
