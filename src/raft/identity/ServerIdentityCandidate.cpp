@@ -15,10 +15,9 @@
 
 #include <cstdlib>
 
+/* -------------- constructors, destructors and Impl ------------------------ */
 
 namespace quintet {
-
-/* -------------- constructors, destructors and Impl ------------------------ */
 
 ServerIdentityCandidate::~ServerIdentityCandidate() = default;
 

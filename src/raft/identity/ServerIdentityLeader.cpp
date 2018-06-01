@@ -1,9 +1,45 @@
 #include "ServerIdentityLeader.h"
 
-#ifdef false
+#include <unordered_map>
 
-quintet::ServerIdentityLeader::ServerIdentityLeader(quintet::ServerState &state_, quintet::ServerInfo &info_,
-                                                    quintet::ServerService &service_)
-        : ServerIdentityBase(state_, info_, service_) {}
+/* -------------- constructors, destructors and Impl ------------------------ */
 
-#endif
+namespace quintet {
+
+ServerIdentityLeader::~ServerIdentityLeader() = default;
+
+struct ServerIdentityLeader::Impl : public IdentityBaseImpl {
+    Impl(ServerState & state, ServerInfo & info, ServerService & service)
+        : IdentityBaseImpl(state, info, service) {}
+
+    std::unordered_map<ServerId, Index> nextIndex, matchIndex;
+
+    void reinit();
+
+
+};
+
+ServerIdentityLeader::ServerIdentityLeader(
+    ServerState &state, ServerInfo &info, ServerService &service)
+    : pImpl(std::make_unique<Impl>(state, info, service)) {}
+
+} // namespace quintet
+
+
+/* ---------------- public member functions --------------------------------- */
+
+namespace quintet {
+
+void ServerIdentityLeader::init() {
+    
+}
+
+} // namespace quintet
+
+/* ---------------------- RPCs ---------------------------------------------- */
+
+namespace quintet {} // namespace quintet
+
+/* -------------------- Impl functions -------------------------------------- */
+
+namespace quintet {} // namespace quintet

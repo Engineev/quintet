@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <functional>
 
 #include <rpc/server.h>
 
@@ -39,6 +40,17 @@ bool operator!=(const ServerId & lhs, const ServerId & rhs);
 const ServerId NullServerId{"", 0};
 
 } /* namespace quintet */
+
+// hash
+namespace std {
+template <>
+struct hash<quintet::ServerId> {
+    std::size_t operator()(const quintet::ServerId& id) const {
+        return std::hash<std::string>()(id.toString());
+    }
+};
+
+} /* namespace std */
 
 // ServerInfo
 namespace quintet {

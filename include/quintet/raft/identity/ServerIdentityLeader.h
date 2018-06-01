@@ -1,9 +1,9 @@
 #ifndef QUINTET_SERVERIDENTITYLEADER_H
 #define QUINTET_SERVERIDENTITYLEADER_H
 
-#ifdef false
+#include <memory>
 
-#include "raft/identity/ServerIdentityBase.h"
+#include "ServerIdentityBase.h"
 
 namespace quintet {
 
@@ -14,7 +14,7 @@ public:
                          ServerInfo & info_,
                          ServerService & service_);;
 
-    ~ServerIdentityLeader() override = default;
+    ~ServerIdentityLeader() override;
 
     std::pair<Term /*current term*/, bool /*success*/>
     RPCAppendEntries(Term term, ServerId leaderId,
@@ -27,15 +27,17 @@ public:
 
     void leave() override {throw; }
 
-    void init() override {throw; }
+    /// \breif See figure 2 of the paper
+    ///
+    /// Send the initial heratbeat and start to beat periodically.
+    void init() override;
 
 private:
-
+    struct Impl;
+    std::unique_ptr<Impl> pImpl;
 
 }; // class ServerIdentityLeader
 
 } // namespace quintet
-
-#endif
 
 #endif //QUINTET_SERVERIDENTITYLEADER_H
