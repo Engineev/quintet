@@ -2,14 +2,13 @@
 #define QUINTET_RAFTDEFS_H
 
 #include <cstdint>
-#include <tuple>
-#include <limits>
+#include <cstddef>
 #include <string>
-#include <vector>
+#include <limits>
+#include <functional>
+//#include <iostream>  toString() is provided to avoid include iostream
 
-#include <rpc/server.h>
-
-#include "Defs.h"
+#include "QuintetDefs.h"
 
 namespace quintet {
 
@@ -19,23 +18,47 @@ using Index = std::size_t;
 
 const Term InvalidTerm = std::numeric_limits<Term>::max();
 
-struct LogEntry { // TODO
-    Term        term;
-    std::string opName;
-    std::string args;
-    PrmIdx      prmIdx;
-
-    MSGPACK_DEFINE_ARRAY(term, opName, args, prmIdx);
+struct LogEntry {
+  Term        term;
+  std::string opName;
+  std::string args;
+  PrmIdx      prmIdx;
 };
 
 enum class ServerIdentityNo {
-    Follower = 0, Candidate, Leader, Down, Error
+  Follower = 0, Candidate, Leader, Down, Error
 };
 
-const std::vector<std::string> IdentityNames = {
-        "Follower", "Candidate", "Leader", "Down"
+const std::string IdentityNames[] = {"Follower", "Candidate", "Leader", "Down"};
+
+} /* namespace quintet */
+
+// ServerId
+namespace quintet {
+
+struct ServerId {
+  std::string addr = "";
+  Port port = 0;
+
+  std::string toString() const;
 };
 
-} // namespace quintet
+const ServerId NullServerId{"", 0};
+
+bool operator==(const ServerId &lhs, const ServerId &rhs);
+
+bool operator!=(const ServerId & lhs, const ServerId & rhs);
+
+} /* namespace quintet */
+
+// hash
+namespace std {
+template <>
+struct hash<quintet::ServerId> {
+  std::size_t operator()(const quintet::ServerId& id) const {
+    return std::hash<std::string>()(id.toString());
+  }
+};
+} // namespace ::std
 
 #endif //QUINTET_RAFTDEFS_H

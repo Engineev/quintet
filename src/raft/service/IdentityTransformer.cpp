@@ -1,37 +1,31 @@
-#include "IdentityTransformer.h"
+#include "service/IdentityTransformer.h"
 
-#include <boost/log/attributes.hpp>
+#include <functional>
+
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace quintet {
 
-void IdentityTransformer::configLogger(const std::string &id) {
-    using namespace logging;
-    lg.add_attribute("ServiceType", attrs::constant<std::string>("Transformer"));
-    lg.add_attribute("ServerId", attrs::constant<std::string>(id));
-}
+IdentityTransformer::IdentityTransformer() : pImpl(std::make_unique<Impl>()) {}
 
-void IdentityTransformer::start() {
-    std::lock_guard<std::mutex> lk(m);
-    running = true;
-}
+IdentityTransformer::~IdentityTransformer() = default;
 
-void IdentityTransformer::stop() {
-    std::lock_guard<std::mutex> lk(m);
-    running = false;
-}
+struct IdentityTransformer::Impl {
+  std::function<void(ServerIdentityNo target)> triggerTransform = nullptr;
+  boost::mutex m;
+  Term termTriggered = InvalidTerm;
+};
 
-void IdentityTransformer::bindNotificationSlot(
-    std::function<bool(quintet::ServerIdentityNo /* target */,
-                       Term /* current term */)> slot) {
-    notifySlot = std::move(slot);
-}
-
-bool IdentityTransformer::notify(ServerIdentityNo target, Term term) {
-    std::lock_guard<std::mutex> lk(m);
-    BOOST_LOG(lg) << "notify";
-    if (!running)
-        return false;
-    return notifySlot(target, term);
+bool IdentityTransformer::notify(ServerIdentityNo target, Term currentTerm) {
+  boost::lock_guard<boost::mutex> lk(pImpl->m);
+  if (pImpl->termTriggered == InvalidTerm ||
+      pImpl->termTriggered < currentTerm) {
+    pImpl->termTriggered = currentTerm;
+    pImpl->triggerTransform(target);
+    return true;
+  }
+  return false;
 }
 
 } // namespace quintet

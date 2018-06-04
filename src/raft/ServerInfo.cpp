@@ -1,49 +1,42 @@
 #include "ServerInfo.h"
 
+#include <iostream>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-bool quintet::operator==(const quintet::ServerId &lhs, const quintet::ServerId &rhs) {
-    return std::tie(lhs.addr, lhs.port) == std::tie(rhs.addr, rhs.port);
+namespace quintet {
+
+std::istream & operator>>(std::istream &in, ServerId &id) {
+  in >> id.addr >> id.port;
+  return in;
 }
 
-bool quintet::operator!=(const quintet::ServerId &lhs, const quintet::ServerId &rhs) {
-    return !(lhs == rhs);
+std::ostream & operator<<(std::ostream &out, const ServerId &id) {
+  out << id.addr << " " << id.port;
+  return out;
 }
 
 
-std::istream & quintet::operator>>(std::istream &in, quintet::ServerId &id) {
-    in >> id.addr >> id.port;
-    return in;
+void ServerInfo::load(const std::string &filename) {
+  namespace pt = boost::property_tree;
+
+  pt::ptree tree;
+  pt::read_json(filename, tree);
+
+  local = tree.get<ServerId>("local.address");
+  electionTimeout = tree.get<std::uint64_t>("electionTimeout");
+  for (auto &&srv : tree.get_child("serverList"))
+    srvList.emplace_back(srv.second.get_value<ServerId>());
 }
 
-std::ostream & quintet::operator<<(std::ostream &out, const quintet::ServerId &id) {
-    out << id.addr << " " << id.port;
-    return out;
+void ServerInfo::save(const std::string &filename) {
+  namespace pt = boost::property_tree;
+  pt::ptree tree;
+  tree.put("local.address", local);
+  tree.put("electionTimeout", electionTimeout);
+  for (auto &&id : srvList)
+    tree.put("serverList.serverId", id);
+  pt::write_json(filename, tree);
 }
 
-void quintet::ServerInfo::load(const std::string &filename) {
-    namespace pt = boost::property_tree;
-
-    pt::ptree tree;
-    pt::read_json(filename, tree);
-
-    local = tree.get<ServerId>("local.address");
-    electionTimeout = tree.get<std::uint64_t>("electionTimeout");
-    for (auto &&srv : tree.get_child("serverList"))
-        srvList.emplace_back(srv.second.get_value<ServerId>());
-}
-
-void quintet::ServerInfo::save(const std::string &filename) {
-    namespace pt = boost::property_tree;
-    pt::ptree tree;
-    tree.put("local.address", local);
-    tree.put("electionTimeout", electionTimeout);
-    for (auto && id : srvList)
-        tree.put("serverList.serverId", id);
-    pt::write_json(filename, tree);
-}
-
-std::string quintet::ServerId::toString() const {
-    return addr + "-" + std::to_string(port);
-}
+} // namespace quintet

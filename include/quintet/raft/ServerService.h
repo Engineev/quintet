@@ -1,50 +1,14 @@
-#ifndef QUINTET_SERVERSERVICE_H
-#define QUINTET_SERVERSERVICE_H
+#pragma once
 
-#include <functional>
-#include <condition_variable>
-#include <mutex>
+#include "service/IdentityTransformer.h"
+#include "service/HeartBeatController.h"
 
-#include <boost/thread/shared_mutex.hpp>
-
-#include "Future.h"
-#include "Utility.h"
-#include "RaftDefs.h"
-
-#include "HeartBeatController.h"
-#include "IdentityTransformer.h"
-#include "RpcService.h"
-#include "RpcClients.h"
-#include "log/Common.h"
-
-// Committer
-namespace quintet {
-
-class Committer {
-public:
-    void bindCommit(std::function<void(LogEntry)> f);
-
-    void commit(LogEntry log);
-
-private:
-    std::function<void(LogEntry)> commit_ = {};
-};
-
-} /* namespace quintet */
-
-// ServerService
 namespace quintet {
 
 struct ServerService {
-    Committer committer;
-    IdentityTransformer identityTransformer;
-    HeartBeatController heartBeatController;
-    RpcClients rpcClients;
-    logging::src::logger_mt logger;
+  HeartBeatController heartBeatController;
+  IdentityTransformer identityTransformer;
 
-    void configLogger(const std::string & id);;
-}; // class ServerService
+}; // struct ServerService
 
 } // namespace quintet
-
-#endif // QUINTET_SERVERSERVICE_H

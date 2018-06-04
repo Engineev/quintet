@@ -1,30 +1,22 @@
-include_directories(${CMAKE_CURRENT_LIST_DIR})
+include_directories(../src)
 
 file(GLOB TEST_SOURCE ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
 
-if (MISC_TEST)
-    file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/Misc/*.cpp)
-    set(TEST_SOURCE ${TEST_SOURCE} ${TMP})
-endif ()
-if (IDENTITY_TEST)
-    file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/Identity/*.cpp)
-    set(TEST_SOURCE ${TEST_SOURCE} ${TMP})
-endif ()
-if (COMPREHENSIVE_TEST)
-    file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/Comprehensive/*.cpp)
-    set(TEST_SOURCE ${TEST_SOURCE} ${TMP})
-endif ()
+#if (MISC_TEST)
+#    file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/Misc/*.cpp)
+#    set(TEST_SOURCE ${TEST_SOURCE} ${TMP})
+#endif ()
 
 add_executable(${PROJECT_NAME}_test ${TEST_SOURCE})
 
 # boost
 find_package(Boost REQUIRED
-        COMPONENTS unit_test_framework thread serialization log
-        )
+  COMPONENTS unit_test_framework thread serialization log
+)
 include_directories(${Boost_INCLUDE_DIR})
 add_definitions(
-    -D BOOST_THREAD_VERSION=4
-    -D BOOST_LOG_DYN_LINK
+  -D BOOST_THREAD_VERSION=4
+  -D BOOST_LOG_DYN_LINK
 )
 
 # link
