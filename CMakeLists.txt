@@ -5,6 +5,8 @@ project(quintet)
 # option
 option(UNIT_TEST "unit test"
         ON)
+option(MISC_TEST "misc test"
+        ON)
 option(IDENTITY_TEST "test the identities resepectively"
         ON)
 option(COMPREHENSIVE_TEST "test with normal identity transformation enabled"

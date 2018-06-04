@@ -12,10 +12,10 @@ public:
 
   ~EventQueue();
 
-  // pesudo non-blocking
-  void addEvent(std::function<void()> event) { throw; }
+  // pseudo non-blocking
+  void addEvent(std::function<void()> event);
 
-  void wait() {throw ;}
+  void wait();
 
 private:
   struct Impl;

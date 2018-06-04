@@ -27,7 +27,7 @@ bool HeartBeatController::start(bool immediate, bool repeat) {
   repeatCache = repeat;
 
   assert(!th.joinable());
-  th = boost::thread([this, lk = std::move(lk), period = period, f = func,
+  th = boost::thread([lk = std::move(lk), period = period, f = func,
                          immediate = immediate, repeat = repeat] {
     boost::this_thread::disable_interruption di;
     if (immediate) {

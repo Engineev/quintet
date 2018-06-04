@@ -2,10 +2,10 @@ include_directories(../src)
 
 file(GLOB TEST_SOURCE ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
 
-#if (MISC_TEST)
-#    file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/Misc/*.cpp)
-#    set(TEST_SOURCE ${TEST_SOURCE} ${TMP})
-#endif ()
+if (MISC_TEST)
+    file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/misc/*.cpp)
+    set(TEST_SOURCE ${TEST_SOURCE} ${TMP})
+endif ()
 
 add_executable(${PROJECT_NAME}_test ${TEST_SOURCE})
 
