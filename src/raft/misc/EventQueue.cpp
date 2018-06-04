@@ -11,8 +11,6 @@
 
 namespace quintet {
 
-EventQueue::~EventQueue() = default;
-
 struct EventQueue::Impl {
   boost::mutex m;
   boost::condition_variable cv;
@@ -49,8 +47,6 @@ struct EventQueue::Impl {
     boost::unique_lock<boost::mutex> lk(m);
     cv.wait(lk, [this] { return q.empty(); });
     lk.unlock();
-    runningThread.interrupt();
-    runningThread.join();
   }
 };
 
@@ -58,6 +54,12 @@ EventQueue::EventQueue() : pImpl(std::make_unique<EventQueue::Impl>()) {
   pImpl->runningThread = boost::thread([this] {
     pImpl->execute();
   });
+}
+
+EventQueue::~EventQueue() {
+  wait();
+  pImpl->runningThread.interrupt();
+  pImpl->runningThread.join();
 }
 
 void EventQueue::addEvent(std::function<void()> event) {

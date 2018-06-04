@@ -28,4 +28,9 @@ bool IdentityTransformer::notify(ServerIdentityNo target, Term currentTerm) {
   return false;
 }
 
+void IdentityTransformer::bind(
+    std::function<bool(quintet::ServerIdentityNo)> slot) {
+  pImpl->triggerTransform = std::move(slot);
+}
+
 } // namespace quintet
