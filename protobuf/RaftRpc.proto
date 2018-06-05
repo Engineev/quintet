@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package quintet.rpc;
+
+enum PbAnswer {
+  Invalid = 0;
+  True = 1;
+  False = 2;
+}
+
+message PbReply {
+  uint64 term = 1;
+  PbAnswer ans = 2;
+}
+
+message PbServerId {
+  string addr = 1;
+  uint32 port = 2;
+}
+
+message PbLogEntry {
+  uint64 term = 1;
+  string opName = 2;
+  string args = 3;
+  uint64 prmIdx = 4;
+}
+
+message AppendEntriesMessage {
+  uint64 term = 1;
+  PbServerId leaderId = 2;
+  uint64 prevLogIdx = 3;
+  uint64 prevLogTerm = 4;
+  repeated PbLogEntry logEntries = 5;
+  uint64 commitIdx = 6;
+}
+
+message RequestVoteMessage {
+  uint64 term = 1;
+  PbServerId candidateId = 2;
+  uint64 lastLogIdx = 3;
+  uint64 lastLogTerm = 4;
+}
+
+service RaftRpc {
+
+  rpc AppendEntries (AppendEntriesMessage) returns (PbReply) {}
+
+  rpc RequestVote (RequestVoteMessage) returns (PbReply) {}
+}
+

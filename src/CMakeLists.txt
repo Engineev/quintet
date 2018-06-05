@@ -1,4 +1,4 @@
-file(GLOB_RECURSE LIB_SOURCE *.cpp)
+file(GLOB_RECURSE LIB_SOURCE *.cpp *.cc)
 
 add_library(${PROJECT_NAME} STATIC ${LIB_SOURCE} ${INCLUDE_DIRECTORIES})
 
@@ -14,5 +14,12 @@ add_definitions(
   -D BOOST_LOG_DYN_LINK
 )
 
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+
+find_package(GRPC REQUIRED)
+include_directories(${GRPC_INCLUDE_DIR})
+
 # link
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}
+  ${Boost_LIBRARIES} ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES})
