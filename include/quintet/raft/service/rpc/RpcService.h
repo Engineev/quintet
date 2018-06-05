@@ -2,13 +2,19 @@
 #define QUINTET_RPCSERVICE_H
 
 #include <string>
+#include <memory>
 
 #include "RaftDefs.h"
 
 namespace quintet {
+namespace rpc {
 
-class RpcService {
+class RpcService{
 public:
+  RpcService();
+
+  ~RpcService();
+
   void configLogger(const std::string &id);
 
   /// \brief Change the port to listen on to the given one.
@@ -27,15 +33,17 @@ public:
   /// when stop() is invoked.
   void stop();
 
-  template<class Func>
-  RpcService &bind(const std::string &name, Func f);
-
-  void pause();
+  void pause() {}
 
   /// \brief Resume the paused RPC service and notify all the RPCs waiting.
-  void resume();
+  void resume() {}
+
+private:
+//  struct Impl;
+//  std::unique_ptr<Impl> pImpl;
 }; // class RpcService
 
+} // namespace rpc
 } // namespace quintet
 
-#endif //QUINTET_RPCSERVICE_H
+#endif // QUINTET_RPCSERVICE_H

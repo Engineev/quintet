@@ -3,7 +3,7 @@
 #include <array>
 
 #include "Server.h"
-#include "service/RpcService.h"
+#include "raft/service/rpc/RpcService.h"
 #include "raft/Identity.h"
 #include "misc/EventQueue.h"
 
@@ -22,7 +22,7 @@ struct Raft::Impl {
   ServerState   state;
   ServerInfo    info;
   ServerService service;
-  RpcService    rpc;
+  rpc::RpcService rpc;
 
   EventQueue transformationQueue;
 
