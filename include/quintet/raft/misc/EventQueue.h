@@ -17,6 +17,8 @@ public:
 
   void wait();
 
+  void stop();
+
 private:
   struct Impl;
   std::unique_ptr<Impl> pImpl;

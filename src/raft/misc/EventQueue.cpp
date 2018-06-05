@@ -48,6 +48,12 @@ struct EventQueue::Impl {
     cv.wait(lk, [this] { return q.empty(); });
     lk.unlock();
   }
+
+  void stop() {
+    wait();
+    runningThread.interrupt();
+    runningThread.join();
+  }
 };
 
 EventQueue::EventQueue() : pImpl(std::make_unique<EventQueue::Impl>()) {
@@ -56,16 +62,14 @@ EventQueue::EventQueue() : pImpl(std::make_unique<EventQueue::Impl>()) {
   });
 }
 
-EventQueue::~EventQueue() {
-  wait();
-  pImpl->runningThread.interrupt();
-  pImpl->runningThread.join();
-}
+EventQueue::~EventQueue() { stop(); }
 
 void EventQueue::addEvent(std::function<void()> event) {
   pImpl->addEvent(std::move(event));
 }
 
 void EventQueue::wait() { pImpl->wait(); }
+
+void EventQueue::stop() { pImpl->stop(); }
 
 } // namespace quintet
