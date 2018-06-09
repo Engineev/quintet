@@ -15,6 +15,9 @@ public:
 
   ~RpcService();
 
+  void bindAppendEntries(std::function<std::pair<Term, bool>(Term, ServerId, std::size_t, Term, std::vector<LogEntry>, std::size_t)>);
+  void bindRequestVote(std::function<std::pair<Term, bool>(Term, ServerId, std::size_t, Term)>);
+
   void configLogger(const std::string &id);
 
   /// \brief Change the port to listen on to the given one.

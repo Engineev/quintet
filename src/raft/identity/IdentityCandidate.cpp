@@ -26,8 +26,8 @@ struct IdentityCandidate::Impl : public IdentityBase::IdentityBaseImpl {
   std::pair<Term, bool> sendRequestVote(ServerId target, Term currentTerm,
                                         ServerId local, Index lastLogIdx,
                                         Term lastLogTerm) {
-    return service.clients.callRpcRequestVote(target, currentTerm, local, lastLogIdx,
-                                       lastLogTerm);
+//    return service.clients.callRpcRequestVote(target, currentTerm, local, lastLogIdx,
+//                                       lastLogTerm);
     // TODO: catch
   }
   void requestVotes();
