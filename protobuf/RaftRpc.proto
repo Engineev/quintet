@@ -2,15 +2,9 @@ syntax = "proto3";
 
 package quintet.rpc;
 
-enum PbAnswer {
-  Invalid = 0;
-  True = 1;
-  False = 2;
-}
-
 message PbReply {
   uint64 term = 1;
-  PbAnswer ans = 2;
+  bool ans = 2;
 }
 
 message PbServerId {

@@ -4,7 +4,7 @@
 #ifndef GRPC_RaftRpc_2eproto__INCLUDED
 #define GRPC_RaftRpc_2eproto__INCLUDED
 
-#include "RaftRpc.pb.h"
+#include "raft/service/rpc/RaftRpc.pb.h"
 
 #include <grpcpp/impl/codegen/async_stream.h>
 #include <grpcpp/impl/codegen/async_unary_call.h>

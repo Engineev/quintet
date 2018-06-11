@@ -9,7 +9,7 @@
 namespace quintet {
 namespace rpc {
 
-class RpcService{
+class RpcService {
 public:
   RpcService();
 
@@ -42,8 +42,8 @@ public:
   void resume() {}
 
 private:
-//  struct Impl;
-//  std::unique_ptr<Impl> pImpl;
+  struct Impl;
+  std::unique_ptr<Impl> pImpl;
 }; // class RpcService
 
 } // namespace rpc

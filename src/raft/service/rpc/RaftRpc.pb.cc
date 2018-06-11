@@ -158,7 +158,6 @@ void InitDefaultsRequestVoteMessage() {
 }
 
 ::google::protobuf::Metadata file_level_metadata[5];
-const ::google::protobuf::EnumDescriptor* file_level_enum_descriptors[1];
 
 const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
@@ -226,7 +225,7 @@ void protobuf_AssignDescriptors() {
   ::google::protobuf::MessageFactory* factory = NULL;
   AssignDescriptors(
       "RaftRpc.proto", schemas, file_default_instances, TableStruct::offsets, factory,
-      file_level_metadata, file_level_enum_descriptors, NULL);
+      file_level_metadata, NULL, NULL);
 }
 
 void protobuf_AssignDescriptorsOnce() {
@@ -243,28 +242,26 @@ void protobuf_RegisterTypes(const ::std::string&) {
 void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-      "\n\rRaftRpc.proto\022\013quintet.rpc\";\n\007PbReply\022"
-      "\014\n\004term\030\001 \001(\004\022\"\n\003ans\030\002 \001(\0162\025.quintet.rpc"
-      ".PbAnswer\"(\n\nPbServerId\022\014\n\004addr\030\001 \001(\t\022\014\n"
-      "\004port\030\002 \001(\r\"H\n\nPbLogEntry\022\014\n\004term\030\001 \001(\004\022"
-      "\016\n\006opName\030\002 \001(\t\022\014\n\004args\030\003 \001(\t\022\016\n\006prmIdx\030"
-      "\004 \001(\004\"\270\001\n\024AppendEntriesMessage\022\014\n\004term\030\001"
-      " \001(\004\022)\n\010leaderId\030\002 \001(\0132\027.quintet.rpc.PbS"
-      "erverId\022\022\n\nprevLogIdx\030\003 \001(\004\022\023\n\013prevLogTe"
-      "rm\030\004 \001(\004\022+\n\nlogEntries\030\005 \003(\0132\027.quintet.r"
-      "pc.PbLogEntry\022\021\n\tcommitIdx\030\006 \001(\004\"y\n\022Requ"
-      "estVoteMessage\022\014\n\004term\030\001 \001(\004\022,\n\013candidat"
-      "eId\030\002 \001(\0132\027.quintet.rpc.PbServerId\022\022\n\nla"
-      "stLogIdx\030\003 \001(\004\022\023\n\013lastLogTerm\030\004 \001(\004*,\n\010P"
-      "bAnswer\022\013\n\007Invalid\020\000\022\010\n\004True\020\001\022\t\n\005False\020"
-      "\0022\235\001\n\007RaftRpc\022J\n\rAppendEntries\022!.quintet"
-      ".rpc.AppendEntriesMessage\032\024.quintet.rpc."
-      "PbReply\"\000\022F\n\013RequestVote\022\037.quintet.rpc.R"
-      "equestVoteMessage\032\024.quintet.rpc.PbReply\""
-      "\000b\006proto3"
+      "\n\rRaftRpc.proto\022\013quintet.rpc\"$\n\007PbReply\022"
+      "\014\n\004term\030\001 \001(\004\022\013\n\003ans\030\002 \001(\010\"(\n\nPbServerId"
+      "\022\014\n\004addr\030\001 \001(\t\022\014\n\004port\030\002 \001(\r\"H\n\nPbLogEnt"
+      "ry\022\014\n\004term\030\001 \001(\004\022\016\n\006opName\030\002 \001(\t\022\014\n\004args"
+      "\030\003 \001(\t\022\016\n\006prmIdx\030\004 \001(\004\"\270\001\n\024AppendEntries"
+      "Message\022\014\n\004term\030\001 \001(\004\022)\n\010leaderId\030\002 \001(\0132"
+      "\027.quintet.rpc.PbServerId\022\022\n\nprevLogIdx\030\003"
+      " \001(\004\022\023\n\013prevLogTerm\030\004 \001(\004\022+\n\nlogEntries\030"
+      "\005 \003(\0132\027.quintet.rpc.PbLogEntry\022\021\n\tcommit"
+      "Idx\030\006 \001(\004\"y\n\022RequestVoteMessage\022\014\n\004term\030"
+      "\001 \001(\004\022,\n\013candidateId\030\002 \001(\0132\027.quintet.rpc"
+      ".PbServerId\022\022\n\nlastLogIdx\030\003 \001(\004\022\023\n\013lastL"
+      "ogTerm\030\004 \001(\0042\235\001\n\007RaftRpc\022J\n\rAppendEntrie"
+      "s\022!.quintet.rpc.AppendEntriesMessage\032\024.q"
+      "uintet.rpc.PbReply\"\000\022F\n\013RequestVote\022\037.qu"
+      "intet.rpc.RequestVoteMessage\032\024.quintet.r"
+      "pc.PbReply\"\000b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 729);
+      descriptor, 660);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "RaftRpc.proto", &protobuf_RegisterTypes);
 }
@@ -282,21 +279,6 @@ struct StaticDescriptorInitializer {
 }  // namespace protobuf_RaftRpc_2eproto
 namespace quintet {
 namespace rpc {
-const ::google::protobuf::EnumDescriptor* PbAnswer_descriptor() {
-  protobuf_RaftRpc_2eproto::protobuf_AssignDescriptorsOnce();
-  return protobuf_RaftRpc_2eproto::file_level_enum_descriptors[0];
-}
-bool PbAnswer_IsValid(int value) {
-  switch (value) {
-    case 0:
-    case 1:
-    case 2:
-      return true;
-    default:
-      return false;
-  }
-}
-
 
 // ===================================================================
 
@@ -400,15 +382,14 @@ bool PbReply::MergePartialFromCodedStream(
         break;
       }
 
-      // .quintet.rpc.PbAnswer ans = 2;
+      // bool ans = 2;
       case 2: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
             static_cast< ::google::protobuf::uint8>(16u /* 16 & 0xFF */)) {
-          int value;
+
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
-                 input, &value)));
-          set_ans(static_cast< ::quintet::rpc::PbAnswer >(value));
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &ans_)));
         } else {
           goto handle_unusual;
         }
@@ -446,10 +427,9 @@ void PbReply::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->term(), output);
   }
 
-  // .quintet.rpc.PbAnswer ans = 2;
+  // bool ans = 2;
   if (this->ans() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteEnum(
-      2, this->ans(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteBool(2, this->ans(), output);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -471,10 +451,9 @@ void PbReply::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(1, this->term(), target);
   }
 
-  // .quintet.rpc.PbAnswer ans = 2;
+  // bool ans = 2;
   if (this->ans() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
-      2, this->ans(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(2, this->ans(), target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -501,10 +480,9 @@ size_t PbReply::ByteSizeLong() const {
         this->term());
   }
 
-  // .quintet.rpc.PbAnswer ans = 2;
+  // bool ans = 2;
   if (this->ans() != 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::EnumSize(this->ans());
+    total_size += 1 + 1;
   }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);

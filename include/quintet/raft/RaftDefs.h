@@ -31,6 +31,16 @@ enum class ServerIdentityNo {
 
 const std::string IdentityNames[] = {"Follower", "Candidate", "Leader", "Down"};
 
+enum class RpcStatus {
+  OK, Error
+};
+
+struct RpcReply {
+  RpcStatus rpcStatus;
+  Term term;
+  bool flag;
+};
+
 } /* namespace quintet */
 
 // ServerId

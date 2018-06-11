@@ -28,7 +28,6 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
-#include <google/protobuf/generated_enum_reflection.h>
 #include <google/protobuf/unknown_field_set.h>
 // @@protoc_insertion_point(includes)
 
@@ -83,28 +82,6 @@ extern RequestVoteMessageDefaultTypeInternal _RequestVoteMessage_default_instanc
 namespace quintet {
 namespace rpc {
 
-enum PbAnswer {
-  Invalid = 0,
-  True = 1,
-  False = 2,
-  PbAnswer_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
-  PbAnswer_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
-};
-bool PbAnswer_IsValid(int value);
-const PbAnswer PbAnswer_MIN = Invalid;
-const PbAnswer PbAnswer_MAX = False;
-const int PbAnswer_ARRAYSIZE = PbAnswer_MAX + 1;
-
-const ::google::protobuf::EnumDescriptor* PbAnswer_descriptor();
-inline const ::std::string& PbAnswer_Name(PbAnswer value) {
-  return ::google::protobuf::internal::NameOfEnum(
-    PbAnswer_descriptor(), value);
-}
-inline bool PbAnswer_Parse(
-    const ::std::string& name, PbAnswer* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<PbAnswer>(
-    PbAnswer_descriptor(), name, value);
-}
 // ===================================================================
 
 class PbReply : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:quintet.rpc.PbReply) */ {
@@ -195,18 +172,18 @@ class PbReply : public ::google::protobuf::Message /* @@protoc_insertion_point(c
   ::google::protobuf::uint64 term() const;
   void set_term(::google::protobuf::uint64 value);
 
-  // .quintet.rpc.PbAnswer ans = 2;
+  // bool ans = 2;
   void clear_ans();
   static const int kAnsFieldNumber = 2;
-  ::quintet::rpc::PbAnswer ans() const;
-  void set_ans(::quintet::rpc::PbAnswer value);
+  bool ans() const;
+  void set_ans(bool value);
 
   // @@protoc_insertion_point(class_scope:quintet.rpc.PbReply)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::uint64 term_;
-  int ans_;
+  bool ans_;
   mutable int _cached_size_;
   friend struct ::protobuf_RaftRpc_2eproto::TableStruct;
   friend void ::protobuf_RaftRpc_2eproto::InitDefaultsPbReplyImpl();
@@ -752,15 +729,15 @@ inline void PbReply::set_term(::google::protobuf::uint64 value) {
   // @@protoc_insertion_point(field_set:quintet.rpc.PbReply.term)
 }
 
-// .quintet.rpc.PbAnswer ans = 2;
+// bool ans = 2;
 inline void PbReply::clear_ans() {
-  ans_ = 0;
+  ans_ = false;
 }
-inline ::quintet::rpc::PbAnswer PbReply::ans() const {
+inline bool PbReply::ans() const {
   // @@protoc_insertion_point(field_get:quintet.rpc.PbReply.ans)
-  return static_cast< ::quintet::rpc::PbAnswer >(ans_);
+  return ans_;
 }
-inline void PbReply::set_ans(::quintet::rpc::PbAnswer value) {
+inline void PbReply::set_ans(bool value) {
   
   ans_ = value;
   // @@protoc_insertion_point(field_set:quintet.rpc.PbReply.ans)
@@ -1227,18 +1204,6 @@ inline void RequestVoteMessage::set_lastlogterm(::google::protobuf::uint64 value
 
 }  // namespace rpc
 }  // namespace quintet
-
-namespace google {
-namespace protobuf {
-
-template <> struct is_proto_enum< ::quintet::rpc::PbAnswer> : ::google::protobuf::internal::true_type {};
-template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::quintet::rpc::PbAnswer>() {
-  return ::quintet::rpc::PbAnswer_descriptor();
-}
-
-}  // namespace protobuf
-}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 
