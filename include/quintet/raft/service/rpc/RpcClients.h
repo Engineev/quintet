@@ -23,17 +23,15 @@ public:
 
   void createStubs(const std::vector<ServerId> & srvs);
 
-//  std::pair<Term, bool>
-//  callRpcAppendEntries(AppendEntriesMessage msg);
+  Reply callRpcAppendEntries(const ServerId & target, grpc::ClientContext & ctx, const AppendEntriesMessage & msg);
 
-  boost::future<std::pair<Term, bool>>
-  asyncCallRpcAppendEntries(ServerId target, grpc::ClientContext & ctx, const AppendEntriesMessage & msg);
+  boost::future<Reply>
+  asyncCallRpcAppendEntries(const ServerId & target, grpc::ClientContext & ctx, const AppendEntriesMessage & msg);
 
-//  std::pair<Term, bool> callRpcRequestVote(ServerId target, RequestVoteMessage msg);
+  Reply callRpcRequestVote(const ServerId & target, grpc::ClientContext & ctx, const RequestVoteMessage & msg);
 //
-//  boost::future<std::pair<Term, bool>>
-//  asyncCallRpcRequestVote(ServerId target, Term term, ServerId candidateId,
-//                          std::size_t lastLogIdx, Term lastLogTerm);
+  boost::future<Reply>
+  asyncCallRpcRequestVote(const ServerId & target, grpc::ClientContext & ctx, const RequestVoteMessage & msg);
 
 private:
   struct Impl;

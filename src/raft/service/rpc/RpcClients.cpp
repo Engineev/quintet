@@ -35,7 +35,7 @@ struct RpcClients::Impl {
     }
   }
 
-  boost::future<std::pair<Term, bool>>
+  boost::future<Reply>
   asyncCallRpcAppendEntries(const ServerId &target, grpc::ClientContext &ctx,
                             const AppendEntriesMessage &msg) {
     PbAppendEntriesMessage request = convertAppendEntriesMessage(msg);
@@ -47,6 +47,18 @@ struct RpcClients::Impl {
     call->response->Finish(&call->reply, &call->status, (void *)call);
     return res;
   };
+
+  boost::future<Reply>
+  asyncCallRequestVote(const ServerId & target, grpc::ClientContext & ctx,
+                       const RequestVoteMessage & msg) {
+    PbRequestVoteMessage request = convertRequestVoteMessage(msg);
+    auto call = new AsyncClientCall;
+    auto res = call->prm.get_future();
+    auto &stub = stubs.at(target);
+    call->response = stub->AsyncRequestVote(&call->context, request, &cq);
+    call->response->Finish(&call->reply, &call->status, (void *)call);
+    return res;
+  }
 
   void run() {
     void *tag;
@@ -83,10 +95,24 @@ void RpcClients::createStubs(const std::vector<ServerId> &srvs) {
 }
 
 boost::future<std::pair<Term, bool>>
-RpcClients::asyncCallRpcAppendEntries(ServerId target, grpc::ClientContext &ctx,
+RpcClients::asyncCallRpcAppendEntries(const ServerId & target, grpc::ClientContext &ctx,
                                       const AppendEntriesMessage &msg) {
   return pImpl->asyncCallRpcAppendEntries(target, ctx, msg);
-};
+}
+
+Reply RpcClients::callRpcAppendEntries(const ServerId &target,
+                                       grpc::ClientContext &ctx,
+                                       const AppendEntriesMessage &msg) {
+  return asyncCallRpcAppendEntries(target, ctx, msg).get();
+}
+boost::future<std::pair<Term, bool>> RpcClients::asyncCallRpcRequestVote(const ServerId &target,
+                                                                         grpc::ClientContext &ctx,
+                                                                         const RequestVoteMessage &msg) {
+  return pImpl->asyncCallRequestVote(target, ctx, msg);
+}
+Reply RpcClients::callRpcRequestVote(const ServerId &target, grpc::ClientContext &ctx, const RequestVoteMessage &msg) {
+  return asyncCallRpcRequestVote(target, ctx, msg).get();
+}
 
 } // namespace rpc
 } // namespace quintet
