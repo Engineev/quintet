@@ -32,27 +32,27 @@ RaftRpc::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
   , rpcmethod_RequestVote_(RaftRpc_method_names[1], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
-::grpc::Status RaftRpc::Stub::AppendEntries(::grpc::ClientContext* context, const ::quintet::rpc::AppendEntriesMessage& request, ::quintet::rpc::PbReply* response) {
+::grpc::Status RaftRpc::Stub::AppendEntries(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::quintet::rpc::PbReply* response) {
   return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_AppendEntries_, context, request, response);
 }
 
-::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* RaftRpc::Stub::AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::quintet::rpc::AppendEntriesMessage& request, ::grpc::CompletionQueue* cq) {
+::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* RaftRpc::Stub::AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::grpc::CompletionQueue* cq) {
   return ::grpc::internal::ClientAsyncResponseReaderFactory< ::quintet::rpc::PbReply>::Create(channel_.get(), cq, rpcmethod_AppendEntries_, context, request, true);
 }
 
-::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* RaftRpc::Stub::PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::quintet::rpc::AppendEntriesMessage& request, ::grpc::CompletionQueue* cq) {
+::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* RaftRpc::Stub::PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::grpc::CompletionQueue* cq) {
   return ::grpc::internal::ClientAsyncResponseReaderFactory< ::quintet::rpc::PbReply>::Create(channel_.get(), cq, rpcmethod_AppendEntries_, context, request, false);
 }
 
-::grpc::Status RaftRpc::Stub::RequestVote(::grpc::ClientContext* context, const ::quintet::rpc::RequestVoteMessage& request, ::quintet::rpc::PbReply* response) {
+::grpc::Status RaftRpc::Stub::RequestVote(::grpc::ClientContext* context, const ::quintet::rpc::PbRequestVoteMessage& request, ::quintet::rpc::PbReply* response) {
   return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_RequestVote_, context, request, response);
 }
 
-::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* RaftRpc::Stub::AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::quintet::rpc::RequestVoteMessage& request, ::grpc::CompletionQueue* cq) {
+::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* RaftRpc::Stub::AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbRequestVoteMessage& request, ::grpc::CompletionQueue* cq) {
   return ::grpc::internal::ClientAsyncResponseReaderFactory< ::quintet::rpc::PbReply>::Create(channel_.get(), cq, rpcmethod_RequestVote_, context, request, true);
 }
 
-::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* RaftRpc::Stub::PrepareAsyncRequestVoteRaw(::grpc::ClientContext* context, const ::quintet::rpc::RequestVoteMessage& request, ::grpc::CompletionQueue* cq) {
+::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* RaftRpc::Stub::PrepareAsyncRequestVoteRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbRequestVoteMessage& request, ::grpc::CompletionQueue* cq) {
   return ::grpc::internal::ClientAsyncResponseReaderFactory< ::quintet::rpc::PbReply>::Create(channel_.get(), cq, rpcmethod_RequestVote_, context, request, false);
 }
 
@@ -60,26 +60,26 @@ RaftRpc::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       RaftRpc_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< RaftRpc::Service, ::quintet::rpc::AppendEntriesMessage, ::quintet::rpc::PbReply>(
+      new ::grpc::internal::RpcMethodHandler< RaftRpc::Service, ::quintet::rpc::PbAppendEntriesMessage, ::quintet::rpc::PbReply>(
           std::mem_fn(&RaftRpc::Service::AppendEntries), this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       RaftRpc_method_names[1],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< RaftRpc::Service, ::quintet::rpc::RequestVoteMessage, ::quintet::rpc::PbReply>(
+      new ::grpc::internal::RpcMethodHandler< RaftRpc::Service, ::quintet::rpc::PbRequestVoteMessage, ::quintet::rpc::PbReply>(
           std::mem_fn(&RaftRpc::Service::RequestVote), this)));
 }
 
 RaftRpc::Service::~Service() {
 }
 
-::grpc::Status RaftRpc::Service::AppendEntries(::grpc::ServerContext* context, const ::quintet::rpc::AppendEntriesMessage* request, ::quintet::rpc::PbReply* response) {
+::grpc::Status RaftRpc::Service::AppendEntries(::grpc::ServerContext* context, const ::quintet::rpc::PbAppendEntriesMessage* request, ::quintet::rpc::PbReply* response) {
   (void) context;
   (void) request;
   (void) response;
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
-::grpc::Status RaftRpc::Service::RequestVote(::grpc::ServerContext* context, const ::quintet::rpc::RequestVoteMessage* request, ::quintet::rpc::PbReply* response) {
+::grpc::Status RaftRpc::Service::RequestVote(::grpc::ServerContext* context, const ::quintet::rpc::PbRequestVoteMessage* request, ::quintet::rpc::PbReply* response) {
   (void) context;
   (void) request;
   (void) response;

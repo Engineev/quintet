@@ -13,13 +13,10 @@ public:
   ~IdentityCandidate() override;
 
   std::pair<Term /*current term*/, bool /*success*/>
-  RPCAppendEntries(Term term, ServerId leaderId, std::size_t prevLogIdx,
-                   Term prevLogTerm, std::vector<LogEntry> logEntries,
-                   std::size_t commitIdx) override;
+  RPCAppendEntries(AppendEntriesMessage message) override;
 
   std::pair<Term /*current term*/, bool /*vote granted*/>
-  RPCRequestVote(Term term, ServerId candidateId, std::size_t lastLogIdx,
-                 Term lastLogTerm) override;
+  RPCRequestVote(RequestVoteMessage message) override;
 
   /// \breif See figure 2 of the paper
   ///

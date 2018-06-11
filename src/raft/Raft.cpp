@@ -28,13 +28,10 @@ struct Raft::Impl {
 
 
   std::pair<Term /*current term*/, bool /*success*/>
-  RPCAppendEntries(Term term, ServerId leaderId,
-                   std::size_t prevLogIdx, Term prevLogTerm,
-                   std::vector<LogEntry> logEntries, std::size_t commitIdx);
+  RPCAppendEntries(AppendEntriesMessage msg);
 
   std::pair<Term /*current term*/, bool /*vote granted*/>
-  RPCRequestVote(Term term, ServerId candidateId,
-                 std::size_t lastLogIdx, Term lastLogTerm);
+  RPCRequestVote(RequestVoteMessage msg);
 
   // pseudo non-blocking
   void triggerTransformation(ServerIdentityNo target);
@@ -54,23 +51,18 @@ namespace quintet {
 namespace quintet {
 
 std::pair<Term /*current term*/, bool /*success*/>
-Raft::Impl::RPCAppendEntries(Term term, ServerId leaderId,
-                 std::size_t prevLogIdx, Term prevLogTerm,
-                 std::vector<LogEntry> logEntries, std::size_t commitIdx) {
+Raft::Impl::RPCAppendEntries(AppendEntriesMessage msg) {
   if (currentIdentity == ServerIdentityNo::Down)
     return {InvalidTerm, false};
-  return identities[(int)currentIdentity]->RPCAppendEntries(
-      term, leaderId, prevLogIdx, prevLogTerm,
-      std::move(logEntries), commitIdx);
+
+  return identities[(int)currentIdentity]->RPCAppendEntries(std::move(msg));
 };
 
 std::pair<Term /*current term*/, bool /*vote granted*/>
-Raft::Impl::RPCRequestVote(Term term, ServerId candidateId,
-               std::size_t lastLogIdx, Term lastLogTerm) {
+Raft::Impl::RPCRequestVote(RequestVoteMessage msg) {
   if (currentIdentity == ServerIdentityNo::Down)
     return {InvalidTerm, false};
-  return identities[(int)currentIdentity]->RPCRequestVote(
-      term, candidateId, lastLogIdx, lastLogTerm);
+  return identities[(int)currentIdentity]->RPCRequestVote(std::move(msg));
 };
 
 } // namespace quintet

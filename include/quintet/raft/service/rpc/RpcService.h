@@ -5,6 +5,7 @@
 #include <string>
 
 #include "RaftDefs.h"
+#include "RpcDefs.h"
 
 namespace quintet {
 namespace rpc {
@@ -16,11 +17,9 @@ public:
   ~RpcService();
 
   void bindAppendEntries(
-      std::function<std::pair<Term, bool>(Term, ServerId, size_t, Term,
-                                          std::vector<LogEntry>, size_t)>
-          f);
+      std::function<std::pair<Term, bool>(AppendEntriesMessage)> f);
   void bindRequestVote(
-      std::function<std::pair<Term, bool>(Term, ServerId, size_t, Term)> f);
+      std::function<std::pair<Term, bool>(RequestVoteMessage)> f);
 
   void configLogger(const std::string &id);
 

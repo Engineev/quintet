@@ -5,6 +5,7 @@
 
 #include "RaftDefs.h"
 #include "Server.h"
+#include "service/rpc/RpcDefs.h"
 
 namespace quintet {
 
@@ -13,13 +14,10 @@ public:
   virtual ~IdentityBase() = default;
 
   virtual std::pair<Term /*current term*/, bool /*success*/>
-  RPCAppendEntries(Term term, ServerId leaderId, std::size_t prevLogIdx,
-                   Term prevLogTerm, std::vector<LogEntry> logEntries,
-                   std::size_t commitIdx) = 0;
+  RPCAppendEntries(AppendEntriesMessage message) = 0;
 
   virtual std::pair<Term /*current term*/, bool /*vote granted*/>
-  RPCRequestVote(Term term, ServerId candidateId, std::size_t lastLogIdx,
-                 Term lastLogTerm) = 0;
+  RPCRequestVote(RequestVoteMessage message) = 0;
 
   virtual void leave() = 0;
 

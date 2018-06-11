@@ -54,16 +54,13 @@ void IdentityCandidate::leave() { pImpl->leave(); }
 namespace quintet {
 
 std::pair<Term /*current term*/, bool /*success*/>
-IdentityCandidate::RPCAppendEntries(Term term, ServerId leaderId,
-                                    std::size_t prevLogIdx, Term prevLogTerm,
-                                    std::vector<LogEntry> logEntries,
-                                    std::size_t commitIdx) {
+IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg) {
   auto &service = pImpl->service;
   auto &state = pImpl->state;
-
+  // TODO
   boost::lock_guard<ServerState> lk(state);
-  if (term >= state.currentTerm) {
-    state.currentTerm = term;
+  if (msg.term >= state.currentTerm) {
+    state.currentTerm = msg.term;
     service.identityTransformer.notify(ServerIdentityNo::Follower,
                                        state.currentTerm);
     return {state.currentTerm, false};
@@ -72,25 +69,24 @@ IdentityCandidate::RPCAppendEntries(Term term, ServerId leaderId,
 }
 
 std::pair<Term /*current term*/, bool /*vote granted*/>
-IdentityCandidate::RPCRequestVote(Term term, ServerId candidateId,
-                                  std::size_t lastLogIdx, Term lastLogTerm) {
+IdentityCandidate::RPCRequestVote(RequestVoteMessage msg) {
   auto &state = pImpl->state;
 
   boost::lock_guard<ServerState> lk(state);
 
-  if (term < state.currentTerm) {
+  if (msg.term < state.currentTerm) {
     return {state.currentTerm, false};
   }
-  if (term > state.currentTerm) {
+  if (msg.term > state.currentTerm) {
     state.votedFor = NullServerId;
-    state.currentTerm = term;
-    pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower, term);
+    state.currentTerm = msg.term;
+    pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower, msg.term);
     //        return {state.currentTerm, false};
   }
 
-  if ((state.votedFor == NullServerId || state.votedFor == candidateId) &&
-      upToDate(state, lastLogIdx, lastLogTerm)) {
-    state.votedFor = candidateId;
+  if ((state.votedFor == NullServerId || state.votedFor == msg.candidateId) &&
+      upToDate(state, msg.lastLogIdx, msg.lastLogTerm)) {
+    state.votedFor = msg.candidateId;
     return {state.currentTerm, true};
   }
 

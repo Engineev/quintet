@@ -19,7 +19,7 @@ message PbLogEntry {
   uint64 prmIdx = 4;
 }
 
-message AppendEntriesMessage {
+message PbAppendEntriesMessage {
   uint64 term = 1;
   PbServerId leaderId = 2;
   uint64 prevLogIdx = 3;
@@ -28,7 +28,7 @@ message AppendEntriesMessage {
   uint64 commitIdx = 6;
 }
 
-message RequestVoteMessage {
+message PbRequestVoteMessage {
   uint64 term = 1;
   PbServerId candidateId = 2;
   uint64 lastLogIdx = 3;
@@ -37,8 +37,8 @@ message RequestVoteMessage {
 
 service RaftRpc {
 
-  rpc AppendEntries (AppendEntriesMessage) returns (PbReply) {}
+  rpc AppendEntries (PbAppendEntriesMessage) returns (PbReply) {}
 
-  rpc RequestVote (RequestVoteMessage) returns (PbReply) {}
+  rpc RequestVote (PbRequestVoteMessage) returns (PbReply) {}
 }
 

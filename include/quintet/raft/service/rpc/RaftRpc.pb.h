@@ -48,35 +48,35 @@ void InitDefaultsPbServerIdImpl();
 void InitDefaultsPbServerId();
 void InitDefaultsPbLogEntryImpl();
 void InitDefaultsPbLogEntry();
-void InitDefaultsAppendEntriesMessageImpl();
-void InitDefaultsAppendEntriesMessage();
-void InitDefaultsRequestVoteMessageImpl();
-void InitDefaultsRequestVoteMessage();
+void InitDefaultsPbAppendEntriesMessageImpl();
+void InitDefaultsPbAppendEntriesMessage();
+void InitDefaultsPbRequestVoteMessageImpl();
+void InitDefaultsPbRequestVoteMessage();
 inline void InitDefaults() {
   InitDefaultsPbReply();
   InitDefaultsPbServerId();
   InitDefaultsPbLogEntry();
-  InitDefaultsAppendEntriesMessage();
-  InitDefaultsRequestVoteMessage();
+  InitDefaultsPbAppendEntriesMessage();
+  InitDefaultsPbRequestVoteMessage();
 }
 }  // namespace protobuf_RaftRpc_2eproto
 namespace quintet {
 namespace rpc {
-class AppendEntriesMessage;
-class AppendEntriesMessageDefaultTypeInternal;
-extern AppendEntriesMessageDefaultTypeInternal _AppendEntriesMessage_default_instance_;
+class PbAppendEntriesMessage;
+class PbAppendEntriesMessageDefaultTypeInternal;
+extern PbAppendEntriesMessageDefaultTypeInternal _PbAppendEntriesMessage_default_instance_;
 class PbLogEntry;
 class PbLogEntryDefaultTypeInternal;
 extern PbLogEntryDefaultTypeInternal _PbLogEntry_default_instance_;
 class PbReply;
 class PbReplyDefaultTypeInternal;
 extern PbReplyDefaultTypeInternal _PbReply_default_instance_;
+class PbRequestVoteMessage;
+class PbRequestVoteMessageDefaultTypeInternal;
+extern PbRequestVoteMessageDefaultTypeInternal _PbRequestVoteMessage_default_instance_;
 class PbServerId;
 class PbServerIdDefaultTypeInternal;
 extern PbServerIdDefaultTypeInternal _PbServerId_default_instance_;
-class RequestVoteMessage;
-class RequestVoteMessageDefaultTypeInternal;
-extern RequestVoteMessageDefaultTypeInternal _RequestVoteMessage_default_instance_;
 }  // namespace rpc
 }  // namespace quintet
 namespace quintet {
@@ -440,24 +440,24 @@ class PbLogEntry : public ::google::protobuf::Message /* @@protoc_insertion_poin
 };
 // -------------------------------------------------------------------
 
-class AppendEntriesMessage : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:quintet.rpc.AppendEntriesMessage) */ {
+class PbAppendEntriesMessage : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:quintet.rpc.PbAppendEntriesMessage) */ {
  public:
-  AppendEntriesMessage();
-  virtual ~AppendEntriesMessage();
+  PbAppendEntriesMessage();
+  virtual ~PbAppendEntriesMessage();
 
-  AppendEntriesMessage(const AppendEntriesMessage& from);
+  PbAppendEntriesMessage(const PbAppendEntriesMessage& from);
 
-  inline AppendEntriesMessage& operator=(const AppendEntriesMessage& from) {
+  inline PbAppendEntriesMessage& operator=(const PbAppendEntriesMessage& from) {
     CopyFrom(from);
     return *this;
   }
   #if LANG_CXX11
-  AppendEntriesMessage(AppendEntriesMessage&& from) noexcept
-    : AppendEntriesMessage() {
+  PbAppendEntriesMessage(PbAppendEntriesMessage&& from) noexcept
+    : PbAppendEntriesMessage() {
     *this = ::std::move(from);
   }
 
-  inline AppendEntriesMessage& operator=(AppendEntriesMessage&& from) noexcept {
+  inline PbAppendEntriesMessage& operator=(PbAppendEntriesMessage&& from) noexcept {
     if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
       if (this != &from) InternalSwap(&from);
     } else {
@@ -467,30 +467,30 @@ class AppendEntriesMessage : public ::google::protobuf::Message /* @@protoc_inse
   }
   #endif
   static const ::google::protobuf::Descriptor* descriptor();
-  static const AppendEntriesMessage& default_instance();
+  static const PbAppendEntriesMessage& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const AppendEntriesMessage* internal_default_instance() {
-    return reinterpret_cast<const AppendEntriesMessage*>(
-               &_AppendEntriesMessage_default_instance_);
+  static inline const PbAppendEntriesMessage* internal_default_instance() {
+    return reinterpret_cast<const PbAppendEntriesMessage*>(
+               &_PbAppendEntriesMessage_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
     3;
 
-  void Swap(AppendEntriesMessage* other);
-  friend void swap(AppendEntriesMessage& a, AppendEntriesMessage& b) {
+  void Swap(PbAppendEntriesMessage* other);
+  friend void swap(PbAppendEntriesMessage& a, PbAppendEntriesMessage& b) {
     a.Swap(&b);
   }
 
   // implements Message ----------------------------------------------
 
-  inline AppendEntriesMessage* New() const PROTOBUF_FINAL { return New(NULL); }
+  inline PbAppendEntriesMessage* New() const PROTOBUF_FINAL { return New(NULL); }
 
-  AppendEntriesMessage* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  PbAppendEntriesMessage* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
   void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
   void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
-  void CopyFrom(const AppendEntriesMessage& from);
-  void MergeFrom(const AppendEntriesMessage& from);
+  void CopyFrom(const PbAppendEntriesMessage& from);
+  void MergeFrom(const PbAppendEntriesMessage& from);
   void Clear() PROTOBUF_FINAL;
   bool IsInitialized() const PROTOBUF_FINAL;
 
@@ -506,7 +506,7 @@ class AppendEntriesMessage : public ::google::protobuf::Message /* @@protoc_inse
   void SharedCtor();
   void SharedDtor();
   void SetCachedSize(int size) const PROTOBUF_FINAL;
-  void InternalSwap(AppendEntriesMessage* other);
+  void InternalSwap(PbAppendEntriesMessage* other);
   private:
   inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
     return NULL;
@@ -567,7 +567,7 @@ class AppendEntriesMessage : public ::google::protobuf::Message /* @@protoc_inse
   ::google::protobuf::uint64 commitidx() const;
   void set_commitidx(::google::protobuf::uint64 value);
 
-  // @@protoc_insertion_point(class_scope:quintet.rpc.AppendEntriesMessage)
+  // @@protoc_insertion_point(class_scope:quintet.rpc.PbAppendEntriesMessage)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
@@ -579,28 +579,28 @@ class AppendEntriesMessage : public ::google::protobuf::Message /* @@protoc_inse
   ::google::protobuf::uint64 commitidx_;
   mutable int _cached_size_;
   friend struct ::protobuf_RaftRpc_2eproto::TableStruct;
-  friend void ::protobuf_RaftRpc_2eproto::InitDefaultsAppendEntriesMessageImpl();
+  friend void ::protobuf_RaftRpc_2eproto::InitDefaultsPbAppendEntriesMessageImpl();
 };
 // -------------------------------------------------------------------
 
-class RequestVoteMessage : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:quintet.rpc.RequestVoteMessage) */ {
+class PbRequestVoteMessage : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:quintet.rpc.PbRequestVoteMessage) */ {
  public:
-  RequestVoteMessage();
-  virtual ~RequestVoteMessage();
+  PbRequestVoteMessage();
+  virtual ~PbRequestVoteMessage();
 
-  RequestVoteMessage(const RequestVoteMessage& from);
+  PbRequestVoteMessage(const PbRequestVoteMessage& from);
 
-  inline RequestVoteMessage& operator=(const RequestVoteMessage& from) {
+  inline PbRequestVoteMessage& operator=(const PbRequestVoteMessage& from) {
     CopyFrom(from);
     return *this;
   }
   #if LANG_CXX11
-  RequestVoteMessage(RequestVoteMessage&& from) noexcept
-    : RequestVoteMessage() {
+  PbRequestVoteMessage(PbRequestVoteMessage&& from) noexcept
+    : PbRequestVoteMessage() {
     *this = ::std::move(from);
   }
 
-  inline RequestVoteMessage& operator=(RequestVoteMessage&& from) noexcept {
+  inline PbRequestVoteMessage& operator=(PbRequestVoteMessage&& from) noexcept {
     if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
       if (this != &from) InternalSwap(&from);
     } else {
@@ -610,30 +610,30 @@ class RequestVoteMessage : public ::google::protobuf::Message /* @@protoc_insert
   }
   #endif
   static const ::google::protobuf::Descriptor* descriptor();
-  static const RequestVoteMessage& default_instance();
+  static const PbRequestVoteMessage& default_instance();
 
   static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const RequestVoteMessage* internal_default_instance() {
-    return reinterpret_cast<const RequestVoteMessage*>(
-               &_RequestVoteMessage_default_instance_);
+  static inline const PbRequestVoteMessage* internal_default_instance() {
+    return reinterpret_cast<const PbRequestVoteMessage*>(
+               &_PbRequestVoteMessage_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
     4;
 
-  void Swap(RequestVoteMessage* other);
-  friend void swap(RequestVoteMessage& a, RequestVoteMessage& b) {
+  void Swap(PbRequestVoteMessage* other);
+  friend void swap(PbRequestVoteMessage& a, PbRequestVoteMessage& b) {
     a.Swap(&b);
   }
 
   // implements Message ----------------------------------------------
 
-  inline RequestVoteMessage* New() const PROTOBUF_FINAL { return New(NULL); }
+  inline PbRequestVoteMessage* New() const PROTOBUF_FINAL { return New(NULL); }
 
-  RequestVoteMessage* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  PbRequestVoteMessage* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
   void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
   void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
-  void CopyFrom(const RequestVoteMessage& from);
-  void MergeFrom(const RequestVoteMessage& from);
+  void CopyFrom(const PbRequestVoteMessage& from);
+  void MergeFrom(const PbRequestVoteMessage& from);
   void Clear() PROTOBUF_FINAL;
   bool IsInitialized() const PROTOBUF_FINAL;
 
@@ -649,7 +649,7 @@ class RequestVoteMessage : public ::google::protobuf::Message /* @@protoc_insert
   void SharedCtor();
   void SharedDtor();
   void SetCachedSize(int size) const PROTOBUF_FINAL;
-  void InternalSwap(RequestVoteMessage* other);
+  void InternalSwap(PbRequestVoteMessage* other);
   private:
   inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
     return NULL;
@@ -692,7 +692,7 @@ class RequestVoteMessage : public ::google::protobuf::Message /* @@protoc_insert
   ::google::protobuf::uint64 lastlogterm() const;
   void set_lastlogterm(::google::protobuf::uint64 value);
 
-  // @@protoc_insertion_point(class_scope:quintet.rpc.RequestVoteMessage)
+  // @@protoc_insertion_point(class_scope:quintet.rpc.PbRequestVoteMessage)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
@@ -702,7 +702,7 @@ class RequestVoteMessage : public ::google::protobuf::Message /* @@protoc_insert
   ::google::protobuf::uint64 lastlogterm_;
   mutable int _cached_size_;
   friend struct ::protobuf_RaftRpc_2eproto::TableStruct;
-  friend void ::protobuf_RaftRpc_2eproto::InitDefaultsRequestVoteMessageImpl();
+  friend void ::protobuf_RaftRpc_2eproto::InitDefaultsPbRequestVoteMessageImpl();
 };
 // ===================================================================
 
@@ -954,54 +954,54 @@ inline void PbLogEntry::set_prmidx(::google::protobuf::uint64 value) {
 
 // -------------------------------------------------------------------
 
-// AppendEntriesMessage
+// PbAppendEntriesMessage
 
 // uint64 term = 1;
-inline void AppendEntriesMessage::clear_term() {
+inline void PbAppendEntriesMessage::clear_term() {
   term_ = GOOGLE_ULONGLONG(0);
 }
-inline ::google::protobuf::uint64 AppendEntriesMessage::term() const {
-  // @@protoc_insertion_point(field_get:quintet.rpc.AppendEntriesMessage.term)
+inline ::google::protobuf::uint64 PbAppendEntriesMessage::term() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbAppendEntriesMessage.term)
   return term_;
 }
-inline void AppendEntriesMessage::set_term(::google::protobuf::uint64 value) {
+inline void PbAppendEntriesMessage::set_term(::google::protobuf::uint64 value) {
   
   term_ = value;
-  // @@protoc_insertion_point(field_set:quintet.rpc.AppendEntriesMessage.term)
+  // @@protoc_insertion_point(field_set:quintet.rpc.PbAppendEntriesMessage.term)
 }
 
 // .quintet.rpc.PbServerId leaderId = 2;
-inline bool AppendEntriesMessage::has_leaderid() const {
+inline bool PbAppendEntriesMessage::has_leaderid() const {
   return this != internal_default_instance() && leaderid_ != NULL;
 }
-inline void AppendEntriesMessage::clear_leaderid() {
+inline void PbAppendEntriesMessage::clear_leaderid() {
   if (GetArenaNoVirtual() == NULL && leaderid_ != NULL) {
     delete leaderid_;
   }
   leaderid_ = NULL;
 }
-inline const ::quintet::rpc::PbServerId& AppendEntriesMessage::leaderid() const {
+inline const ::quintet::rpc::PbServerId& PbAppendEntriesMessage::leaderid() const {
   const ::quintet::rpc::PbServerId* p = leaderid_;
-  // @@protoc_insertion_point(field_get:quintet.rpc.AppendEntriesMessage.leaderId)
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbAppendEntriesMessage.leaderId)
   return p != NULL ? *p : *reinterpret_cast<const ::quintet::rpc::PbServerId*>(
       &::quintet::rpc::_PbServerId_default_instance_);
 }
-inline ::quintet::rpc::PbServerId* AppendEntriesMessage::release_leaderid() {
-  // @@protoc_insertion_point(field_release:quintet.rpc.AppendEntriesMessage.leaderId)
+inline ::quintet::rpc::PbServerId* PbAppendEntriesMessage::release_leaderid() {
+  // @@protoc_insertion_point(field_release:quintet.rpc.PbAppendEntriesMessage.leaderId)
   
   ::quintet::rpc::PbServerId* temp = leaderid_;
   leaderid_ = NULL;
   return temp;
 }
-inline ::quintet::rpc::PbServerId* AppendEntriesMessage::mutable_leaderid() {
+inline ::quintet::rpc::PbServerId* PbAppendEntriesMessage::mutable_leaderid() {
   
   if (leaderid_ == NULL) {
     leaderid_ = new ::quintet::rpc::PbServerId;
   }
-  // @@protoc_insertion_point(field_mutable:quintet.rpc.AppendEntriesMessage.leaderId)
+  // @@protoc_insertion_point(field_mutable:quintet.rpc.PbAppendEntriesMessage.leaderId)
   return leaderid_;
 }
-inline void AppendEntriesMessage::set_allocated_leaderid(::quintet::rpc::PbServerId* leaderid) {
+inline void PbAppendEntriesMessage::set_allocated_leaderid(::quintet::rpc::PbServerId* leaderid) {
   ::google::protobuf::Arena* message_arena = GetArenaNoVirtual();
   if (message_arena == NULL) {
     delete leaderid_;
@@ -1017,131 +1017,131 @@ inline void AppendEntriesMessage::set_allocated_leaderid(::quintet::rpc::PbServe
     
   }
   leaderid_ = leaderid;
-  // @@protoc_insertion_point(field_set_allocated:quintet.rpc.AppendEntriesMessage.leaderId)
+  // @@protoc_insertion_point(field_set_allocated:quintet.rpc.PbAppendEntriesMessage.leaderId)
 }
 
 // uint64 prevLogIdx = 3;
-inline void AppendEntriesMessage::clear_prevlogidx() {
+inline void PbAppendEntriesMessage::clear_prevlogidx() {
   prevlogidx_ = GOOGLE_ULONGLONG(0);
 }
-inline ::google::protobuf::uint64 AppendEntriesMessage::prevlogidx() const {
-  // @@protoc_insertion_point(field_get:quintet.rpc.AppendEntriesMessage.prevLogIdx)
+inline ::google::protobuf::uint64 PbAppendEntriesMessage::prevlogidx() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbAppendEntriesMessage.prevLogIdx)
   return prevlogidx_;
 }
-inline void AppendEntriesMessage::set_prevlogidx(::google::protobuf::uint64 value) {
+inline void PbAppendEntriesMessage::set_prevlogidx(::google::protobuf::uint64 value) {
   
   prevlogidx_ = value;
-  // @@protoc_insertion_point(field_set:quintet.rpc.AppendEntriesMessage.prevLogIdx)
+  // @@protoc_insertion_point(field_set:quintet.rpc.PbAppendEntriesMessage.prevLogIdx)
 }
 
 // uint64 prevLogTerm = 4;
-inline void AppendEntriesMessage::clear_prevlogterm() {
+inline void PbAppendEntriesMessage::clear_prevlogterm() {
   prevlogterm_ = GOOGLE_ULONGLONG(0);
 }
-inline ::google::protobuf::uint64 AppendEntriesMessage::prevlogterm() const {
-  // @@protoc_insertion_point(field_get:quintet.rpc.AppendEntriesMessage.prevLogTerm)
+inline ::google::protobuf::uint64 PbAppendEntriesMessage::prevlogterm() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbAppendEntriesMessage.prevLogTerm)
   return prevlogterm_;
 }
-inline void AppendEntriesMessage::set_prevlogterm(::google::protobuf::uint64 value) {
+inline void PbAppendEntriesMessage::set_prevlogterm(::google::protobuf::uint64 value) {
   
   prevlogterm_ = value;
-  // @@protoc_insertion_point(field_set:quintet.rpc.AppendEntriesMessage.prevLogTerm)
+  // @@protoc_insertion_point(field_set:quintet.rpc.PbAppendEntriesMessage.prevLogTerm)
 }
 
 // repeated .quintet.rpc.PbLogEntry logEntries = 5;
-inline int AppendEntriesMessage::logentries_size() const {
+inline int PbAppendEntriesMessage::logentries_size() const {
   return logentries_.size();
 }
-inline void AppendEntriesMessage::clear_logentries() {
+inline void PbAppendEntriesMessage::clear_logentries() {
   logentries_.Clear();
 }
-inline const ::quintet::rpc::PbLogEntry& AppendEntriesMessage::logentries(int index) const {
-  // @@protoc_insertion_point(field_get:quintet.rpc.AppendEntriesMessage.logEntries)
+inline const ::quintet::rpc::PbLogEntry& PbAppendEntriesMessage::logentries(int index) const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbAppendEntriesMessage.logEntries)
   return logentries_.Get(index);
 }
-inline ::quintet::rpc::PbLogEntry* AppendEntriesMessage::mutable_logentries(int index) {
-  // @@protoc_insertion_point(field_mutable:quintet.rpc.AppendEntriesMessage.logEntries)
+inline ::quintet::rpc::PbLogEntry* PbAppendEntriesMessage::mutable_logentries(int index) {
+  // @@protoc_insertion_point(field_mutable:quintet.rpc.PbAppendEntriesMessage.logEntries)
   return logentries_.Mutable(index);
 }
-inline ::quintet::rpc::PbLogEntry* AppendEntriesMessage::add_logentries() {
-  // @@protoc_insertion_point(field_add:quintet.rpc.AppendEntriesMessage.logEntries)
+inline ::quintet::rpc::PbLogEntry* PbAppendEntriesMessage::add_logentries() {
+  // @@protoc_insertion_point(field_add:quintet.rpc.PbAppendEntriesMessage.logEntries)
   return logentries_.Add();
 }
 inline ::google::protobuf::RepeatedPtrField< ::quintet::rpc::PbLogEntry >*
-AppendEntriesMessage::mutable_logentries() {
-  // @@protoc_insertion_point(field_mutable_list:quintet.rpc.AppendEntriesMessage.logEntries)
+PbAppendEntriesMessage::mutable_logentries() {
+  // @@protoc_insertion_point(field_mutable_list:quintet.rpc.PbAppendEntriesMessage.logEntries)
   return &logentries_;
 }
 inline const ::google::protobuf::RepeatedPtrField< ::quintet::rpc::PbLogEntry >&
-AppendEntriesMessage::logentries() const {
-  // @@protoc_insertion_point(field_list:quintet.rpc.AppendEntriesMessage.logEntries)
+PbAppendEntriesMessage::logentries() const {
+  // @@protoc_insertion_point(field_list:quintet.rpc.PbAppendEntriesMessage.logEntries)
   return logentries_;
 }
 
 // uint64 commitIdx = 6;
-inline void AppendEntriesMessage::clear_commitidx() {
+inline void PbAppendEntriesMessage::clear_commitidx() {
   commitidx_ = GOOGLE_ULONGLONG(0);
 }
-inline ::google::protobuf::uint64 AppendEntriesMessage::commitidx() const {
-  // @@protoc_insertion_point(field_get:quintet.rpc.AppendEntriesMessage.commitIdx)
+inline ::google::protobuf::uint64 PbAppendEntriesMessage::commitidx() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbAppendEntriesMessage.commitIdx)
   return commitidx_;
 }
-inline void AppendEntriesMessage::set_commitidx(::google::protobuf::uint64 value) {
+inline void PbAppendEntriesMessage::set_commitidx(::google::protobuf::uint64 value) {
   
   commitidx_ = value;
-  // @@protoc_insertion_point(field_set:quintet.rpc.AppendEntriesMessage.commitIdx)
+  // @@protoc_insertion_point(field_set:quintet.rpc.PbAppendEntriesMessage.commitIdx)
 }
 
 // -------------------------------------------------------------------
 
-// RequestVoteMessage
+// PbRequestVoteMessage
 
 // uint64 term = 1;
-inline void RequestVoteMessage::clear_term() {
+inline void PbRequestVoteMessage::clear_term() {
   term_ = GOOGLE_ULONGLONG(0);
 }
-inline ::google::protobuf::uint64 RequestVoteMessage::term() const {
-  // @@protoc_insertion_point(field_get:quintet.rpc.RequestVoteMessage.term)
+inline ::google::protobuf::uint64 PbRequestVoteMessage::term() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbRequestVoteMessage.term)
   return term_;
 }
-inline void RequestVoteMessage::set_term(::google::protobuf::uint64 value) {
+inline void PbRequestVoteMessage::set_term(::google::protobuf::uint64 value) {
   
   term_ = value;
-  // @@protoc_insertion_point(field_set:quintet.rpc.RequestVoteMessage.term)
+  // @@protoc_insertion_point(field_set:quintet.rpc.PbRequestVoteMessage.term)
 }
 
 // .quintet.rpc.PbServerId candidateId = 2;
-inline bool RequestVoteMessage::has_candidateid() const {
+inline bool PbRequestVoteMessage::has_candidateid() const {
   return this != internal_default_instance() && candidateid_ != NULL;
 }
-inline void RequestVoteMessage::clear_candidateid() {
+inline void PbRequestVoteMessage::clear_candidateid() {
   if (GetArenaNoVirtual() == NULL && candidateid_ != NULL) {
     delete candidateid_;
   }
   candidateid_ = NULL;
 }
-inline const ::quintet::rpc::PbServerId& RequestVoteMessage::candidateid() const {
+inline const ::quintet::rpc::PbServerId& PbRequestVoteMessage::candidateid() const {
   const ::quintet::rpc::PbServerId* p = candidateid_;
-  // @@protoc_insertion_point(field_get:quintet.rpc.RequestVoteMessage.candidateId)
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbRequestVoteMessage.candidateId)
   return p != NULL ? *p : *reinterpret_cast<const ::quintet::rpc::PbServerId*>(
       &::quintet::rpc::_PbServerId_default_instance_);
 }
-inline ::quintet::rpc::PbServerId* RequestVoteMessage::release_candidateid() {
-  // @@protoc_insertion_point(field_release:quintet.rpc.RequestVoteMessage.candidateId)
+inline ::quintet::rpc::PbServerId* PbRequestVoteMessage::release_candidateid() {
+  // @@protoc_insertion_point(field_release:quintet.rpc.PbRequestVoteMessage.candidateId)
   
   ::quintet::rpc::PbServerId* temp = candidateid_;
   candidateid_ = NULL;
   return temp;
 }
-inline ::quintet::rpc::PbServerId* RequestVoteMessage::mutable_candidateid() {
+inline ::quintet::rpc::PbServerId* PbRequestVoteMessage::mutable_candidateid() {
   
   if (candidateid_ == NULL) {
     candidateid_ = new ::quintet::rpc::PbServerId;
   }
-  // @@protoc_insertion_point(field_mutable:quintet.rpc.RequestVoteMessage.candidateId)
+  // @@protoc_insertion_point(field_mutable:quintet.rpc.PbRequestVoteMessage.candidateId)
   return candidateid_;
 }
-inline void RequestVoteMessage::set_allocated_candidateid(::quintet::rpc::PbServerId* candidateid) {
+inline void PbRequestVoteMessage::set_allocated_candidateid(::quintet::rpc::PbServerId* candidateid) {
   ::google::protobuf::Arena* message_arena = GetArenaNoVirtual();
   if (message_arena == NULL) {
     delete candidateid_;
@@ -1157,35 +1157,35 @@ inline void RequestVoteMessage::set_allocated_candidateid(::quintet::rpc::PbServ
     
   }
   candidateid_ = candidateid;
-  // @@protoc_insertion_point(field_set_allocated:quintet.rpc.RequestVoteMessage.candidateId)
+  // @@protoc_insertion_point(field_set_allocated:quintet.rpc.PbRequestVoteMessage.candidateId)
 }
 
 // uint64 lastLogIdx = 3;
-inline void RequestVoteMessage::clear_lastlogidx() {
+inline void PbRequestVoteMessage::clear_lastlogidx() {
   lastlogidx_ = GOOGLE_ULONGLONG(0);
 }
-inline ::google::protobuf::uint64 RequestVoteMessage::lastlogidx() const {
-  // @@protoc_insertion_point(field_get:quintet.rpc.RequestVoteMessage.lastLogIdx)
+inline ::google::protobuf::uint64 PbRequestVoteMessage::lastlogidx() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbRequestVoteMessage.lastLogIdx)
   return lastlogidx_;
 }
-inline void RequestVoteMessage::set_lastlogidx(::google::protobuf::uint64 value) {
+inline void PbRequestVoteMessage::set_lastlogidx(::google::protobuf::uint64 value) {
   
   lastlogidx_ = value;
-  // @@protoc_insertion_point(field_set:quintet.rpc.RequestVoteMessage.lastLogIdx)
+  // @@protoc_insertion_point(field_set:quintet.rpc.PbRequestVoteMessage.lastLogIdx)
 }
 
 // uint64 lastLogTerm = 4;
-inline void RequestVoteMessage::clear_lastlogterm() {
+inline void PbRequestVoteMessage::clear_lastlogterm() {
   lastlogterm_ = GOOGLE_ULONGLONG(0);
 }
-inline ::google::protobuf::uint64 RequestVoteMessage::lastlogterm() const {
-  // @@protoc_insertion_point(field_get:quintet.rpc.RequestVoteMessage.lastLogTerm)
+inline ::google::protobuf::uint64 PbRequestVoteMessage::lastlogterm() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbRequestVoteMessage.lastLogTerm)
   return lastlogterm_;
 }
-inline void RequestVoteMessage::set_lastlogterm(::google::protobuf::uint64 value) {
+inline void PbRequestVoteMessage::set_lastlogterm(::google::protobuf::uint64 value) {
   
   lastlogterm_ = value;
-  // @@protoc_insertion_point(field_set:quintet.rpc.RequestVoteMessage.lastLogTerm)
+  // @@protoc_insertion_point(field_set:quintet.rpc.PbRequestVoteMessage.lastLogTerm)
 }
 
 #ifdef __GNUC__

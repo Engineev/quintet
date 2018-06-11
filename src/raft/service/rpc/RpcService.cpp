@@ -10,10 +10,12 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/thread.hpp>
 
-#include "service/rpc/RaftRpc.grpc.pb.h"
 #include <grpc++/server.h>
 #include <grpc++/server_builder.h>
 #include <grpc++/server_context.h>
+
+#include "service/rpc/RaftRpc.grpc.pb.h"
+#include "service/rpc/Conversion.h"
 
 /* ---------------------------- RaftRpc ------------------------------------- */
 
@@ -21,59 +23,28 @@ namespace quintet {
 namespace rpc {
 
 class RaftRpcImpl final : public RaftRpc::Service {
-  using AppendEntriesFunc = std::function<std::pair<Term, bool>(
-      Term, ServerId, std::size_t, Term, std::vector<LogEntry>, std::size_t)>;
+  using AppendEntriesFunc =
+      std::function<std::pair<Term, bool>(AppendEntriesMessage)>;
   using RequestVoteFunc =
-      std::function<std::pair<Term, bool>(Term, ServerId, std::size_t, Term)>;
+      std::function<std::pair<Term, bool>(RequestVoteMessage)>;
 
 public:
   void bindAppendEntries(AppendEntriesFunc f) { appendEntries = std::move(f); }
   void bindRequestVote(RequestVoteFunc f) { requestVote = std::move(f); }
 
   grpc::Status AppendEntries(grpc::ServerContext *context,
-                             const AppendEntriesMessage *request,
+                             const PbAppendEntriesMessage *request,
                              PbReply *response) override {
-    Term leaderTerm = request->term();
-    ServerId leaderId{request->leaderid().addr(),
-                      (Port)request->leaderid().port()};
-    std::size_t prevLogIdx = request->prevlogidx();
-    Term prevLogTerm = request->prevlogterm();
-    std::vector<LogEntry> logEntries;
-    for (int i = 0; i < request->logentries_size(); ++i) {
-      auto &pbEntry = request->logentries(i);
-      LogEntry entry{pbEntry.term(), pbEntry.opname(), pbEntry.args(),
-                     pbEntry.prmidx()};
-      logEntries.emplace_back(entry);
-    }
-    std::size_t commitIdx = request->commitidx();
-
-    Term currentTerm;
-    bool success;
-    std::tie(currentTerm, success) =
-        appendEntries(leaderTerm, leaderId, prevLogIdx, prevLogTerm,
-                      std::move(logEntries), commitIdx);
-    response->set_term(currentTerm);
-    response->set_ans(success);
-
+    AppendEntriesMessage msg = convertAppendEntriesMessage(*request);
+    response->CopyFrom(convertReply(appendEntries(std::move(msg))));
     return grpc::Status::OK;
   }
 
   grpc::Status RequestVote(grpc::ServerContext *context,
-                           const RequestVoteMessage *request,
+                           const PbRequestVoteMessage *request,
                            PbReply *response) override {
-    Term candidateTerm = request->term();
-    ServerId candidateId{request->candidateid().addr(),
-                         (Port)request->candidateid().port()};
-    std::size_t lastLogIdx = request->lastlogidx();
-    Term lastLogTerm = request->lastlogterm();
-
-    Term currentTerm;
-    bool granted;
-    std::tie(currentTerm, granted) =
-        requestVote(candidateTerm, candidateId, lastLogIdx, lastLogTerm);
-    response->set_term(currentTerm);
-    response->set_ans(granted);
-
+    RequestVoteMessage msg = convertRequestVoteMessage(*request);
+    response->CopyFrom(convertReply(requestVote(std::move(msg))));
     return grpc::Status::OK;
   }
 
@@ -129,26 +100,18 @@ struct RpcService::Impl {
   }
 
   void bindAppendEntries(
-      std::function<std::pair<Term, bool>(Term, ServerId, std::size_t, Term,
-                                          std::vector<LogEntry>, std::size_t)>
-          f) {
-    service.bindAppendEntries(
-        [this, f](Term term, ServerId leaderId, std::size_t prevLogIdx,
-                  Term prevLogTerm, std::vector<LogEntry> logEntries,
-                  std::size_t commitIdx) {
-          auto defer = preRpc();
-          return f(term, leaderId, prevLogIdx, prevLogTerm, std::move(logEntries),
-            commitIdx);
-        });
+      std::function<std::pair<Term, bool>(AppendEntriesMessage)> f) {
+    service.bindAppendEntries([this, f](AppendEntriesMessage msg) {
+      auto defer = preRpc();
+      return f(std::move(msg));
+    });
   }
 
-  void bindRequestVote(
-      std::function<std::pair<Term, bool>(Term, ServerId, std::size_t, Term)> f) {
-    service.bindRequestVote([this, f](Term term, ServerId candidateId,
-                                      std::size_t lastLogIdx,
-                                      Term lastLogTerm) {
+  void
+  bindRequestVote(std::function<std::pair<Term, bool>(RequestVoteMessage)> f) {
+    service.bindRequestVote([this, f](RequestVoteMessage msg) {
       auto defer = preRpc();
-      return f(term, candidateId, lastLogIdx, lastLogTerm);
+      return f(std::move(msg));
     });
   }
 
@@ -157,15 +120,11 @@ struct RpcService::Impl {
     boost::unique_lock<boost::shared_mutex> lk(rpcing);
   }
 
-  void resume() {
-    paused.unlock();
-  }
+  void resume() { paused.unlock(); }
 
   void stop() {
     boost::unique_lock<boost::mutex> lk(stopping);
-    modifiedNumRpcRemaining.wait(lk, [this] {
-      return !numRpcRemaining;
-    });
+    modifiedNumRpcRemaining.wait(lk, [this] { return !numRpcRemaining; });
     if (server)
       server->Shutdown();
   }
@@ -187,13 +146,11 @@ void RpcService::resume() { pImpl->resume(); }
 void RpcService::stop() { pImpl->stop(); }
 
 void RpcService::bindAppendEntries(
-    std::function<std::pair<Term, bool>(Term, ServerId, size_t, Term,
-                                        std::vector<LogEntry>, size_t)>
-    f) {
+    std::function<std::pair<Term, bool>(AppendEntriesMessage)> f) {
   pImpl->bindAppendEntries(std::move(f));
 }
 void RpcService::bindRequestVote(
-    std::function<std::pair<Term, bool>(Term, ServerId, size_t, Term)> f) {
+    std::function<std::pair<Term, bool>(RequestVoteMessage)> f) {
   pImpl->bindRequestVote(std::move(f));
 }
 
