@@ -17,6 +17,7 @@ public:
 
   void wait();
 
+  /// \brief Graceful shutdown
   void stop();
 
 private:

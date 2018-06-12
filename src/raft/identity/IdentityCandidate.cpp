@@ -23,13 +23,11 @@ struct IdentityCandidate::Impl : public IdentityBase::IdentityBaseImpl {
 
   void leave();
 
-  std::pair<Term, bool> sendRequestVote(ServerId target, Term currentTerm,
-                                        ServerId local, Index lastLogIdx,
-                                        Term lastLogTerm) {
-//    return service.clients.callRpcRequestVote(target, currentTerm, local, lastLogIdx,
-//                                       lastLogTerm);
-    // TODO: catch
+  std::pair<Term, bool> sendRequestVote(const ServerId & target, const RequestVoteMessage & msg) {
+    grpc::ClientContext ctx;
+    return service.clients.callRpcRequestVote(target, ctx, msg);
   }
+
   void requestVotes();
 };
 
@@ -130,29 +128,29 @@ void IdentityCandidate::Impl::requestVotes() {
     if (srv == info.local)
       continue;
 
-    auto t = boost::thread([this, srv, currentTerm = state.currentTerm,
-                            local = info.local,
-                            lastLogIdx = state.entries.size() - 1,
-                            lastLogTerm = state.entries.back().term]() mutable {
+    RequestVoteMessage msg;
+    msg.term = state.currentTerm;
+    msg.candidateId = info.local;
+    msg.lastLogIdx = state.entries.size() - 1;
+    msg.lastLogTerm = state.entries.back().term;
+    auto t = boost::thread([this, srv, msg]() mutable {
       boost::this_thread::disable_interruption di;
       Term termReceived;
       bool res;
       try {
         boost::this_thread::restore_interruption ri(di);
-        std::tie(termReceived, res) =
-            sendRequestVote(srv, currentTerm, local, lastLogIdx, lastLogTerm);
+        std::tie(termReceived, res) = sendRequestVote(srv, msg);
       } catch (boost::thread_interrupted &t) {
         return;
       }
       if (termReceived != InvalidTerm) {
       }
-      if (termReceived != currentTerm || !res)
+      if (termReceived != msg.term || !res)
         return;
       votesReceived += res;
       // It is guaranteed that only one transformation will be carried out.
       if (votesReceived > info.srvList.size() / 2) {
-        service.identityTransformer.notify(ServerIdentityNo::Leader,
-                                           currentTerm);
+        service.identityTransformer.notify(ServerIdentityNo::Leader, msg.term);
       }
     });
 

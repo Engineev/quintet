@@ -26,7 +26,7 @@ struct ServerState
   std::vector<Index> matchIndex;
 }; // struct ServerState
 
-bool upToDate(const ServerState &state, std::size_t lastLogIdx,
+inline bool upToDate(const ServerState &state, std::size_t lastLogIdx,
               Term lastLogTerm) {
   if (state.entries.empty())
     return true;

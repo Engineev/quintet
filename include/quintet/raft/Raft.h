@@ -27,9 +27,9 @@ public:
 
   void Configure(const std::string & filename);
 
-  void run();
+  void AsyncRun();
 
-  void stop();
+  void Stop();
 
 private:
   struct Impl;

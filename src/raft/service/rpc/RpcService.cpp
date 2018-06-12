@@ -127,6 +127,7 @@ struct RpcService::Impl {
     modifiedNumRpcRemaining.wait(lk, [this] { return !numRpcRemaining; });
     if (server)
       server->Shutdown();
+    runningThread.join();
   }
 
 }; // struct RpcService::Impl
