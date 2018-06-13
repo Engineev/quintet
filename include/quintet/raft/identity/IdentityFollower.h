@@ -8,23 +8,23 @@ namespace quintet {
 class IdentityFollower : public IdentityBase {
 public:
   IdentityFollower(
-      ServerState & state, ServerInfo & info, ServerService & service) {}
+      ServerState & state, ServerInfo & info, ServerService & service);
 
-  ~IdentityFollower() override = default;
+  ~IdentityFollower() override;
 
   std::pair<Term /*current term*/, bool /*success*/>
-  RPCAppendEntries(AppendEntriesMessage message) override { throw ; };
+  RPCAppendEntries(AppendEntriesMessage message) override;
 
   std::pair<Term /*current term*/, bool /*vote granted*/>
-  RPCRequestVote(RequestVoteMessage message) override { throw ; };
+  RPCRequestVote(RequestVoteMessage message) override;
 
-  void init() override {}
+  void init() override;
 
-  void leave() override {}
+  void leave() override;
 
 private:
-//  struct Impl;
-//  std::unique_ptr<Impl> pImpl;
+  struct Impl;
+  std::unique_ptr<Impl> pImpl;
 
 }; // class IdentityFollower
 

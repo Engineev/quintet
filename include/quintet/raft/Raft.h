@@ -22,9 +22,7 @@ public:
 
   void AddLog(std::string opName, std::string args, PrmIdx idx);
 
-  void BindCommitter(
-      std::function<void(std::string, std::string, ServerId, quintet::PrmIdx)>
-          committer);
+  void BindCommitter(std::function<void(LogEntry)> committer);
 
   ServerId Local() const;
 

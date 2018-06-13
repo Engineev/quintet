@@ -92,6 +92,9 @@ void Raft::Configure(const std::string &filename) {
 void Raft::AsyncRun() { pImpl->asyncRun(); }
 void Raft::Stop() { pImpl->stop(); }
 
+void Raft::BindCommitter(std::function<void(LogEntry)> committer) {
+  pImpl->service.committer.bindCommit(committer);
+}
 } // namespace quintet
 
 /* ---------------------- RPCs ---------------------------------------------- */
