@@ -1,4 +1,4 @@
-#include "service/rpc/RpcClients.h"
+#include "service/rpc/RpcClient.h"
 #include "service/rpc/RpcService.h"
 #include <boost/test/unit_test.hpp>
 
@@ -7,9 +7,11 @@
 
 #include <boost/atomic/atomic.hpp>
 
-#include "service/rpc/RaftRpc.grpc.pb.h"
 #include <grpc++/client_context.h>
 #include <grpc++/create_channel.h>
+
+#include "service/rpc/RaftRpc.grpc.pb.h"
+#include "service/rpc/Conversion.h"
 
 namespace utf = boost::unit_test_framework;
 
@@ -38,8 +40,8 @@ BOOST_AUTO_TEST_CASE(ServerBaisc) {
   auto call = [&stub] {
     grpc::ClientContext ctx;
     PbReply reply;
-    PbAppendEntriesMessage msg;
-    return stub->AppendEntries(&ctx, msg, &reply);
+    AppendEntriesMessage msg;
+    return stub->AppendEntries(&ctx, convertAppendEntriesMessage(msg), &reply);
   };
 
   for (int i = 1; i < 5; ++i) {
@@ -60,12 +62,8 @@ BOOST_AUTO_TEST_CASE(ServerAdvanced) {
   const Port port = 50001;
   const ServerId srv = {.addr = "localhost", .port = port};
   RpcService service;
+  service.configLogger("RpcService");
   boost::atomic<int> cnt{0};
-  service.bindAppendEntries([&cnt](AppendEntriesMessage) {
-    std::this_thread::sleep_for(50ms);
-    ++cnt;
-    return std::make_pair(Term(), false);
-  });
   service.bindRequestVote([&cnt](RequestVoteMessage) {
     ++cnt;
     return std::make_pair(Term(), false);
@@ -75,28 +73,27 @@ BOOST_AUTO_TEST_CASE(ServerAdvanced) {
   auto stub = RaftRpc::NewStub(
       grpc::CreateChannel(srv.addr + ":" + std::to_string(srv.port),
                           grpc::InsecureChannelCredentials()));
-//  auto slowCall = [&stub] {
-//    grpc::ClientContext ctx;
-//    PbReply reply;
-//    PbAppendEntriesMessage msg;
-//    return stub->AppendEntries(&ctx, msg, &reply);
-//  };
   auto fastCall = [&stub] {
     grpc::ClientContext ctx;
     PbReply reply;
-    PbRequestVoteMessage msg;
-    return stub->RequestVote(&ctx, msg, &reply);
+    RequestVoteMessage msg;
+    return stub->RequestVote(&ctx, convertRequestVoteMessage(msg), &reply);
   };
 
   service.pause();
-  std::thread t([&fastCall] { fastCall(); });
+  BOOST_TEST_CHECKPOINT("Paused");
+  std::thread t([&fastCall] {
+    auto status = fastCall();
+    BOOST_REQUIRE(status.ok());
+  });
   std::this_thread::sleep_for(10ms);
   BOOST_REQUIRE_EQUAL(0, cnt);
-  service.resume();
-  std::this_thread::sleep_for(2ms);
-  BOOST_REQUIRE_EQUAL(1, cnt);
-  service.stop();
+  BOOST_REQUIRE(t.joinable());
+  BOOST_REQUIRE_NO_THROW(service.resume());
   t.join();
+//  std::this_thread::sleep_for(10ms);
+  BOOST_CHECK_EQUAL(1, cnt);
+  BOOST_REQUIRE_NO_THROW(service.stop());
 }
 
 BOOST_AUTO_TEST_CASE(Basic) {
@@ -114,16 +111,13 @@ BOOST_AUTO_TEST_CASE(Basic) {
   });
   service.asyncRun(port);
 
-  RpcClients clients;
-  clients.createStubs({srv});
-  clients.asyncRun();
+  RpcClient client(grpc::CreateChannel(srv.addr + ":" + std::to_string(srv.port), grpc::InsecureChannelCredentials()));
 
-  grpc::ClientContext ctx;
-  clients.callRpcAppendEntries(srv, ctx, {});
+  auto ctx = std::make_shared<grpc::ClientContext>();
+  client.callRpcAppendEntries(std::move(ctx), {});
   BOOST_REQUIRE_EQUAL(1, cnt);
 
   BOOST_REQUIRE_NO_THROW(service.stop());
-  BOOST_REQUIRE_NO_THROW(clients.stop());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

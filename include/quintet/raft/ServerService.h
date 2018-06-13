@@ -14,7 +14,7 @@ namespace quintet {
 struct ServerService {
   HeartBeatController heartBeatController;
   IdentityTransformer identityTransformer;
-  rpc::RpcClients     clients;
+//  rpc::RpcClients     clients;
   boost::log::sources::logger_mt logger;
 
   void configLogger(const std::string &id);

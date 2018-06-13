@@ -3,9 +3,9 @@
 
 #include <cstddef>
 #include <memory>
-#include <vector>
-#include <utility>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 #include <boost/thread/future.hpp>
 #include <grpcpp/client_context.h>
@@ -16,29 +16,38 @@
 namespace quintet {
 namespace rpc {
 
-class RpcError : public std::exception {};
 
-class RpcClients {
+class [[deprecated]] RpcClients {
 public:
   RpcClients();
 
   ~RpcClients();
 
-  void createStubs(const std::vector<ServerId> & srvs);
+  void createStubs(const std::vector<ServerId> &srvs);
 
   void asyncRun();
 
   void stop();
 
-  Reply callRpcAppendEntries(const ServerId & target, grpc::ClientContext & ctx, const AppendEntriesMessage & msg);
+  void reset(const ServerId & srv);
+
+  Reply callRpcAppendEntries(const ServerId &target,
+                             std::shared_ptr<grpc::ClientContext> ctx,
+                             const AppendEntriesMessage &msg);
 
   boost::future<Reply>
-  asyncCallRpcAppendEntries(const ServerId & target, grpc::ClientContext & ctx, const AppendEntriesMessage & msg);
+  asyncCallRpcAppendEntries(const ServerId &target,
+                            std::shared_ptr<grpc::ClientContext> ctx,
+                            const AppendEntriesMessage &msg);
 
-  Reply callRpcRequestVote(const ServerId & target, grpc::ClientContext & ctx, const RequestVoteMessage & msg);
-//
+  Reply callRpcRequestVote(const ServerId &target,
+                           std::shared_ptr<grpc::ClientContext> ctx,
+                           const RequestVoteMessage &msg);
+  //
   boost::future<Reply>
-  asyncCallRpcRequestVote(const ServerId & target, grpc::ClientContext & ctx, const RequestVoteMessage & msg);
+  asyncCallRpcRequestVote(const ServerId &target,
+                          std::shared_ptr<grpc::ClientContext> ctx,
+                          const RequestVoteMessage &msg);
 
 private:
   struct Impl;

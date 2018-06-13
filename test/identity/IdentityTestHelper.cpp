@@ -9,6 +9,7 @@
 #include "service/rpc/Conversion.h"
 #include "service/rpc/RaftRpc.grpc.pb.h"
 #include "service/rpc/RpcDefs.h"
+#include "service/rpc/RpcClient.h"
 
 namespace quintet {
 namespace test {
@@ -33,15 +34,12 @@ void IdentityTestHelper::sendHeartBeat(const std::vector<ServerId> &srvs,
   for (auto &srv : srvs) {
     if (srv == local)
       continue;
-    std::unique_ptr<RaftRpc::Stub> stub(
-        quintet::rpc::RaftRpc::NewStub(grpc::CreateChannel(
-            "localhost:50051", grpc::InsecureChannelCredentials())));
-    grpc::ClientContext context;
-    PbReply reply;
+    RpcClient client(grpc::CreateChannel(srv.addr + ":" + std::to_string(srv.port),
+                                         grpc::InsecureChannelCredentials()));
+    auto ctx = std::make_shared<grpc::ClientContext>();
     quintet::AppendEntriesMessage msg;
     msg.term = currentTerm;
-    auto status =
-        stub->AppendEntries(&context, convertAppendEntriesMessage(msg), &reply);
+    client.callRpcAppendEntries(ctx, msg);
   }
 }
 

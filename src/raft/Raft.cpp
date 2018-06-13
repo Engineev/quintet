@@ -190,12 +190,12 @@ void Raft::Impl::initServerService() { // TODO
       std::bind(&Raft::Impl::triggerTransformation, this,
                 std::placeholders::_1));
 
-  std::vector<ServerId> srvs;
-  std::copy_if(
-      info.srvList.begin(), info.srvList.end(), std::back_inserter(srvs),
-      [local = info.local](const ServerId &id) { return local != id; });
-  service.clients.createStubs(srvs);
-  service.clients.asyncRun();
+//  std::vector<ServerId> srvs;
+//  std::copy_if(
+//      info.srvList.begin(), info.srvList.end(), std::back_inserter(srvs),
+//      [local = info.local](const ServerId &id) { return local != id; });
+//  service.clients.createStubs(srvs);
+//  service.clients.asyncRun();
 }
 
 void Raft::Impl::asyncRun() {

@@ -1,11 +1,17 @@
 #include "identity/IdentityCandidate.h"
 
+#include <chrono>
 #include <utility>
 
 #include <boost/atomic.hpp>
 
+#include <grpc++/create_channel.h>
+#include <grpc++/client_context.h>
+
 #include "misc/Rand.h"
 #include "service/log/Common.h"
+#include "service/rpc/RpcClient.h"
+
 
 /* -------------- constructors, destructors and Impl ------------------------ */
 
@@ -21,19 +27,19 @@ struct IdentityCandidate::Impl : public IdentityBase::IdentityBaseImpl {
   }
 
   boost::atomic<std::size_t> votesReceived{0};
-  std::vector<boost::thread> requestingThreads;
+  struct Request {
+    std::unique_ptr<rpc::RpcClient> client;
+    std::shared_ptr<grpc::ClientContext> ctx;
+    boost::thread t;
+
+    Request() = default;
+    Request(Request &&) = default;
+  };
+  std::vector<std::shared_ptr<Request>> requests;
 
   void init();
 
   void leave();
-
-  std::pair<Term, bool> sendRequestVote(const ServerId &target,
-                                        const RequestVoteMessage &msg) {
-    BOOST_LOG(service.logger)
-      << "Sending RequestVote to " << target.toString();
-    grpc::ClientContext ctx;
-    return service.clients.callRpcRequestVote(target, ctx, msg);
-  }
 
   void requestVotes();
 };
@@ -113,6 +119,11 @@ void IdentityCandidate::Impl::init() {
       intRand(info.electionTimeout, info.electionTimeout * 2);
   BOOST_LOG(service.logger) << "ElectionTimeout = " << electionTimeout;
 
+  std::vector<ServerId> srvs;
+  std::copy_if(
+      info.srvList.begin(), info.srvList.end(), std::back_inserter(srvs),
+      [local = info.local](const ServerId &id) { return local != id; });
+
   votesReceived = 1;
   requestVotes();
 
@@ -125,13 +136,23 @@ void IdentityCandidate::Impl::init() {
 
 void IdentityCandidate::Impl::leave() {
   BOOST_LOG(service.logger)
-      << "leave(); " << requestingThreads.size() << " threads remaining";
+      << "leave(); " << requests.size() << " threads remaining";
+  auto start = boost::chrono::high_resolution_clock::now();
   service.heartBeatController.stop();
-  for (auto &t : requestingThreads)
-    t.interrupt();
-  for (auto &t : requestingThreads)
-    t.join();
-  requestingThreads.clear();
+
+  for (auto &t : requests)
+    t->ctx->TryCancel();
+  for (auto &t : requests)
+    t->t.interrupt();
+  for (auto &t : requests)
+    t->t.join();
+  requests.clear();
+  BOOST_LOG(service.logger)
+      << "leave()[done]; took "
+      << boost::chrono::duration_cast<boost::chrono::milliseconds>(
+             boost::chrono::high_resolution_clock::now() - start)
+             .count()
+      << " ms";
 }
 
 void IdentityCandidate::Impl::requestVotes() {
@@ -144,21 +165,39 @@ void IdentityCandidate::Impl::requestVotes() {
     msg.candidateId = info.local;
     msg.lastLogIdx = state.entries.size() - 1;
     msg.lastLogTerm = state.entries.back().term;
-    auto t = boost::thread([this, srv, msg]() mutable {
-      boost::this_thread::disable_interruption di;
+
+    auto request = std::make_shared<Request>();
+    request->ctx = std::make_shared<grpc::ClientContext>();
+    request->ctx->set_deadline(std::chrono::system_clock::now() +
+        std::chrono::milliseconds(50));
+    request->client = std::make_unique<rpc::RpcClient>(grpc::CreateChannel(
+        srv.addr + ":" + std::to_string(srv.port),
+        grpc::InsecureChannelCredentials()));
+    request->t = boost::thread([this, request, msg, srv]() mutable {
       Term termReceived;
       bool res;
-      try {
-        boost::this_thread::restore_interruption ri(di);
-        std::tie(termReceived, res) = sendRequestVote(srv, msg);
-      } catch (boost::thread_interrupted &t) {
-        return;
-      } catch (rpc::RpcError & e) {
-        BOOST_LOG(service.logger) << "RpcError";
-        return;
+      auto tag = intRand(0, 100);
+
+      for (int i = 0; i < 2; ++i) {
+        try {
+          BOOST_LOG(service.logger)
+            << "{" << tag << "} Sending RequestVote to " << srv.toString();
+          std::tie(termReceived, res) =
+              request->client->callRpcRequestVote(request->ctx, msg);
+        } catch (boost::thread_interrupted &e) {
+          BOOST_LOG(service.logger) << "{" << tag << "} Interrupted";
+          return;
+        } catch (rpc::RpcError &e) {
+          BOOST_LOG(service.logger)
+            << "{" << tag << "} RpcError: " << e.what();
+          return;
+        }
+        break;
       }
-      if (termReceived != InvalidTerm) {
-      }
+      BOOST_LOG(service.logger)
+        << "{" << tag
+        << "} Receive the result of RPCRequestVote from " << srv.toString()
+        << ". TermReceived = " << termReceived << ", res = " << res;
       if (termReceived != msg.term || !res)
         return;
       votesReceived += res;
@@ -168,7 +207,7 @@ void IdentityCandidate::Impl::requestVotes() {
       }
     });
 
-    requestingThreads.emplace_back(std::move(t));
+    requests.emplace_back(std::move(request));
   }
 }
 

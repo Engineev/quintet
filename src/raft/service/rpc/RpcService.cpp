@@ -16,7 +16,7 @@
 
 #include "service/rpc/RaftRpc.grpc.pb.h"
 #include "service/rpc/Conversion.h"
-#include "misc/EventQueue.h"
+#include "service/log/Common.h"
 
 /* ---------------------------- RaftRpc ------------------------------------- */
 
@@ -64,12 +64,10 @@ namespace rpc {
 
 RpcService::RpcService() : pImpl(std::make_unique<Impl>()) {}
 
-RpcService::~RpcService() = default;
-
 struct RpcService::Impl {
   RaftRpcImpl service;
   std::unique_ptr<grpc::Server> server;
-  EventQueue eventQueue;
+  logging::src::logger_mt logger;
 
   boost::thread runningThread;
 
@@ -116,10 +114,12 @@ struct RpcService::Impl {
   }
 
   void pause() {
+    BOOST_LOG(logger) << "Paused";
     paused = true;
   }
 
   void resume() {
+    BOOST_LOG(logger) << "Resume";
     paused = false;
     cv.notify_all();
   }
@@ -133,7 +133,18 @@ struct RpcService::Impl {
     runningThread.join();
   }
 
+  void configLogger(const std::string & id) {
+    logger.add_attribute(
+        "ServerId", logging::attrs::constant<std::string>(id));
+    logger.add_attribute(
+        "Part", logging::attrs::constant<std::string>("RpcService"));
+  }
+
 }; // struct RpcService::Impl
+
+RpcService::~RpcService() {
+  pImpl->stop();
+}
 
 } // namespace rpc
 } // namespace quintet
@@ -156,6 +167,10 @@ void RpcService::bindAppendEntries(
 void RpcService::bindRequestVote(
     std::function<std::pair<Term, bool>(RequestVoteMessage)> f) {
   pImpl->bindRequestVote(std::move(f));
+}
+
+void RpcService::configLogger(const std::string &id) {
+  pImpl->configLogger(id);
 }
 
 } // namespace rpc

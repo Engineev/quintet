@@ -3,20 +3,36 @@
 
 #include <cstdint>
 #include <vector>
+#include <stdexcept>
 
 #include "RaftDefs.h"
+
+namespace quintet {
+namespace rpc {
+class RpcError : public std::exception {
+public:
+  RpcError() = default;
+  explicit RpcError(std::string m) : msg(std::move(m)) {}
+
+  const char * what() const noexcept override { return msg.c_str(); }
+
+private:
+  std::string msg;
+};
+}
+}
 
 namespace quintet {
 
 using Reply = std::pair<Term, bool>;
 
 struct AppendEntriesMessage {
-  Term term;
+  Term term = InvalidTerm;
   ServerId leaderId;
-  std::size_t prevLogIdx;
-  Term prevLogTerm;
+  std::size_t prevLogIdx = 0;
+  Term prevLogTerm = 0;
   std::vector<LogEntry> logEntries;
-  std::size_t commitIdx;
+  std::size_t commitIdx = 0;
 
   AppendEntriesMessage() = default;
   AppendEntriesMessage(const AppendEntriesMessage &) = default;
@@ -26,10 +42,10 @@ struct AppendEntriesMessage {
 };
 
 struct RequestVoteMessage {
-  Term term;
+  Term term = InvalidTerm;
   ServerId candidateId;
-  std::size_t lastLogIdx;
-  Term lastLogTerm;
+  std::size_t lastLogIdx = 0;
+  Term lastLogTerm = InvalidTerm;
 
   RequestVoteMessage() = default;
   RequestVoteMessage(const RequestVoteMessage &) = default;
