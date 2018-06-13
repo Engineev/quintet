@@ -1,6 +1,7 @@
 #include "raft/service/rpc/RpcClients.h"
 
 #include <unordered_map>
+#include <stdexcept>
 
 #include <grpcpp/grpcpp.h>
 
@@ -66,7 +67,8 @@ struct RpcClients::Impl {
       std::unique_ptr<AsyncClientCall> call(
           static_cast<AsyncClientCall *>(tag));
       if (!call->status.ok()) {
-        throw;
+        call->prm.set_exception(RpcError());
+        return;
       }
       call->prm.set_value(
           std::make_pair(call->reply.term(), call->reply.ans()));

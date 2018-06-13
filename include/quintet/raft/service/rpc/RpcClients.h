@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <utility>
+#include <stdexcept>
 
 #include <boost/thread/future.hpp>
 #include <grpcpp/client_context.h>
@@ -14,6 +15,8 @@
 
 namespace quintet {
 namespace rpc {
+
+class RpcError : public std::exception {};
 
 class RpcClients {
 public:

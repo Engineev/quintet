@@ -14,7 +14,7 @@
 
 namespace utf = boost::unit_test;
 
-BOOST_AUTO_TEST_SUITE(Identity, *utf::disabled())
+BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Candidate, quintet::test::IdentityTestHelper)
 
 BOOST_AUTO_TEST_CASE(Basic) {
@@ -86,9 +86,7 @@ BOOST_AUTO_TEST_CASE(Naive) {
   BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
 }
 
-#ifdef false
-
-BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
+BOOST_AUTO_TEST_CASE(PoorNetwork) {
   BOOST_TEST_MESSAGE("Test::Identity::Candidate::PoorNetwork");
   using No = quintet::ServerIdentityNo;
 
@@ -111,14 +109,12 @@ BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
       }
     });
     srv->setRpcLatency(ElectionTimeout, ElectionTimeout * 2);
-    srv->run();
+    srv->AsyncRun();
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(ElectionTimeout * 50));
   for (auto &srv : srvs)
-    BOOST_REQUIRE_NO_THROW(srv->stop());
+    BOOST_REQUIRE_NO_THROW(srv->Stop());
 }
-
-#endif
 
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

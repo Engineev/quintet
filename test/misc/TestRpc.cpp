@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(ServerAdvanced) {
 }
 
 BOOST_AUTO_TEST_CASE(Basic) {
-  BOOST_TEST_MESSAGE("Service::Rpc");
+  BOOST_TEST_MESSAGE("Service::Rpc::Basic");
   using namespace quintet;
   using namespace quintet::rpc;
 

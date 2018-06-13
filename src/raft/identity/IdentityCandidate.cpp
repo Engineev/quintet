@@ -4,8 +4,8 @@
 
 #include <boost/atomic.hpp>
 
-#include "service/log/Common.h"
 #include "misc/Rand.h"
+#include "service/log/Common.h"
 
 /* -------------- constructors, destructors and Impl ------------------------ */
 
@@ -27,7 +27,10 @@ struct IdentityCandidate::Impl : public IdentityBase::IdentityBaseImpl {
 
   void leave();
 
-  std::pair<Term, bool> sendRequestVote(const ServerId & target, const RequestVoteMessage & msg) {
+  std::pair<Term, bool> sendRequestVote(const ServerId &target,
+                                        const RequestVoteMessage &msg) {
+    BOOST_LOG(service.logger)
+      << "Sending RequestVote to " << target.toString();
     grpc::ClientContext ctx;
     return service.clients.callRpcRequestVote(target, ctx, msg);
   }
@@ -82,7 +85,8 @@ IdentityCandidate::RPCRequestVote(RequestVoteMessage msg) {
   if (msg.term > state.currentTerm) {
     state.votedFor = NullServerId;
     state.currentTerm = msg.term;
-    pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower, msg.term);
+    pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower,
+                                              msg.term);
     //        return {state.currentTerm, false};
   }
 
@@ -107,6 +111,7 @@ void IdentityCandidate::Impl::init() {
 
   auto electionTimeout =
       intRand(info.electionTimeout, info.electionTimeout * 2);
+  BOOST_LOG(service.logger) << "ElectionTimeout = " << electionTimeout;
 
   votesReceived = 1;
   requestVotes();
@@ -120,7 +125,7 @@ void IdentityCandidate::Impl::init() {
 
 void IdentityCandidate::Impl::leave() {
   BOOST_LOG(service.logger)
-    << "leave(); " << requestingThreads.size() << " threads remaining";
+      << "leave(); " << requestingThreads.size() << " threads remaining";
   service.heartBeatController.stop();
   for (auto &t : requestingThreads)
     t.interrupt();
@@ -147,6 +152,9 @@ void IdentityCandidate::Impl::requestVotes() {
         boost::this_thread::restore_interruption ri(di);
         std::tie(termReceived, res) = sendRequestVote(srv, msg);
       } catch (boost::thread_interrupted &t) {
+        return;
+      } catch (rpc::RpcError & e) {
+        BOOST_LOG(service.logger) << "RpcError";
         return;
       }
       if (termReceived != InvalidTerm) {

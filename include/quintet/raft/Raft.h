@@ -42,6 +42,8 @@ public:
   const ServerInfo & getInfo() const;
 
   Term getCurrentTerm() const;
+
+  void setRpcLatency(std::uint64_t lb, std::uint64_t ub);
 #endif
 
 private:
