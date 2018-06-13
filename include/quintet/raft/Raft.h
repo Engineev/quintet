@@ -3,15 +3,18 @@
 
 #include <functional>
 #include <string>
+#include <memory>
 
 #include "QuintetDefs.h"
 #include "RaftDefs.h"
 
 namespace quintet {
 
+struct ServerInfo; // forward declaration
+
 class Raft {
 public:
-  using ServerId = ServerId;
+  using ServerId = quintet::ServerId;
 
   Raft();
 
@@ -30,6 +33,16 @@ public:
   void AsyncRun();
 
   void Stop();
+
+#ifdef UNIT_TEST
+  void setBeforeTransform(std::function<ServerIdentityNo(ServerIdentityNo, ServerIdentityNo)> f);
+
+  void setAfterTransform(std::function<void(ServerIdentityNo, ServerIdentityNo)> f);
+
+  const ServerInfo & getInfo() const;
+
+  Term getCurrentTerm() const;
+#endif
 
 private:
   struct Impl;

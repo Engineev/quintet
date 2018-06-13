@@ -16,6 +16,7 @@
 
 #include "service/rpc/RaftRpc.grpc.pb.h"
 #include "service/rpc/Conversion.h"
+#include "misc/EventQueue.h"
 
 /* ---------------------------- RaftRpc ------------------------------------- */
 
@@ -68,15 +69,14 @@ RpcService::~RpcService() = default;
 struct RpcService::Impl {
   RaftRpcImpl service;
   std::unique_ptr<grpc::Server> server;
+  EventQueue eventQueue;
+
   boost::thread runningThread;
 
-  boost::mutex stopping;
-  boost::atomic<std::size_t> numRpcRemaining{0};
-  boost::condition_variable modifiedNumRpcRemaining;
-
-  // sync pause()/resume() and rpc
-  boost::shared_mutex rpcing;
-  boost::mutex paused;
+  boost::atomic_bool paused{false};
+  boost::atomic_size_t numRpcRemaining{0};
+  boost::condition_variable cv;
+  boost::mutex rpcing;
 
   void asyncRun(Port port) {
     std::string addr = "0.0.0.0:" + std::to_string(port);
@@ -89,13 +89,9 @@ struct RpcService::Impl {
 
   std::shared_ptr<void> preRpc() {
     ++numRpcRemaining;
-    boost::unique_lock<boost::mutex> plk(paused);
-    boost::shared_lock<boost::shared_mutex> lk(rpcing);
-    plk.unlock();
-
     return std::shared_ptr<void>(nullptr, [this](void *) {
       --numRpcRemaining;
-      modifiedNumRpcRemaining.notify_all();
+      cv.notify_all();
     });
   }
 
@@ -103,6 +99,8 @@ struct RpcService::Impl {
       std::function<std::pair<Term, bool>(AppendEntriesMessage)> f) {
     service.bindAppendEntries([this, f](AppendEntriesMessage msg) {
       auto defer = preRpc();
+      boost::unique_lock<boost::mutex> lk(rpcing);
+      cv.wait(lk, [this] { return !paused; });
       return f(std::move(msg));
     });
   }
@@ -111,20 +109,25 @@ struct RpcService::Impl {
   bindRequestVote(std::function<std::pair<Term, bool>(RequestVoteMessage)> f) {
     service.bindRequestVote([this, f](RequestVoteMessage msg) {
       auto defer = preRpc();
+      boost::unique_lock<boost::mutex> lk(rpcing);
+      cv.wait(lk, [this] { return !paused; });
       return f(std::move(msg));
     });
   }
 
   void pause() {
-    paused.lock();
-    boost::unique_lock<boost::shared_mutex> lk(rpcing);
+    paused = true;
   }
 
-  void resume() { paused.unlock(); }
+  void resume() {
+    paused = false;
+    cv.notify_all();
+  }
 
   void stop() {
-    boost::unique_lock<boost::mutex> lk(stopping);
-    modifiedNumRpcRemaining.wait(lk, [this] { return !numRpcRemaining; });
+    resume();
+    boost::unique_lock<boost::mutex> lk(rpcing);
+    cv.wait(lk, [this] { return !numRpcRemaining; });
     if (server)
       server->Shutdown();
     runningThread.join();

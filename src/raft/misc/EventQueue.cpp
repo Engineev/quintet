@@ -16,6 +16,7 @@ struct EventQueue::Impl {
   boost::condition_variable cv;
   std::queue<std::function<void()>> q;
   boost::thread runningThread;
+  boost::atomic_bool paused{false};
 
   void addEvent(std::function<void()> event) {
     boost::lock_guard<boost::mutex> lk(m);
@@ -27,7 +28,7 @@ struct EventQueue::Impl {
     while (true) {
       boost::unique_lock<boost::mutex> lk(m);
       try {
-        cv.wait(lk, [this] { return !q.empty(); });
+        cv.wait(lk, [this] { return !paused && !q.empty(); });
       } catch (boost::thread_interrupted & e) {
         return;
       }
@@ -43,6 +44,13 @@ struct EventQueue::Impl {
     }
   }
 
+  void pause() { paused = true; }
+
+  void resume() {
+    paused = false;
+    cv.notify_all();
+  }
+
   void wait() {
     boost::unique_lock<boost::mutex> lk(m);
     cv.wait(lk, [this] { return q.empty(); });
@@ -50,6 +58,7 @@ struct EventQueue::Impl {
   }
 
   void stop() {
+    resume();
     wait();
     runningThread.interrupt();
     runningThread.join();
@@ -69,6 +78,10 @@ void EventQueue::addEvent(std::function<void()> event) {
 }
 
 void EventQueue::wait() { pImpl->wait(); }
+
+void EventQueue::pause() { pImpl->pause(); }
+
+void EventQueue::resume() { pImpl->resume(); }
 
 void EventQueue::stop() { pImpl->stop(); }
 

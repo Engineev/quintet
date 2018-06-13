@@ -17,6 +17,10 @@ public:
 
   void wait();
 
+  void pause();
+
+  void resume();
+
   /// \brief Graceful shutdown
   void stop();
 

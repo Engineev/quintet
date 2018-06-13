@@ -14,7 +14,7 @@ public:
 
   ~IdentityTransformer();
 
-  void bind(std::function<bool(quintet::ServerIdentityNo)> slot);
+  void bind(std::function<void(quintet::ServerIdentityNo)> slot);
 
   bool notify(ServerIdentityNo target, Term currentTerm);
 

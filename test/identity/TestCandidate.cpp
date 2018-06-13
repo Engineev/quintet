@@ -1,9 +1,5 @@
-#ifdef false
-
-
 #include <boost/test/unit_test.hpp>
-#include "Server.h"
-#include "ServerIdentityCandidate.h"
+#include "identity/IdentityCandidate.h"
 
 
 #include <algorithm>
@@ -14,24 +10,12 @@
 #include <thread>
 #include <vector>
 
-#include "Identity/IdentityTestHelper.h"
+#include "IdentityTestHelper.h"
 
 namespace utf = boost::unit_test;
 
-BOOST_AUTO_TEST_SUITE(Identity)
+BOOST_AUTO_TEST_SUITE(Identity, *utf::disabled())
 BOOST_FIXTURE_TEST_SUITE(Candidate, quintet::test::IdentityTestHelper)
-
-BOOST_FIXTURE_TEST_SUITE(WithoutServer, quintet::test::PseudoServer,
-                         *utf::disabled())
-
-BOOST_AUTO_TEST_CASE(Basic) {
-  BOOST_TEST_MESSAGE("Test::Identity::Candidate::WithoutServer::Basic");
-  quintet::ServerIdentityCandidate candidate(state, info, service);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
-
-BOOST_AUTO_TEST_SUITE(WithServer)
 
 BOOST_AUTO_TEST_CASE(Basic) {
   BOOST_TEST_MESSAGE("Test::Identity::Candidate::Basic");
@@ -43,8 +27,10 @@ BOOST_AUTO_TEST_CASE(Basic) {
 
   for (int i = 0; i < (int)srvs.size(); ++i) {
     auto &srv = srvs[i];
-    srv->setBeforeTransform([](No from, No to) { return No::Candidate; });
-    srv->run();
+    srv->setBeforeTransform([](No from, No to) {
+      return to == No::Down ? No::Down : No::Candidate;
+    });
+    srv->AsyncRun();
     BOOST_TEST_CHECKPOINT("Server " + std::to_string(i) + " is running.");
   }
 
@@ -53,7 +39,7 @@ BOOST_AUTO_TEST_CASE(Basic) {
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   for (auto &srv : srvs)
-    BOOST_REQUIRE_NO_THROW(srv->stop());
+    BOOST_REQUIRE_NO_THROW(srv->Stop());
   BOOST_TEST_CHECKPOINT("All servers have been stopped");
 }
 
@@ -91,14 +77,16 @@ BOOST_AUTO_TEST_CASE(Naive) {
                       srv->getCurrentTerm());
       }
     });
-    srv->run();
+    srv->AsyncRun();
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(ElectionTimeout * 15));
   for (auto &srv : srvs)
-    srv->stop();
+    srv->Stop();
   BOOST_REQUIRE_EQUAL(candidate2Leader, 1);
   BOOST_REQUIRE_EQUAL(candidate2Follower, SrvNum - 1);
 }
+
+#ifdef false
 
 BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
   BOOST_TEST_MESSAGE("Test::Identity::Candidate::PoorNetwork");
@@ -130,9 +118,7 @@ BOOST_AUTO_TEST_CASE(PoorNetwork, *utf::disabled()) {
     BOOST_REQUIRE_NO_THROW(srv->stop());
 }
 
-BOOST_AUTO_TEST_SUITE_END()
-
-BOOST_AUTO_TEST_SUITE_END()
-BOOST_AUTO_TEST_SUITE_END()
-
 #endif
+
+BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_SUITE_END()

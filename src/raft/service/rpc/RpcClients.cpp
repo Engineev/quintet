@@ -4,15 +4,13 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include "raft/service/rpc/RaftRpc.grpc.pb.h"
+#include "service/rpc/RaftRpc.grpc.pb.h"
 #include "service/rpc/Conversion.h"
 
 namespace quintet {
 namespace rpc {
 
 RpcClients::RpcClients() : pImpl(std::make_unique<RpcClients::Impl>()) {}
-
-RpcClients::~RpcClients() = default;
 
 struct RpcClients::Impl {
   std::unordered_map<ServerId, std::unique_ptr<RaftRpc::Stub>> stubs;
@@ -35,6 +33,7 @@ struct RpcClients::Impl {
     }
   }
 
+  // TODO: context !!
   boost::future<Reply>
   asyncCallRpcAppendEntries(const ServerId &target, grpc::ClientContext &ctx,
                             const AppendEntriesMessage &msg) {
@@ -48,9 +47,9 @@ struct RpcClients::Impl {
     return res;
   };
 
-  boost::future<Reply>
-  asyncCallRequestVote(const ServerId & target, grpc::ClientContext & ctx,
-                       const RequestVoteMessage & msg) {
+  boost::future<Reply> asyncCallRequestVote(const ServerId &target,
+                                            grpc::ClientContext &ctx,
+                                            const RequestVoteMessage &msg) {
     PbRequestVoteMessage request = convertRequestVoteMessage(msg);
     auto call = new AsyncClientCall;
     auto res = call->prm.get_future();
@@ -78,11 +77,13 @@ struct RpcClients::Impl {
     runningThread = boost::thread([this] { run(); });
   }
 
-  void shutdown() {
+  void stop() {
     cq.Shutdown();
     runningThread.join();
   }
 };
+
+RpcClients::~RpcClients() { pImpl->stop(); }
 
 } // namespace rpc
 } // namespace quintet
@@ -94,8 +95,13 @@ void RpcClients::createStubs(const std::vector<ServerId> &srvs) {
   pImpl->createStubs(srvs);
 }
 
+void RpcClients::asyncRun() { pImpl->asyncRun(); }
+
+void RpcClients::stop() { pImpl->stop(); }
+
 boost::future<std::pair<Term, bool>>
-RpcClients::asyncCallRpcAppendEntries(const ServerId & target, grpc::ClientContext &ctx,
+RpcClients::asyncCallRpcAppendEntries(const ServerId &target,
+                                      grpc::ClientContext &ctx,
                                       const AppendEntriesMessage &msg) {
   return pImpl->asyncCallRpcAppendEntries(target, ctx, msg);
 }
@@ -105,12 +111,15 @@ Reply RpcClients::callRpcAppendEntries(const ServerId &target,
                                        const AppendEntriesMessage &msg) {
   return asyncCallRpcAppendEntries(target, ctx, msg).get();
 }
-boost::future<std::pair<Term, bool>> RpcClients::asyncCallRpcRequestVote(const ServerId &target,
-                                                                         grpc::ClientContext &ctx,
-                                                                         const RequestVoteMessage &msg) {
+boost::future<std::pair<Term, bool>>
+RpcClients::asyncCallRpcRequestVote(const ServerId &target,
+                                    grpc::ClientContext &ctx,
+                                    const RequestVoteMessage &msg) {
   return pImpl->asyncCallRequestVote(target, ctx, msg);
 }
-Reply RpcClients::callRpcRequestVote(const ServerId &target, grpc::ClientContext &ctx, const RequestVoteMessage &msg) {
+Reply RpcClients::callRpcRequestVote(const ServerId &target,
+                                     grpc::ClientContext &ctx,
+                                     const RequestVoteMessage &msg) {
   return asyncCallRpcRequestVote(target, ctx, msg).get();
 }
 

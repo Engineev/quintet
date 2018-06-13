@@ -29,7 +29,7 @@ bool IdentityTransformer::notify(ServerIdentityNo target, Term currentTerm) {
 }
 
 void IdentityTransformer::bind(
-    std::function<bool(quintet::ServerIdentityNo)> slot) {
+    std::function<void(quintet::ServerIdentityNo)> slot) {
   pImpl->triggerTransform = std::move(slot);
 }
 

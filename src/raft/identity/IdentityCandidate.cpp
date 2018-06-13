@@ -4,6 +4,7 @@
 
 #include <boost/atomic.hpp>
 
+#include "service/log/Common.h"
 #include "misc/Rand.h"
 
 /* -------------- constructors, destructors and Impl ------------------------ */
@@ -14,9 +15,12 @@ IdentityCandidate::~IdentityCandidate() = default;
 
 struct IdentityCandidate::Impl : public IdentityBase::IdentityBaseImpl {
   Impl(ServerState &state, ServerInfo &info, ServerService &service)
-      : IdentityBaseImpl(state, info, service) {}
+      : IdentityBaseImpl(state, info, service) {
+    service.logger.add_attribute(
+        "Part", logging::attrs::constant<std::string>("Identity"));
+  }
 
-  boost::atomic<std::size_t> votesReceived;
+  boost::atomic<std::size_t> votesReceived{0};
   std::vector<boost::thread> requestingThreads;
 
   void init();
@@ -115,6 +119,8 @@ void IdentityCandidate::Impl::init() {
 }
 
 void IdentityCandidate::Impl::leave() {
+  BOOST_LOG(service.logger)
+    << "leave(); " << requestingThreads.size() << " threads remaining";
   service.heartBeatController.stop();
   for (auto &t : requestingThreads)
     t.interrupt();

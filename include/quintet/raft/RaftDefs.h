@@ -25,11 +25,13 @@ struct LogEntry {
   PrmIdx      prmIdx;
 };
 
+const std::size_t IdentityNum = 5;
 enum class ServerIdentityNo {
-  Follower = 0, Candidate, Leader, Down, Error
+  Follower = 0, Candidate, Leader, Bogus, Down, Error,
 };
 
-const std::string IdentityNames[] = {"Follower", "Candidate", "Leader", "Down"};
+const std::string IdentityNames[IdentityNum]
+    = {"Follower", "Candidate", "Leader", "Bogus", "Down"};
 
 enum class RpcStatus {
   OK, Error

@@ -1,12 +1,16 @@
 #include "Raft.h"
 
-#include <array>
 #include <algorithm>
+#include <array>
+
+#include <boost/log/attributes/mutable_constant.hpp>
 
 #include "Server.h"
-#include "raft/service/rpc/RpcService.h"
-#include "raft/Identity.h"
 #include "misc/EventQueue.h"
+#include "Identity.h"
+#include "service/rpc/RpcService.h"
+#include "service/log/Common.h"
+
 
 /* -------------- constructors, destructors and Impl ------------------------ */
 
@@ -17,16 +21,17 @@ Raft::Raft() : pImpl(std::make_unique<Impl>()) {}
 Raft::~Raft() = default;
 
 struct Raft::Impl {
-  std::array<std::unique_ptr<IdentityBase>, 3> identities;
+  std::array<std::unique_ptr<IdentityBase>, IdentityNum> identities;
   ServerIdentityNo currentIdentity = ServerIdentityNo::Down;
+  logging::attrs::mutable_constant<int> curIdentityAttr{(int)ServerIdentityNo::Down};
 
-  ServerState   state;
-  ServerInfo    info;
+  ServerState state;
+  ServerInfo info;
   ServerService service;
   rpc::RpcService rpc;
+  logging::src::logger_mt logger;
 
   EventQueue transformationQueue;
-
 
   std::pair<Term /*current term*/, bool /*success*/>
   RPCAppendEntries(AppendEntriesMessage msg);
@@ -34,7 +39,7 @@ struct Raft::Impl {
   std::pair<Term /*current term*/, bool /*vote granted*/>
   RPCRequestVote(RequestVoteMessage msg);
 
-  void configure(const std::string & filename);
+  void configure(const std::string &filename);
 
   void initServerService();
 
@@ -48,6 +53,15 @@ struct Raft::Impl {
   void triggerTransformation(ServerIdentityNo target);
 
   void transform(ServerIdentityNo target);
+
+#ifdef UNIT_TEST
+  std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)>
+      beforeTransform = [](ServerIdentityNo from, ServerIdentityNo to) {
+    return to;
+  };
+  std::function<void(ServerIdentityNo from, ServerIdentityNo to)>
+      afterTransform = [](ServerIdentityNo from, ServerIdentityNo to) {};
+#endif
 };
 
 } // namespace quintet
@@ -61,6 +75,18 @@ void Raft::Configure(const std::string &filename) {
 }
 void Raft::AsyncRun() { pImpl->asyncRun(); }
 void Raft::Stop() { pImpl->stop(); }
+
+void Raft::setBeforeTransform(std::function<ServerIdentityNo(ServerIdentityNo, ServerIdentityNo)> f) {
+  pImpl->beforeTransform = std::move(f);
+}
+void Raft::setAfterTransform(std::function<void(ServerIdentityNo, ServerIdentityNo)> f) {
+  pImpl->afterTransform = std::move(f);
+}
+
+const ServerInfo &Raft::getInfo() const { return pImpl->info; }
+Term Raft::getCurrentTerm() const {
+  return pImpl->state.currentTerm;
+}
 
 } // namespace quintet
 
@@ -89,22 +115,30 @@ Raft::Impl::RPCRequestVote(RequestVoteMessage msg) {
 
 namespace quintet {
 
-void Raft::Impl::configure(const std::string & filename) {
+void Raft::Impl::configure(const std::string &filename) {
   info.load(filename);
+  logger.add_attribute(
+      "ServerId", logging::attrs::constant<std::string>(info.local.toString()));
+  logger.add_attribute("Part", logging::attrs::constant<std::string>("Raft"));
+  logger.add_attribute("Identity", curIdentityAttr);
   initServerService();
-  identities[(std::size_t)ServerIdentityNo::Follower]
-        = std::make_unique<IdentityFollower>(state, info, service);
-  identities[(std::size_t)ServerIdentityNo::Candidate]
-      = std::make_unique<IdentityCandidate>(state, info, service);
-//    pImpl->identities[(std::size_t)ServerIdentityNo::Leader]
-//        = std::make_unique<ServerIdentityLeader>(state, info, service);
+  identities[(std::size_t)ServerIdentityNo::Follower] =
+      std::make_unique<IdentityFollower>(state, info, service);
+  identities[(std::size_t)ServerIdentityNo::Candidate] =
+      std::make_unique<IdentityCandidate>(state, info, service);
+  //    pImpl->identities[(std::size_t)ServerIdentityNo::Leader]
+  //        = std::make_unique<ServerIdentityLeader>(state, info, service);
+  identities[(std::size_t)ServerIdentityNo::Bogus] =
+      std::make_unique<IdentityBogus>(state, info, service);
   currentIdentity = ServerIdentityNo::Down;
   initRpcService();
 }
 
 void Raft::Impl::initRpcService() {
-  rpc.bindRequestVote(std::bind(&Raft::Impl::RPCRequestVote, this, std::placeholders::_1));
-  rpc.bindAppendEntries(std::bind(&Raft::Impl::RPCAppendEntries, this, std::placeholders::_1));
+  rpc.bindRequestVote(
+      std::bind(&Raft::Impl::RPCRequestVote, this, std::placeholders::_1));
+  rpc.bindAppendEntries(
+      std::bind(&Raft::Impl::RPCAppendEntries, this, std::placeholders::_1));
   rpc.asyncRun(info.local.port);
 }
 
@@ -114,29 +148,53 @@ void Raft::Impl::triggerTransformation(ServerIdentityNo target) {
 
 void Raft::Impl::transform(ServerIdentityNo target) {
   auto from = currentIdentity;
+
+  auto actualTarget = target;
+#ifdef IDENTITY_TEST
+    actualTarget = beforeTransform(from, target);
+#endif
+  BOOST_LOG(logger)
+    << "transform from " << IdentityNames[(int)from]
+    << " to " << IdentityNames[(int)target]
+    << " (actually to " << IdentityNames[(int)actualTarget] << ")";
+
   rpc.pause();
   if (from != ServerIdentityNo::Down)
     identities[(std::size_t)from]->leave();
-  currentIdentity = target;
-  if (target != ServerIdentityNo::Down)
-    identities[(std::size_t)target]->init();
+
+  currentIdentity = actualTarget;
+  curIdentityAttr.set((int)currentIdentity);
+
+#ifdef IDENTITY_TEST
+    afterTransform(from, target);
+#endif
+  if (actualTarget != ServerIdentityNo::Down)
+    identities[(std::size_t)actualTarget]->init();
   rpc.resume();
 }
 
 void Raft::Impl::initServerService() { // TODO
+  service.configLogger(info.local.toString());
+  service.logger.add_attribute("Identity", curIdentityAttr);
+
+  service.identityTransformer.bind(
+      std::bind(&Raft::Impl::triggerTransformation, this,
+                std::placeholders::_1));
+
   std::vector<ServerId> srvs;
-  std::copy_if(info.srvList.begin(), info.srvList.end(), std::back_inserter(srvs),
-               [local = info.local] (const ServerId & id) {
-                 return local != id;
-               });
+  std::copy_if(
+      info.srvList.begin(), info.srvList.end(), std::back_inserter(srvs),
+      [local = info.local](const ServerId &id) { return local != id; });
   service.clients.createStubs(srvs);
 }
 
 void Raft::Impl::asyncRun() {
+  BOOST_LOG(logger) << "Raft::asyncRun()";
   triggerTransformation(ServerIdentityNo::Follower);
 }
 
 void Raft::Impl::stop() {
+  BOOST_LOG(logger) << "Raft::stop()";
   rpc.stop();
   triggerTransformation(ServerIdentityNo::Down);
   transformationQueue.stop();
@@ -146,5 +204,4 @@ void Raft::Impl::stop() {
 
 /* --------------------- Test ----------------------------------------------- */
 
-namespace quintet {
-} // namespace quintet
+namespace quintet {} // namespace quintet

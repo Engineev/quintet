@@ -7,7 +7,9 @@
 
 #include "misc/Rand.h"
 
-BOOST_AUTO_TEST_SUITE(Misc)
+namespace utf = boost::unit_test_framework;
+
+BOOST_AUTO_TEST_SUITE(Misc, *utf::disabled())
 BOOST_AUTO_TEST_SUITE(EventQueue)
 
 BOOST_AUTO_TEST_CASE(Basic) {
@@ -25,6 +27,23 @@ BOOST_AUTO_TEST_CASE(Basic) {
   }
 
   q.stop();
+}
+
+BOOST_AUTO_TEST_CASE(Advanced) {
+  BOOST_TEST_MESSAGE("Misc::EventQueue::Advanced");
+  quintet::EventQueue q;
+
+  int cnt = 0;
+  auto event = [&cnt] { ++cnt; };
+  q.addEvent(event);
+  boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+  BOOST_REQUIRE_EQUAL(1, cnt);
+  q.pause();
+  q.addEvent(event);
+  boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+  BOOST_REQUIRE_EQUAL(1, cnt);
+  q.stop();
+  BOOST_REQUIRE_EQUAL(2, cnt);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

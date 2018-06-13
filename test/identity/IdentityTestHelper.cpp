@@ -1,6 +1,14 @@
 #include "IdentityTestHelper.h"
 
-#ifdef false
+#include <grpc/grpc.h>
+#include <grpcpp/channel.h>
+#include <grpcpp/client_context.h>
+#include <grpcpp/create_channel.h>
+#include <grpcpp/security/credentials.h>
+
+#include "service/rpc/Conversion.h"
+#include "service/rpc/RaftRpc.grpc.pb.h"
+#include "service/rpc/RpcDefs.h"
 
 namespace quintet {
 namespace test {
@@ -11,44 +19,31 @@ IdentityTestHelper::makeServers(std::size_t num) {
   std::vector<std::unique_ptr<Raft>> res;
   for (int i = 0; i < (int)num; ++i) {
     auto tmp = std::make_unique<Raft>();
-    tmp->init(std::string(CMAKE_SOURCE_DIR) + "/test/RaftConfig/RaftConfig" +
-              std::to_string(i) + ".json");
+    tmp->Configure(std::string(CMAKE_SOURCE_DIR) +
+                   "/test/RaftConfig/RaftConfig" + std::to_string(i) + ".json");
     res.emplace_back(std::move(tmp));
   }
-
-  clients.clear();
-  for (auto &srv : res) {
-    auto id = srv->getInfo().local;
-    auto c = std::make_unique<rpc::client>(id.addr, id.port);
-    c->set_timeout(5000);
-    clients.emplace(id.toString(), std::move(c));
-  }
-
   return res;
-}
-
-void IdentityTestHelper::runServers(
-    std::vector<std::unique_ptr<Server>> &srvs) {
-  for (auto &&srv : srvs)
-    srv->run();
 }
 
 void IdentityTestHelper::sendHeartBeat(const std::vector<ServerId> &srvs,
                                        const ServerId &local,
                                        Term currentTerm) {
+  using namespace quintet::rpc;
   for (auto &srv : srvs) {
     if (srv == local)
       continue;
-    try {
-      clients.at(srv.toString())
-          ->call("AppendEntries", currentTerm, local, 0, 0,
-                 std::vector<LogEntry>(), 0);
-    } catch (rpc::timeout &e) {
-    }
+    std::unique_ptr<RaftRpc::Stub> stub(
+        quintet::rpc::RaftRpc::NewStub(grpc::CreateChannel(
+            "localhost:50051", grpc::InsecureChannelCredentials())));
+    grpc::ClientContext context;
+    PbReply reply;
+    quintet::AppendEntriesMessage msg;
+    msg.term = currentTerm;
+    auto status =
+        stub->AppendEntries(&context, convertAppendEntriesMessage(msg), &reply);
   }
 }
 
 } // namespace test
 } // namespace quintet
-
-#endif

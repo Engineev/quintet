@@ -23,6 +23,10 @@ public:
 
   void createStubs(const std::vector<ServerId> & srvs);
 
+  void asyncRun();
+
+  void stop();
+
   Reply callRpcAppendEntries(const ServerId & target, grpc::ClientContext & ctx, const AppendEntriesMessage & msg);
 
   boost::future<Reply>
