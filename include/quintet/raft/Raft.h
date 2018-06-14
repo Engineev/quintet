@@ -19,9 +19,6 @@ public:
 
   ~Raft();
 
-  std::pair<bool, ServerId>
-  AddLog(std::string opName, std::string args, PrmIdx idx);
-
   void BindCommitter(std::function<void(LogEntry)> committer);
 
   ServerId Local() const;

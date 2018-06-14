@@ -4,7 +4,7 @@
 #ifndef GRPC_RaftRpc_2eproto__INCLUDED
 #define GRPC_RaftRpc_2eproto__INCLUDED
 
-#include "raft/service/rpc/RaftRpc.pb.h"
+#include "RaftRpc.pb.h"
 
 #include <grpcpp/impl/codegen/async_stream.h>
 #include <grpcpp/impl/codegen/async_unary_call.h>
@@ -34,6 +34,13 @@ class RaftRpc final {
   class StubInterface {
    public:
     virtual ~StubInterface() {}
+    virtual ::grpc::Status AddLog(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::quintet::rpc::PbAddLogReply* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbAddLogReply>> AsyncAddLog(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbAddLogReply>>(AsyncAddLogRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbAddLogReply>> PrepareAsyncAddLog(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbAddLogReply>>(PrepareAsyncAddLogRaw(context, request, cq));
+    }
     virtual ::grpc::Status AppendEntries(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::quintet::rpc::PbReply* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbReply>> AsyncAppendEntries(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbReply>>(AsyncAppendEntriesRaw(context, request, cq));
@@ -49,6 +56,8 @@ class RaftRpc final {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbReply>>(PrepareAsyncRequestVoteRaw(context, request, cq));
     }
   private:
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbAddLogReply>* AsyncAddLogRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbAddLogReply>* PrepareAsyncAddLogRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbReply>* AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbReply>* PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::quintet::rpc::PbReply>* AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbRequestVoteMessage& request, ::grpc::CompletionQueue* cq) = 0;
@@ -57,6 +66,13 @@ class RaftRpc final {
   class Stub final : public StubInterface {
    public:
     Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel);
+    ::grpc::Status AddLog(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::quintet::rpc::PbAddLogReply* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbAddLogReply>> AsyncAddLog(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbAddLogReply>>(AsyncAddLogRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbAddLogReply>> PrepareAsyncAddLog(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbAddLogReply>>(PrepareAsyncAddLogRaw(context, request, cq));
+    }
     ::grpc::Status AppendEntries(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::quintet::rpc::PbReply* response) override;
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>> AsyncAppendEntries(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>>(AsyncAppendEntriesRaw(context, request, cq));
@@ -74,10 +90,13 @@ class RaftRpc final {
 
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
+    ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbAddLogReply>* AsyncAddLogRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbAddLogReply>* PrepareAsyncAddLogRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbRequestVoteMessage& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbReply>* PrepareAsyncRequestVoteRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbRequestVoteMessage& request, ::grpc::CompletionQueue* cq) override;
+    const ::grpc::internal::RpcMethod rpcmethod_AddLog_;
     const ::grpc::internal::RpcMethod rpcmethod_AppendEntries_;
     const ::grpc::internal::RpcMethod rpcmethod_RequestVote_;
   };
@@ -87,8 +106,29 @@ class RaftRpc final {
    public:
     Service();
     virtual ~Service();
+    virtual ::grpc::Status AddLog(::grpc::ServerContext* context, const ::quintet::rpc::PbAddLogMessage* request, ::quintet::rpc::PbAddLogReply* response);
     virtual ::grpc::Status AppendEntries(::grpc::ServerContext* context, const ::quintet::rpc::PbAppendEntriesMessage* request, ::quintet::rpc::PbReply* response);
     virtual ::grpc::Status RequestVote(::grpc::ServerContext* context, const ::quintet::rpc::PbRequestVoteMessage* request, ::quintet::rpc::PbReply* response);
+  };
+  template <class BaseClass>
+  class WithAsyncMethod_AddLog : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service *service) {}
+   public:
+    WithAsyncMethod_AddLog() {
+      ::grpc::Service::MarkMethodAsync(0);
+    }
+    ~WithAsyncMethod_AddLog() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AddLog(::grpc::ServerContext* context, const ::quintet::rpc::PbAddLogMessage* request, ::quintet::rpc::PbAddLogReply* response) final override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestAddLog(::grpc::ServerContext* context, ::quintet::rpc::PbAddLogMessage* request, ::grpc::ServerAsyncResponseWriter< ::quintet::rpc::PbAddLogReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+    }
   };
   template <class BaseClass>
   class WithAsyncMethod_AppendEntries : public BaseClass {
@@ -96,7 +136,7 @@ class RaftRpc final {
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithAsyncMethod_AppendEntries() {
-      ::grpc::Service::MarkMethodAsync(0);
+      ::grpc::Service::MarkMethodAsync(1);
     }
     ~WithAsyncMethod_AppendEntries() override {
       BaseClassMustBeDerivedFromService(this);
@@ -107,7 +147,7 @@ class RaftRpc final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestAppendEntries(::grpc::ServerContext* context, ::quintet::rpc::PbAppendEntriesMessage* request, ::grpc::ServerAsyncResponseWriter< ::quintet::rpc::PbReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -116,7 +156,7 @@ class RaftRpc final {
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithAsyncMethod_RequestVote() {
-      ::grpc::Service::MarkMethodAsync(1);
+      ::grpc::Service::MarkMethodAsync(2);
     }
     ~WithAsyncMethod_RequestVote() override {
       BaseClassMustBeDerivedFromService(this);
@@ -127,17 +167,34 @@ class RaftRpc final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     void RequestRequestVote(::grpc::ServerContext* context, ::quintet::rpc::PbRequestVoteMessage* request, ::grpc::ServerAsyncResponseWriter< ::quintet::rpc::PbReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
-      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
+      ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
-  typedef WithAsyncMethod_AppendEntries<WithAsyncMethod_RequestVote<Service > > AsyncService;
+  typedef WithAsyncMethod_AddLog<WithAsyncMethod_AppendEntries<WithAsyncMethod_RequestVote<Service > > > AsyncService;
+  template <class BaseClass>
+  class WithGenericMethod_AddLog : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service *service) {}
+   public:
+    WithGenericMethod_AddLog() {
+      ::grpc::Service::MarkMethodGeneric(0);
+    }
+    ~WithGenericMethod_AddLog() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status AddLog(::grpc::ServerContext* context, const ::quintet::rpc::PbAddLogMessage* request, ::quintet::rpc::PbAddLogReply* response) final override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+  };
   template <class BaseClass>
   class WithGenericMethod_AppendEntries : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithGenericMethod_AppendEntries() {
-      ::grpc::Service::MarkMethodGeneric(0);
+      ::grpc::Service::MarkMethodGeneric(1);
     }
     ~WithGenericMethod_AppendEntries() override {
       BaseClassMustBeDerivedFromService(this);
@@ -154,7 +211,7 @@ class RaftRpc final {
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithGenericMethod_RequestVote() {
-      ::grpc::Service::MarkMethodGeneric(1);
+      ::grpc::Service::MarkMethodGeneric(2);
     }
     ~WithGenericMethod_RequestVote() override {
       BaseClassMustBeDerivedFromService(this);
@@ -166,12 +223,32 @@ class RaftRpc final {
     }
   };
   template <class BaseClass>
+  class WithStreamedUnaryMethod_AddLog : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service *service) {}
+   public:
+    WithStreamedUnaryMethod_AddLog() {
+      ::grpc::Service::MarkMethodStreamed(0,
+        new ::grpc::internal::StreamedUnaryHandler< ::quintet::rpc::PbAddLogMessage, ::quintet::rpc::PbAddLogReply>(std::bind(&WithStreamedUnaryMethod_AddLog<BaseClass>::StreamedAddLog, this, std::placeholders::_1, std::placeholders::_2)));
+    }
+    ~WithStreamedUnaryMethod_AddLog() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable regular version of this method
+    ::grpc::Status AddLog(::grpc::ServerContext* context, const ::quintet::rpc::PbAddLogMessage* request, ::quintet::rpc::PbAddLogReply* response) final override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    // replace default version of method with streamed unary
+    virtual ::grpc::Status StreamedAddLog(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::quintet::rpc::PbAddLogMessage,::quintet::rpc::PbAddLogReply>* server_unary_streamer) = 0;
+  };
+  template <class BaseClass>
   class WithStreamedUnaryMethod_AppendEntries : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithStreamedUnaryMethod_AppendEntries() {
-      ::grpc::Service::MarkMethodStreamed(0,
+      ::grpc::Service::MarkMethodStreamed(1,
         new ::grpc::internal::StreamedUnaryHandler< ::quintet::rpc::PbAppendEntriesMessage, ::quintet::rpc::PbReply>(std::bind(&WithStreamedUnaryMethod_AppendEntries<BaseClass>::StreamedAppendEntries, this, std::placeholders::_1, std::placeholders::_2)));
     }
     ~WithStreamedUnaryMethod_AppendEntries() override {
@@ -191,7 +268,7 @@ class RaftRpc final {
     void BaseClassMustBeDerivedFromService(const Service *service) {}
    public:
     WithStreamedUnaryMethod_RequestVote() {
-      ::grpc::Service::MarkMethodStreamed(1,
+      ::grpc::Service::MarkMethodStreamed(2,
         new ::grpc::internal::StreamedUnaryHandler< ::quintet::rpc::PbRequestVoteMessage, ::quintet::rpc::PbReply>(std::bind(&WithStreamedUnaryMethod_RequestVote<BaseClass>::StreamedRequestVote, this, std::placeholders::_1, std::placeholders::_2)));
     }
     ~WithStreamedUnaryMethod_RequestVote() override {
@@ -205,9 +282,9 @@ class RaftRpc final {
     // replace default version of method with streamed unary
     virtual ::grpc::Status StreamedRequestVote(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::quintet::rpc::PbRequestVoteMessage,::quintet::rpc::PbReply>* server_unary_streamer) = 0;
   };
-  typedef WithStreamedUnaryMethod_AppendEntries<WithStreamedUnaryMethod_RequestVote<Service > > StreamedUnaryService;
+  typedef WithStreamedUnaryMethod_AddLog<WithStreamedUnaryMethod_AppendEntries<WithStreamedUnaryMethod_RequestVote<Service > > > StreamedUnaryService;
   typedef Service SplitStreamedService;
-  typedef WithStreamedUnaryMethod_AppendEntries<WithStreamedUnaryMethod_RequestVote<Service > > StreamedService;
+  typedef WithStreamedUnaryMethod_AddLog<WithStreamedUnaryMethod_AppendEntries<WithStreamedUnaryMethod_RequestVote<Service > > > StreamedService;
 };
 
 }  // namespace rpc

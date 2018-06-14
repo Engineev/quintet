@@ -18,13 +18,6 @@ using Index = std::size_t;
 
 const Term InvalidTerm = std::numeric_limits<Term>::max();
 
-struct LogEntry {
-  Term        term;
-  std::string opName;
-  std::string args;
-  PrmIdx      prmIdx;
-};
-
 const std::size_t IdentityNum = 5;
 enum class ServerIdentityNo {
   Follower = 0, Candidate, Leader, Bogus, Down, Error,
@@ -72,5 +65,17 @@ struct hash<quintet::ServerId> {
   }
 };
 } // namespace ::std
+
+namespace quintet {
+
+struct LogEntry {
+  Term term;
+  std::string opName;
+  std::string args;
+  PrmIdx prmIdx;
+  ServerId srvId;
+};
+
+} // namespace quintet
 
 #endif //QUINTET_RAFTDEFS_H

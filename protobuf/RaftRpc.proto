@@ -17,6 +17,7 @@ message PbLogEntry {
   string opName = 2;
   string args = 3;
   uint64 prmIdx = 4;
+  PbServerId srvId = 5;
 }
 
 message PbAppendEntriesMessage {
@@ -35,7 +36,19 @@ message PbRequestVoteMessage {
   uint64 lastLogTerm = 4;
 }
 
+message PbAddLogMessage {
+  string opName = 1;
+  string args = 2;
+  uint64 prmIdx = 3;
+}
+
+message PbAddLogReply {
+  bool success = 1;
+  PbServerId leaderId = 2;
+}
+
 service RaftRpc {
+  rpc AddLog (PbAddLogMessage) returns (PbAddLogReply) {}
 
   rpc AppendEntries (PbAppendEntriesMessage) returns (PbReply) {}
 

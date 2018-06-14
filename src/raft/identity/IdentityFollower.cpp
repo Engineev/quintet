@@ -46,7 +46,7 @@ Reply IdentityFollower::RPCAppendEntries(AppendEntriesMessage message) {
 
 std::pair<Term /*current term*/, bool /*vote granted*/>
 IdentityFollower::RPCRequestVote(RequestVoteMessage message) {
-  //  return std::pair<Term, bool>();
+  return pImpl->requestVote(message);
 }
 
 } // namespace quintet
@@ -95,7 +95,7 @@ Reply IdentityFollower::Impl::appendEntries(const AppendEntriesMessage &msg) {
   }
 
   if (msg.commitIdx > state.commitIdx) {
-    if (state.entries.size() == 0) {
+    if (state.entries.empty()) {
       throw std::runtime_error("receive commit when own log is empty");
     }
     Index newCommitIdx = std::min(msg.commitIdx, state.entries.size() - 1);

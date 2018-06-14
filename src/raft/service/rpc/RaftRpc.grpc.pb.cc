@@ -17,6 +17,7 @@ namespace quintet {
 namespace rpc {
 
 static const char* RaftRpc_method_names[] = {
+  "/quintet.rpc.RaftRpc/AddLog",
   "/quintet.rpc.RaftRpc/AppendEntries",
   "/quintet.rpc.RaftRpc/RequestVote",
 };
@@ -28,9 +29,22 @@ std::unique_ptr< RaftRpc::Stub> RaftRpc::NewStub(const std::shared_ptr< ::grpc::
 }
 
 RaftRpc::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
-  : channel_(channel), rpcmethod_AppendEntries_(RaftRpc_method_names[0], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
-  , rpcmethod_RequestVote_(RaftRpc_method_names[1], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  : channel_(channel), rpcmethod_AddLog_(RaftRpc_method_names[0], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_AppendEntries_(RaftRpc_method_names[1], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_RequestVote_(RaftRpc_method_names[2], ::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
+
+::grpc::Status RaftRpc::Stub::AddLog(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::quintet::rpc::PbAddLogReply* response) {
+  return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_AddLog_, context, request, response);
+}
+
+::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbAddLogReply>* RaftRpc::Stub::AsyncAddLogRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderFactory< ::quintet::rpc::PbAddLogReply>::Create(channel_.get(), cq, rpcmethod_AddLog_, context, request, true);
+}
+
+::grpc::ClientAsyncResponseReader< ::quintet::rpc::PbAddLogReply>* RaftRpc::Stub::PrepareAsyncAddLogRaw(::grpc::ClientContext* context, const ::quintet::rpc::PbAddLogMessage& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderFactory< ::quintet::rpc::PbAddLogReply>::Create(channel_.get(), cq, rpcmethod_AddLog_, context, request, false);
+}
 
 ::grpc::Status RaftRpc::Stub::AppendEntries(::grpc::ClientContext* context, const ::quintet::rpc::PbAppendEntriesMessage& request, ::quintet::rpc::PbReply* response) {
   return ::grpc::internal::BlockingUnaryCall(channel_.get(), rpcmethod_AppendEntries_, context, request, response);
@@ -60,16 +74,28 @@ RaftRpc::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       RaftRpc_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< RaftRpc::Service, ::quintet::rpc::PbAddLogMessage, ::quintet::rpc::PbAddLogReply>(
+          std::mem_fn(&RaftRpc::Service::AddLog), this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      RaftRpc_method_names[1],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< RaftRpc::Service, ::quintet::rpc::PbAppendEntriesMessage, ::quintet::rpc::PbReply>(
           std::mem_fn(&RaftRpc::Service::AppendEntries), this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
-      RaftRpc_method_names[1],
+      RaftRpc_method_names[2],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
       new ::grpc::internal::RpcMethodHandler< RaftRpc::Service, ::quintet::rpc::PbRequestVoteMessage, ::quintet::rpc::PbReply>(
           std::mem_fn(&RaftRpc::Service::RequestVote), this)));
 }
 
 RaftRpc::Service::~Service() {
+}
+
+::grpc::Status RaftRpc::Service::AddLog(::grpc::ServerContext* context, const ::quintet::rpc::PbAddLogMessage* request, ::quintet::rpc::PbAddLogReply* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
 ::grpc::Status RaftRpc::Service::AppendEntries(::grpc::ServerContext* context, const ::quintet::rpc::PbAppendEntriesMessage* request, ::quintet::rpc::PbReply* response) {

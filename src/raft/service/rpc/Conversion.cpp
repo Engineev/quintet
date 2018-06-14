@@ -14,6 +14,7 @@ PbServerId convertServerId(const ServerId &serverId) {
   PbServerId res;
   res.set_addr(serverId.addr);
   res.set_port(serverId.port);
+
   return res;
 }
 PbLogEntry convertLogEntry(const LogEntry &entry) {
@@ -22,6 +23,7 @@ PbLogEntry convertLogEntry(const LogEntry &entry) {
   res.set_opname(entry.opName);
   res.set_args(entry.args);
   res.set_prmidx(entry.prmIdx);
+  *res.mutable_srvid() = convertServerId(entry.srvId);
   return res;
 }
 PbAppendEntriesMessage
@@ -65,6 +67,7 @@ LogEntry convertLogEntry(const PbLogEntry &entry) {
   res.opName = entry.opname();
   res.args = entry.args();
   res.prmIdx = entry.prmidx();
+  res.srvId = convertServerId(entry.srvid());
   return res;
 }
 AppendEntriesMessage
