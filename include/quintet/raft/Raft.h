@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <utility>
 
 #include "QuintetDefs.h"
 #include "RaftDefs.h"
@@ -14,13 +15,12 @@ struct ServerInfo; // forward declaration
 
 class Raft {
 public:
-  using ServerId = quintet::ServerId;
-
   Raft();
 
   ~Raft();
 
-  void AddLog(std::string opName, std::string args, PrmIdx idx);
+  std::pair<bool, ServerId>
+  AddLog(std::string opName, std::string args, PrmIdx idx);
 
   void BindCommitter(std::function<void(LogEntry)> committer);
 
