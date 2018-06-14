@@ -18,6 +18,8 @@ public:
   std::pair<Term /*current term*/, bool /*vote granted*/>
   RPCRequestVote(RequestVoteMessage message) override;
 
+  AddLogReply RPCAddLog(AddLogMessage message) override;
+
   /// \breif See figure 2 of the paper
   ///
   /// 1. Increase the current term.

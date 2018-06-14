@@ -49,6 +49,10 @@ IdentityFollower::RPCRequestVote(RequestVoteMessage message) {
   return pImpl->requestVote(message);
 }
 
+AddLogReply IdentityFollower::RPCAddLog(AddLogMessage message) {
+  return pImpl->defaultAddLog(std::move(message));
+}
+
 } // namespace quintet
 
 /* -------------------- Helper functions ------------------------------------ */

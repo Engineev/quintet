@@ -34,13 +34,14 @@ struct Raft::Impl {
 
   EventQueue eventQueue; // to synchronize between transformations and 'AddLog's
 
-  void AddLog(std::string opName, std::string args, PrmIdx idx);
 
   std::pair<Term /*current term*/, bool /*success*/>
   RPCAppendEntries(AppendEntriesMessage msg);
 
   std::pair<Term /*current term*/, bool /*vote granted*/>
   RPCRequestVote(RequestVoteMessage msg);
+
+  AddLogReply RPCAddLog(AddLogMessage msg);
 
   void configure(const std::string &filename);
 
@@ -121,6 +122,12 @@ Raft::Impl::RPCRequestVote(RequestVoteMessage msg) {
   return identities[(int)currentIdentity]->RPCRequestVote(std::move(msg));
 };
 
+AddLogReply Raft::Impl::RPCAddLog(AddLogMessage msg) {
+  if (currentIdentity == ServerIdentityNo::Down)
+    return {false, NullServerId};
+  return identities[(int)currentIdentity]->RPCAddLog(std::move(msg));
+}
+
 } // namespace quintet
 
 /* ------------------ helper functions -------------------------------------- */
@@ -151,6 +158,8 @@ void Raft::Impl::initRpcService() {
       std::bind(&Raft::Impl::RPCRequestVote, this, std::placeholders::_1));
   rpc.bindAppendEntries(
       std::bind(&Raft::Impl::RPCAppendEntries, this, std::placeholders::_1));
+  rpc.bindAddLog(
+      std::bind(&Raft::Impl::RPCAddLog, this, std::placeholders::_1));
   rpc.asyncRun(info.local.port);
 }
 
@@ -211,11 +220,6 @@ void Raft::Impl::stop() {
   eventQueue.stop();
 }
 
-void Raft::Impl::AddLog(std::string opName, std::string args, PrmIdx idx) {
-  eventQueue.addEvent([&] {
-
-  });
-}
 
 } // namespace quintet
 

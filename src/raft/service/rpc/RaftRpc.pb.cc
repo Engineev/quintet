@@ -176,6 +176,7 @@ void InitDefaultsPbAddLogMessageImpl() {
 #else
   ::google::protobuf::internal::InitProtobufDefaults();
 #endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
+  protobuf_RaftRpc_2eproto::InitDefaultsPbServerId();
   {
     void* ptr = &::quintet::rpc::_PbAddLogMessage_default_instance_;
     new (ptr) ::quintet::rpc::PbAddLogMessage();
@@ -266,6 +267,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::quintet::rpc::PbAddLogMessage, opname_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::quintet::rpc::PbAddLogMessage, args_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::quintet::rpc::PbAddLogMessage, prmidx_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::quintet::rpc::PbAddLogMessage, srvid_),
   ~0u,  // no _has_bits_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::quintet::rpc::PbAddLogReply, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -281,7 +283,7 @@ static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROT
   { 24, -1, sizeof(::quintet::rpc::PbAppendEntriesMessage)},
   { 35, -1, sizeof(::quintet::rpc::PbRequestVoteMessage)},
   { 44, -1, sizeof(::quintet::rpc::PbAddLogMessage)},
-  { 52, -1, sizeof(::quintet::rpc::PbAddLogReply)},
+  { 53, -1, sizeof(::quintet::rpc::PbAddLogReply)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
@@ -329,9 +331,10 @@ void AddDescriptorsImpl() {
       "itIdx\030\006 \001(\004\"{\n\024PbRequestVoteMessage\022\014\n\004t"
       "erm\030\001 \001(\004\022,\n\013candidateId\030\002 \001(\0132\027.quintet"
       ".rpc.PbServerId\022\022\n\nlastLogIdx\030\003 \001(\004\022\023\n\013l"
-      "astLogTerm\030\004 \001(\004\"\?\n\017PbAddLogMessage\022\016\n\006o"
+      "astLogTerm\030\004 \001(\004\"g\n\017PbAddLogMessage\022\016\n\006o"
       "pName\030\001 \001(\t\022\014\n\004args\030\002 \001(\t\022\016\n\006prmIdx\030\003 \001("
-      "\004\"K\n\rPbAddLogReply\022\017\n\007success\030\001 \001(\010\022)\n\010l"
+      "\004\022&\n\005srvId\030\004 \001(\0132\027.quintet.rpc.PbServerI"
+      "d\"K\n\rPbAddLogReply\022\017\n\007success\030\001 \001(\010\022)\n\010l"
       "eaderId\030\002 \001(\0132\027.quintet.rpc.PbServerId2\347"
       "\001\n\007RaftRpc\022D\n\006AddLog\022\034.quintet.rpc.PbAdd"
       "LogMessage\032\032.quintet.rpc.PbAddLogReply\"\000"
@@ -341,7 +344,7 @@ void AddDescriptorsImpl() {
       "eMessage\032\024.quintet.rpc.PbReply\"\000b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 920);
+      descriptor, 960);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "RaftRpc.proto", &protobuf_RegisterTypes);
 }
@@ -2187,11 +2190,14 @@ void PbRequestVoteMessage::InternalSwap(PbRequestVoteMessage* other) {
 // ===================================================================
 
 void PbAddLogMessage::InitAsDefaultInstance() {
+  ::quintet::rpc::_PbAddLogMessage_default_instance_._instance.get_mutable()->srvid_ = const_cast< ::quintet::rpc::PbServerId*>(
+      ::quintet::rpc::PbServerId::internal_default_instance());
 }
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int PbAddLogMessage::kOpNameFieldNumber;
 const int PbAddLogMessage::kArgsFieldNumber;
 const int PbAddLogMessage::kPrmIdxFieldNumber;
+const int PbAddLogMessage::kSrvIdFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 PbAddLogMessage::PbAddLogMessage()
@@ -2215,6 +2221,11 @@ PbAddLogMessage::PbAddLogMessage(const PbAddLogMessage& from)
   if (from.args().size() > 0) {
     args_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.args_);
   }
+  if (from.has_srvid()) {
+    srvid_ = new ::quintet::rpc::PbServerId(*from.srvid_);
+  } else {
+    srvid_ = NULL;
+  }
   prmidx_ = from.prmidx_;
   // @@protoc_insertion_point(copy_constructor:quintet.rpc.PbAddLogMessage)
 }
@@ -2222,7 +2233,9 @@ PbAddLogMessage::PbAddLogMessage(const PbAddLogMessage& from)
 void PbAddLogMessage::SharedCtor() {
   opname_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   args_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  prmidx_ = GOOGLE_ULONGLONG(0);
+  ::memset(&srvid_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&prmidx_) -
+      reinterpret_cast<char*>(&srvid_)) + sizeof(prmidx_));
   _cached_size_ = 0;
 }
 
@@ -2234,6 +2247,7 @@ PbAddLogMessage::~PbAddLogMessage() {
 void PbAddLogMessage::SharedDtor() {
   opname_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   args_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (this != internal_default_instance()) delete srvid_;
 }
 
 void PbAddLogMessage::SetCachedSize(int size) const {
@@ -2267,6 +2281,10 @@ void PbAddLogMessage::Clear() {
 
   opname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   args_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (GetArenaNoVirtual() == NULL && srvid_ != NULL) {
+    delete srvid_;
+  }
+  srvid_ = NULL;
   prmidx_ = GOOGLE_ULONGLONG(0);
   _internal_metadata_.Clear();
 }
@@ -2327,6 +2345,18 @@ bool PbAddLogMessage::MergePartialFromCodedStream(
         break;
       }
 
+      // .quintet.rpc.PbServerId srvId = 4;
+      case 4: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(34u /* 34 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessage(
+               input, mutable_srvid()));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
       default: {
       handle_unusual:
         if (tag == 0) {
@@ -2378,6 +2408,12 @@ void PbAddLogMessage::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->prmidx(), output);
   }
 
+  // .quintet.rpc.PbServerId srvId = 4;
+  if (this->has_srvid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      4, *this->srvid_, output);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
@@ -2419,6 +2455,13 @@ void PbAddLogMessage::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(3, this->prmidx(), target);
   }
 
+  // .quintet.rpc.PbServerId srvId = 4;
+  if (this->has_srvid()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageToArray(
+        4, *this->srvid_, deterministic, target);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
@@ -2448,6 +2491,13 @@ size_t PbAddLogMessage::ByteSizeLong() const {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::StringSize(
         this->args());
+  }
+
+  // .quintet.rpc.PbServerId srvId = 4;
+  if (this->has_srvid()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::MessageSize(
+        *this->srvid_);
   }
 
   // uint64 prmIdx = 3;
@@ -2494,6 +2544,9 @@ void PbAddLogMessage::MergeFrom(const PbAddLogMessage& from) {
 
     args_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.args_);
   }
+  if (from.has_srvid()) {
+    mutable_srvid()->::quintet::rpc::PbServerId::MergeFrom(from.srvid());
+  }
   if (from.prmidx() != 0) {
     set_prmidx(from.prmidx());
   }
@@ -2525,6 +2578,7 @@ void PbAddLogMessage::InternalSwap(PbAddLogMessage* other) {
   using std::swap;
   opname_.Swap(&other->opname_);
   args_.Swap(&other->args_);
+  swap(srvid_, other->srvid_);
   swap(prmidx_, other->prmidx_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
   swap(_cached_size_, other->_cached_size_);

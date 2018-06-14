@@ -838,6 +838,15 @@ class PbAddLogMessage : public ::google::protobuf::Message /* @@protoc_insertion
   ::std::string* release_args();
   void set_allocated_args(::std::string* args);
 
+  // .quintet.rpc.PbServerId srvId = 4;
+  bool has_srvid() const;
+  void clear_srvid();
+  static const int kSrvIdFieldNumber = 4;
+  const ::quintet::rpc::PbServerId& srvid() const;
+  ::quintet::rpc::PbServerId* release_srvid();
+  ::quintet::rpc::PbServerId* mutable_srvid();
+  void set_allocated_srvid(::quintet::rpc::PbServerId* srvid);
+
   // uint64 prmIdx = 3;
   void clear_prmidx();
   static const int kPrmIdxFieldNumber = 3;
@@ -850,6 +859,7 @@ class PbAddLogMessage : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::internal::ArenaStringPtr opname_;
   ::google::protobuf::internal::ArenaStringPtr args_;
+  ::quintet::rpc::PbServerId* srvid_;
   ::google::protobuf::uint64 prmidx_;
   mutable int _cached_size_;
   friend struct ::protobuf_RaftRpc_2eproto::TableStruct;
@@ -1620,6 +1630,56 @@ inline void PbAddLogMessage::set_prmidx(::google::protobuf::uint64 value) {
   
   prmidx_ = value;
   // @@protoc_insertion_point(field_set:quintet.rpc.PbAddLogMessage.prmIdx)
+}
+
+// .quintet.rpc.PbServerId srvId = 4;
+inline bool PbAddLogMessage::has_srvid() const {
+  return this != internal_default_instance() && srvid_ != NULL;
+}
+inline void PbAddLogMessage::clear_srvid() {
+  if (GetArenaNoVirtual() == NULL && srvid_ != NULL) {
+    delete srvid_;
+  }
+  srvid_ = NULL;
+}
+inline const ::quintet::rpc::PbServerId& PbAddLogMessage::srvid() const {
+  const ::quintet::rpc::PbServerId* p = srvid_;
+  // @@protoc_insertion_point(field_get:quintet.rpc.PbAddLogMessage.srvId)
+  return p != NULL ? *p : *reinterpret_cast<const ::quintet::rpc::PbServerId*>(
+      &::quintet::rpc::_PbServerId_default_instance_);
+}
+inline ::quintet::rpc::PbServerId* PbAddLogMessage::release_srvid() {
+  // @@protoc_insertion_point(field_release:quintet.rpc.PbAddLogMessage.srvId)
+  
+  ::quintet::rpc::PbServerId* temp = srvid_;
+  srvid_ = NULL;
+  return temp;
+}
+inline ::quintet::rpc::PbServerId* PbAddLogMessage::mutable_srvid() {
+  
+  if (srvid_ == NULL) {
+    srvid_ = new ::quintet::rpc::PbServerId;
+  }
+  // @@protoc_insertion_point(field_mutable:quintet.rpc.PbAddLogMessage.srvId)
+  return srvid_;
+}
+inline void PbAddLogMessage::set_allocated_srvid(::quintet::rpc::PbServerId* srvid) {
+  ::google::protobuf::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == NULL) {
+    delete srvid_;
+  }
+  if (srvid) {
+    ::google::protobuf::Arena* submessage_arena = NULL;
+    if (message_arena != submessage_arena) {
+      srvid = ::google::protobuf::internal::GetOwnedMessage(
+          message_arena, srvid, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  srvid_ = srvid;
+  // @@protoc_insertion_point(field_set_allocated:quintet.rpc.PbAddLogMessage.srvId)
 }
 
 // -------------------------------------------------------------------

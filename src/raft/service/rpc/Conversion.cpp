@@ -46,6 +46,19 @@ PbRequestVoteMessage convertRequestVoteMessage(const RequestVoteMessage &msg) {
   res.set_lastlogterm(msg.lastLogTerm);
   return res;
 }
+PbAddLogMessage convertAddLogMessage(const AddLogMessage &msg) {
+  PbAddLogMessage res;
+  res.set_opname(msg.opName);
+  res.set_args(msg.args);
+  *res.mutable_srvid() = convertServerId(msg.srvId);
+  return res;
+}
+PbAddLogReply convertAddLogReply(const AddLogReply &reply) {
+  PbAddLogReply res;
+  res.set_success(reply.success);
+  *res.mutable_leaderid() = convertServerId(reply.leaderId);
+  return res;
+}
 
 } // namespace rpc
 } // namespace quintet
@@ -88,6 +101,20 @@ RequestVoteMessage convertRequestVoteMessage(const PbRequestVoteMessage &msg) {
   res.candidateId = convertServerId(msg.candidateid());
   res.lastLogIdx = msg.lastlogidx();
   res.lastLogTerm = msg.lastlogterm();
+  return res;
+}
+AddLogMessage rpc::convertAddLogMessage(const PbAddLogMessage &msg) {
+  AddLogMessage res;
+  res.opName = msg.opname();
+  res.args = msg.args();
+  res.prmIdx = msg.prmidx();
+  res.srvId = convertServerId(msg.srvid());
+  return res;
+}
+AddLogReply rpc::convertAddLogReply(const PbAddLogReply &reply) {
+  AddLogReply res;
+  res.success = reply.success();
+  res.leaderId = convertServerId(reply.leaderid());
   return res;
 }
 

@@ -16,10 +16,12 @@ public:
 
   ~RpcService();
 
+  void
+  bindAddLog(std::function<quintet::AddLogReply(quintet::AddLogMessage)> f);
   void bindAppendEntries(
-      std::function<std::pair<Term, bool>(AppendEntriesMessage)> f);
-  void bindRequestVote(
-      std::function<std::pair<Term, bool>(RequestVoteMessage)> f);
+      std::function<quintet::Reply(quintet::AppendEntriesMessage)> f);
+  void
+  bindRequestVote(std::function<quintet::Reply(quintet::RequestVoteMessage)> f);
 
   void configLogger(const std::string &id);
 

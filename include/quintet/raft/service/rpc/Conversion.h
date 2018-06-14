@@ -21,6 +21,10 @@ convertAppendEntriesMessage(const AppendEntriesMessage &msg);
 
 PbRequestVoteMessage convertRequestVoteMessage(const RequestVoteMessage &msg);
 
+PbAddLogMessage convertAddLogMessage(const AddLogMessage & msg);
+
+PbAddLogReply convertAddLogReply(const AddLogReply & reply);
+
 } // namespace rpc
 } // namespace quintet
 
@@ -38,6 +42,10 @@ AppendEntriesMessage
 convertAppendEntriesMessage(const PbAppendEntriesMessage &msg);
 
 RequestVoteMessage convertRequestVoteMessage(const PbRequestVoteMessage &msg);
+
+AddLogMessage convertAddLogMessage(const PbAddLogMessage & msg);
+
+AddLogReply convertAddLogReply(const PbAddLogReply & reply);
 
 } // namespace rpc
 } // namespace quintet

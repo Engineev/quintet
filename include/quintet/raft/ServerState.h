@@ -14,6 +14,7 @@ struct ServerState
 
   Term currentTerm = InvalidTerm;
   ServerId votedFor = NullServerId;
+  ServerId currentLeader = NullServerId;
   std::vector<LogEntry> entries = {LogEntry()};
   // This add an empty log entry to the entries, in order to make the
   // entries's init size to be 1, and make it consistent of commitIdx with

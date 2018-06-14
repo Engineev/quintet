@@ -105,6 +105,10 @@ IdentityCandidate::RPCRequestVote(RequestVoteMessage msg) {
   return {state.currentTerm, false};
 }
 
+AddLogReply IdentityCandidate::RPCAddLog(AddLogMessage message) {
+  return pImpl->defaultAddLog(std::move(message));
+}
+
 } // namespace quintet
 
 /* -------------------- Helper functions ------------------------------------ */

@@ -54,6 +54,30 @@ struct RequestVoteMessage {
   RequestVoteMessage& operator=(RequestVoteMessage &&) = default;
 };
 
+struct AddLogMessage {
+  std::string opName;
+  std::string args;
+  PrmIdx prmIdx{0};
+  ServerId srvId;
+
+  AddLogMessage() = default;
+  AddLogMessage(const AddLogMessage &) = default;
+  AddLogMessage(AddLogMessage &&) = default;
+  AddLogMessage& operator=(const AddLogMessage &) = default;
+  AddLogMessage& operator=(AddLogMessage &&) = default;
+};
+
+struct AddLogReply {
+  bool success{false};
+  ServerId leaderId;
+
+  AddLogReply() = default;
+  AddLogReply(const AddLogReply &) = default;
+  AddLogReply(AddLogReply &&) = default;
+  AddLogReply &operator=(const AddLogReply &) = default;
+  AddLogReply &operator=(AddLogReply &&) = default;
+};
+
 }
 
 #endif //QUINTET_RPCDEFS_H

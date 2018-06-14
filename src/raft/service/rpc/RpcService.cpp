@@ -14,9 +14,9 @@
 #include <grpc++/server_builder.h>
 #include <grpc++/server_context.h>
 
-#include "service/rpc/RaftRpc.grpc.pb.h"
-#include "service/rpc/Conversion.h"
 #include "service/log/Common.h"
+#include "service/rpc/Conversion.h"
+#include "service/rpc/RaftRpc.grpc.pb.h"
 
 /* ---------------------------- RaftRpc ------------------------------------- */
 
@@ -28,10 +28,12 @@ class RaftRpcImpl final : public RaftRpc::Service {
       std::function<std::pair<Term, bool>(AppendEntriesMessage)>;
   using RequestVoteFunc =
       std::function<std::pair<Term, bool>(RequestVoteMessage)>;
+  using AddLogFunc = std::function<AddLogReply(AddLogMessage)>;
 
 public:
   void bindAppendEntries(AppendEntriesFunc f) { appendEntries = std::move(f); }
   void bindRequestVote(RequestVoteFunc f) { requestVote = std::move(f); }
+  void bindAddLog(AddLogFunc f) { addLog = std::move(f); }
 
   grpc::Status AppendEntries(grpc::ServerContext *context,
                              const PbAppendEntriesMessage *request,
@@ -49,9 +51,18 @@ public:
     return grpc::Status::OK;
   }
 
+  grpc::Status AddLog(grpc::ServerContext *context,
+                      const PbAddLogMessage *request,
+                      PbAddLogReply *response) override {
+    auto msg = convertAddLogMessage(*request);
+    response->CopyFrom(convertAddLogReply(addLog(std::move(msg))));
+    return grpc::Status::OK;
+  }
+
 private:
   AppendEntriesFunc appendEntries;
   RequestVoteFunc requestVote;
+  AddLogFunc addLog;
 };
 
 } // namespace rpc
@@ -113,6 +124,15 @@ struct RpcService::Impl {
     });
   }
 
+  void bindAddLog(std::function<AddLogReply(AddLogMessage)> f) {
+    service.bindAddLog([this, f](AddLogMessage msg) {
+      auto defer = preRpc();
+      boost::unique_lock<boost::mutex> lk(rpcing);
+      cv.wait(lk, [this] { return !paused; });
+      return f(std::move(msg));
+    });
+  }
+
   void pause() {
     BOOST_LOG(logger) << "Paused";
     paused = true;
@@ -133,18 +153,15 @@ struct RpcService::Impl {
     runningThread.join();
   }
 
-  void configLogger(const std::string & id) {
-    logger.add_attribute(
-        "ServerId", logging::attrs::constant<std::string>(id));
-    logger.add_attribute(
-        "Part", logging::attrs::constant<std::string>("RpcService"));
+  void configLogger(const std::string &id) {
+    logger.add_attribute("ServerId", logging::attrs::constant<std::string>(id));
+    logger.add_attribute("Part",
+                         logging::attrs::constant<std::string>("RpcService"));
   }
 
 }; // struct RpcService::Impl
 
-RpcService::~RpcService() {
-  pImpl->stop();
-}
+RpcService::~RpcService() { pImpl->stop(); }
 
 } // namespace rpc
 } // namespace quintet
@@ -167,6 +184,10 @@ void RpcService::bindAppendEntries(
 void RpcService::bindRequestVote(
     std::function<std::pair<Term, bool>(RequestVoteMessage)> f) {
   pImpl->bindRequestVote(std::move(f));
+}
+void RpcService::bindAddLog(
+    std::function<quintet::AddLogReply(quintet::AddLogMessage)> f) {
+  pImpl->bindAddLog(std::move(f));
 }
 
 void RpcService::configLogger(const std::string &id) {

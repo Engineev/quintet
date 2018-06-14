@@ -19,6 +19,8 @@ public:
   virtual std::pair<Term /*current term*/, bool /*vote granted*/>
   RPCRequestVote(RequestVoteMessage message) = 0;
 
+  virtual AddLogReply RPCAddLog(AddLogMessage msg) = 0;
+
   virtual void leave() = 0;
 
   /// \brief To be invoked right after the transformation to initialize
@@ -28,12 +30,13 @@ public:
 protected:
   struct IdentityBaseImpl {
     IdentityBaseImpl(
-        ServerState &state, ServerInfo &info, ServerService &service)
-        : state(state), info(info), service(service) {}
+        ServerState &state, ServerInfo &info, ServerService &service);
 
     ServerState &state;
     const ServerInfo &info;
     ServerService &service;
+
+    AddLogReply defaultAddLog(AddLogMessage);
   };
 };
 
