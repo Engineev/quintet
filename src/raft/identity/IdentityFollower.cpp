@@ -105,7 +105,7 @@ Reply IdentityFollower::Impl::appendEntries(const AppendEntriesMessage &msg) {
     Index newCommitIdx = std::min(msg.commitIdx, state.entries.size() - 1);
     for (Index commitItem = state.commitIdx + 1; commitItem <= newCommitIdx;
          ++commitItem) {
-      service.committer.commit(state.entries.at(commitItem));
+      service.apply(state.entries.at(commitItem));
     }
     state.commitIdx = newCommitIdx;
   }

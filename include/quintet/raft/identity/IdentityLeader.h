@@ -18,6 +18,8 @@ public:
   std::pair<Term /*current term*/, bool /*vote granted*/>
   RPCRequestVote(RequestVoteMessage message) override;
 
+  AddLogReply RPCAddLog(AddLogMessage message) override { throw; }
+
   void init() override;
 
   void leave() override;

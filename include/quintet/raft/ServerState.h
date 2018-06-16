@@ -22,9 +22,6 @@ struct ServerState
 
   Index commitIdx = 0;
   Index lastApplied = 0;
-
-  std::vector<Index> nextIndex;
-  std::vector<Index> matchIndex;
 }; // struct ServerState
 
 inline bool upToDate(const ServerState &state, std::size_t lastLogIdx,

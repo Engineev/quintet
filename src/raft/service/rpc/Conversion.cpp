@@ -103,7 +103,7 @@ RequestVoteMessage convertRequestVoteMessage(const PbRequestVoteMessage &msg) {
   res.lastLogTerm = msg.lastlogterm();
   return res;
 }
-AddLogMessage rpc::convertAddLogMessage(const PbAddLogMessage &msg) {
+AddLogMessage convertAddLogMessage(const PbAddLogMessage &msg) {
   AddLogMessage res;
   res.opName = msg.opname();
   res.args = msg.args();
@@ -111,7 +111,7 @@ AddLogMessage rpc::convertAddLogMessage(const PbAddLogMessage &msg) {
   res.srvId = convertServerId(msg.srvid());
   return res;
 }
-AddLogReply rpc::convertAddLogReply(const PbAddLogReply &reply) {
+AddLogReply convertAddLogReply(const PbAddLogReply &reply) {
   AddLogReply res;
   res.success = reply.success();
   res.leaderId = convertServerId(reply.leaderid());

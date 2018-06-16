@@ -19,7 +19,7 @@ public:
 
   ~Raft();
 
-  void BindCommitter(std::function<void(LogEntry)> committer);
+  void BindApply(std::function<void(LogEntry)> apply);
 
   ServerId Local() const;
 

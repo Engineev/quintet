@@ -75,6 +75,8 @@ RpcClient::RpcClient(std::shared_ptr<grpc::Channel> channel)
   pImpl->asyncRun();
 }
 
+RpcClient::RpcClient(RpcClient &&) = default;
+
 RpcClient::~RpcClient() {
   pImpl->cq.Shutdown();
   pImpl->runningThread.join();

@@ -46,6 +46,8 @@ struct ServerId {
   Port port = 0;
 
   std::string toString() const;
+
+  std::string toGrpcString() const;
 };
 
 const ServerId NullServerId{"", 0};

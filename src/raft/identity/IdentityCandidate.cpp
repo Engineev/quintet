@@ -9,6 +9,7 @@
 #include <grpc++/client_context.h>
 
 #include "misc/Rand.h"
+#include "misc/Thread.h"
 #include "service/log/Common.h"
 #include "service/rpc/RpcClient.h"
 

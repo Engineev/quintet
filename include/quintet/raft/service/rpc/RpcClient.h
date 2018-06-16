@@ -22,7 +22,7 @@ public:
 
   ~RpcClient();
 
-  RpcClient(RpcClient &&) = default;
+  RpcClient(RpcClient &&);
   RpcClient(const RpcClient &) = delete;
 
   Reply callRpcAppendEntries(std::shared_ptr<grpc::ClientContext> ctx,
