@@ -31,50 +31,26 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
 
   struct FollowerState
       : public boost::shared_lockable_adapter<boost::shared_mutex> {
-    Index nextIdx = Index(-1), matchIdx = 0;
+    Index nextIdx = Index(-1);
+    Index matchIdx = 0;
   };
-  std::unordered_map<ServerId, std::unique_ptr<FollowerState>> followerStates;
-  std::unordered_map<Index, std::size_t> replicatedNum;
+  struct LogState : public boost::shared_lockable_adapter<boost::shared_mutex> {
+    std::size_t replicateNum = 0;
+  };
 
+  std::unordered_map<ServerId, std::unique_ptr<FollowerState>> followerStates;
+  std::unordered_map<Index, std::unique_ptr<LogState>> logStates;
   EventQueue applyQueue;
 
-  ThreadPool heartbeatThreads;
-
-  void initFollowerStates();
+  // append entries
+  Reply sendAppendEntries(boost::strict_lock<ServerState> &,
+      rpc::RpcClient &client, Index start);
 
   /// \breif Try indefinitely until succeed or \a nextIdx decrease to
   /// the lowest value.
-  void tryAppendEntries(const ServerId & target, const AppendEntriesMessage & msg);
+  void tryAppendEntries(const ServerId & target);
 
-  Reply appendEntries(rpc::RpcClient &client) {} // TODO
-
-  void init();
-
-  void leave();
-
-  Reply RPCAppendEntries(const AppendEntriesMessage &msg);
-
-  Reply RPCRequestVote(const RequestVoteMessage &msg);
-
-  void sendHeartBeats();
-
-  void updateFollowerStatesAndReact() {}
-
-  // helpers
-  std::vector<rpc::RpcClient> makeRpcClients() const {
-    std::vector<rpc::RpcClient> res;
-    for (auto &srv : info.srvList) {
-      if (srv == info.local)
-        continue;
-      res.emplace_back(
-          grpc::CreateChannel(srv.addr + ":" + std::to_string(srv.port),
-                              grpc::InsecureChannelCredentials()));
-    }
-    return res;
-  }
-
-  // commit and apply
-
+  // commit and reply
   /// \breif Update \a state.commitIdx and apply the newly-committed
   /// log entries asynchronously.
   ///
@@ -98,107 +74,67 @@ IdentityLeader::~IdentityLeader() = default;
 
 namespace quintet {
 
-void IdentityLeader::init() { pImpl->init(); }
+void IdentityLeader::init() { throw; }
 
-void IdentityLeader::leave() { pImpl->leave(); }
+void IdentityLeader::leave() { throw; }
 
-Reply IdentityLeader::RPCAppendEntries(AppendEntriesMessage message) {
-  return pImpl->RPCAppendEntries(message);
-}
+Reply IdentityLeader::RPCAppendEntries(AppendEntriesMessage message) { throw; }
 
 std::pair<Term /*current term*/, bool /*vote granted*/>
 IdentityLeader::RPCRequestVote(RequestVoteMessage message) {
-  return pImpl->RPCRequestVote(message);
+  throw;
 }
 
 } // namespace quintet
 
-/* -------------------- Helper functions ------------------------------------ */
+/* -------------------- AppendEntries --------------------------------------- */
 
 namespace quintet {
 
-void IdentityLeader::Impl::init() {
-  state.currentLeader = info.local;
-  initFollowerStates();
-  service.heartBeatController.bind(
-      info.electionTimeout / 5,
-      std::bind(&IdentityLeader::Impl::sendHeartBeats, this));
-  service.heartBeatController.start(true, true);
-}
+// helper functions
+namespace {
 
-void IdentityLeader::Impl::leave() {}
-
-Reply IdentityLeader::Impl::RPCAppendEntries(const AppendEntriesMessage &msg) {}
-
-Reply IdentityLeader::Impl::RPCRequestVote(const RequestVoteMessage &msg) {}
-
-void IdentityLeader::Impl::initFollowerStates() {
-  for (auto &srv : info.srvList) {
-    if (srv == info.local)
-      continue;
-    auto tmp = std::make_unique<FollowerState>();
-    tmp->nextIdx = state.entries.size();
-    tmp->matchIdx = 0;
-    followerStates.emplace(srv, std::move(tmp));
-  }
-}
-
-void IdentityLeader::Impl::sendHeartBeats() {
-  heartbeatThreads.clearWithInterruption();
-
-  boost::shared_lock_guard<ServerState> slk(state);
+AppendEntriesMessage createAppendEntriesMessage(
+    const ServerState & state, const ServerInfo & info,
+    Index start) {
   AppendEntriesMessage msg;
-  msg.leaderId = info.local;
   msg.term = state.currentTerm;
+  msg.leaderId = info.local;
+  msg.prevLogIdx = state.entries.size() - 2; // TODO: empty ?
+  msg.prevLogTerm = state.entries[msg.prevLogIdx].term;
+  msg.logEntries = std::vector<LogEntry>(
+      state.entries.begin() + start, state.entries.end());
   msg.commitIdx = state.commitIdx;
-  msg.prevLogIdx = state.entries.size() - 2;
-  msg.prevLogTerm = state.entries.at(msg.prevLogIdx).term;
-
-  for (auto &srv : info.srvList) {
-    if (srv == info.local)
-      continue;
-    heartbeatThreads.add(boost::thread([this, srv, msg] {
-      rpc::RpcClient client(
-          grpc::CreateChannel(srv.addr + ":" + std::to_string(srv.port),
-                              grpc::InsecureChannelCredentials()));
-      auto ctx = std::make_shared<grpc::ClientContext>();
-      ctx->set_deadline(std::chrono::system_clock::now() +
-                        std::chrono::milliseconds(50));
-      auto res = client.callRpcAppendEntries(ctx, msg);
-      if (res.first <= msg.term)
-        return;
-      boost::lock_guard<ServerState> sslk(state);
-      state.currentTerm = res.first;
-      service.identityTransformer.notify(ServerIdentityNo::Follower, msg.term);
-      // TODO:
-    }));
-  }
+  return msg;
 }
 
-} // namespace quintet
+auto timeout2Deadline(std::uint64_t ms) {
+  return std::chrono::system_clock::now() + std::chrono::milliseconds(ms);
+}
 
-/* -------------------- tryAppendEntries ------------------------------------ */
+} // namespace
 
-namespace quintet {
+Reply IdentityLeader::Impl::sendAppendEntries(
+    boost::strict_lock<ServerState> &, rpc::RpcClient &client, Index start) {
+  auto msg = createAppendEntriesMessage(state, info, start);
+  auto ctx = std::make_shared<grpc::ClientContext>();
+  ctx->set_deadline(timeout2Deadline(50));
+  return client.callRpcAppendEntries(ctx, msg);
+}
 
-void IdentityLeader::Impl::tryAppendEntries(const ServerId & target,
-                                            const AppendEntriesMessage & msg) {
+void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
   rpc::RpcClient client(grpc::CreateChannel(
       target.toGrpcString(), grpc::InsecureChannelCredentials()));
 
-  boost::strict_lock<ServerState> lk(state);
+  boost::strict_lock<ServerState> serverStateLk(state);
   auto & followerState = followerStates.at(target);
-  boost::lock_guard<FollowerState> slk(*followerState);
+  boost::unique_lock<FollowerState> followerStateLk(*followerState);
 
   while (true) {
-    auto ctx = std::make_shared<grpc::ClientContext>();
-    ctx->set_deadline(std::chrono::system_clock::now() +
-                      std::chrono::milliseconds(50));
-    auto res = client.callRpcAppendEntries(ctx, msg);
-    // TODO: exception
-    if (res.second) {
+    auto res = sendAppendEntries(serverStateLk, client, followerState->nextIdx);
+    // TODO: exception; nextIdx == 0 ?
+    if (res.second)
       break;
-    }
     if (res.first > state.currentTerm) {
       state.currentTerm = res.first;
       service.identityTransformer.notify(ServerIdentityNo::Follower,
@@ -209,8 +145,11 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target,
     boost::this_thread::interruption_point();
   }
 
-  // TODO: update matchIdx
-
+  // Succeed.
+  followerState->matchIdx = state.entries.size() - 1;
+  followerState->nextIdx = state.entries.size();
+  followerStateLk.unlock();
+  // TODO: update log states
 }
 
 } // namespace quintet
@@ -228,9 +167,11 @@ void IdentityLeader::Impl::commitAndAsyncApply(
 
   std::vector<LogEntry> entriesToApply(state.entries.begin() + oldCommitIdx + 1,
                                        state.entries.begin() + commitIdx + 1);
-  applyQueue.addEvent([entriesToApply = std::move(entriesToApply)] {
-    for (auto &entry : entriesToApply) {
-      service.apply(entry);
+  applyQueue.addEvent([this, entriesToApply = std::move(entriesToApply)] {
+    for (std::size_t i = 0, sz = entriesToApply.size(); i < sz; ++i) {
+      service.apply(entriesToApply[i]);
+      boost::lock_guard<ServerState> lk(state);
+      ++state.lastApplied; // TODO: assert
     }
   });
 }
