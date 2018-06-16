@@ -34,6 +34,7 @@ struct Raft::Impl {
 
   EventQueue eventQueue; // to synchronize between transformations and 'AddLog's
 
+  void AddLog(std::string opName, std::string args, PrmIdx idx);
 
   std::pair<Term /*current term*/, bool /*success*/>
   RPCAppendEntries(AppendEntriesMessage msg);
@@ -218,6 +219,12 @@ void Raft::Impl::stop() {
   rpc.stop();
   triggerTransformation(ServerIdentityNo::Down);
   eventQueue.stop();
+}
+
+void Raft::Impl::AddLog(std::string opName, std::string args, PrmIdx idx) {
+  eventQueue.addEvent([&] {
+
+  });
 }
 
 

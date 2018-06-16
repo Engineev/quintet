@@ -18,6 +18,7 @@
 #include "service/log/Common.h"
 #include "service/rpc/RpcClient.h"
 
+
 /* -------------- constructors, destructors and Impl ------------------------ */
 
 namespace quintet {
@@ -59,6 +60,7 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
   ///
   /// \param commitIdx the new commitIdx
   void commitAndAsyncApply(boost::strict_lock<ServerState> &, Index commitIdx);
+
 
 }; // struct IdentityLeader::Impl
 
@@ -177,3 +179,4 @@ void IdentityLeader::Impl::commitAndAsyncApply(
 }
 
 } // namespace quintet
+
