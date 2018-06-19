@@ -126,7 +126,7 @@ Reply IdentityLeader::Impl::sendAppendEntries(
 
 void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
   rpc::RpcClient client(grpc::CreateChannel(
-      target.toGrpcString(), grpc::InsecureChannelCredentials()));
+      target.toString(), grpc::InsecureChannelCredentials()));
 
   boost::strict_lock<ServerState> serverStateLk(state);
   auto & followerState = followerStates.at(target);

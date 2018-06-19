@@ -10,6 +10,9 @@ if (IDENTITY_TEST)
     file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/identity/*.cpp)
     set(TEST_SOURCE ${TEST_SOURCE} ${TMP})
 endif ()
+# todo if
+file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/quintet/*.cpp)
+set(TEST_SOURCE ${TEST_SOURCE} ${TMP})
 
 add_executable(${PROJECT_NAME}_test ${TEST_SOURCE})
 

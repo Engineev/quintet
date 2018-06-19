@@ -12,7 +12,7 @@
 
 namespace quintet {
 
-using Port  = std::uint16_t;
+
 using Term  = std::uint64_t;
 using Index = std::size_t;
 
@@ -37,36 +37,6 @@ struct RpcReply {
 };
 
 } /* namespace quintet */
-
-// ServerId
-namespace quintet {
-
-struct ServerId {
-  std::string addr = "";
-  Port port = 0;
-
-  std::string toString() const;
-
-  std::string toGrpcString() const;
-};
-
-const ServerId NullServerId{"", 0};
-
-bool operator==(const ServerId &lhs, const ServerId &rhs);
-
-bool operator!=(const ServerId & lhs, const ServerId & rhs);
-
-} /* namespace quintet */
-
-// hash
-namespace std {
-template <>
-struct hash<quintet::ServerId> {
-  std::size_t operator()(const quintet::ServerId& id) const {
-    return std::hash<std::string>()(id.toString());
-  }
-};
-} // namespace ::std
 
 namespace quintet {
 
