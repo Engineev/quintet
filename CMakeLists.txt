@@ -20,6 +20,7 @@ endif ()
 # common flags
 set(CMAKE_CXX_STANDARD 14)
 if (MSVC)
+    add_definitions(-D _WIN32_WINNT=0x600)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /W4 /EHsc")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -o2 -Wall")

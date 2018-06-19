@@ -17,9 +17,15 @@ add_definitions(
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
-find_package(GRPC REQUIRED)
+find_package(GRPC CONFIG REQUIRED)
 include_directories(${GRPC_INCLUDE_DIR})
 
 # link
-target_link_libraries(${PROJECT_NAME}
-  ${Boost_LIBRARIES} ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES})
+if(VCPKG_TOOLCHAIN)
+  target_link_libraries(${PROJECT_NAME}
+  ${Boost_LIBRARIES} protobuf::libprotobuf
+    gRPC::grpc++_unsecure)
+else()
+  target_link_libraries(${PROJECT_NAME}
+    ${Boost_LIBRARIES} ${PROTOBUF_LIBRARIES} ${GRPC_LIBRARIES})
+endif()
