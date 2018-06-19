@@ -8,13 +8,13 @@ namespace quintet {
 class File {
 public:
   template <class T>
-  void registerVar(const std::string & name);
+  void registerVar(const std::string & name) {}
 
   template <class T>
-  void modify(const std::string & name, const T & val);
+  void modify(const std::string & name, const T & val) {}
 
   template <class Container>
-  void append(const std::string & name, const Container::value_type & val);
+  void append(const std::string & name, const typename Container::value_type & val) {}
 }; // class File
 
 } // namespace quintet

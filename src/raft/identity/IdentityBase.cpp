@@ -11,7 +11,7 @@ IdentityBase::IdentityBaseImpl::IdentityBaseImpl(ServerState &state,
 
 AddLogReply IdentityBase::IdentityBaseImpl::defaultAddLog(AddLogMessage) {
   boost::lock_guard<ServerState> lk(state);
-  return {false, state.currentLeader};
+  return {false, state.get_currentLeader()};
 }
 
 } // namespace quintet

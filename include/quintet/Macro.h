@@ -16,5 +16,10 @@
 
 #define GEN_CONST_HANDLE(NAME)                                                 \
   const auto &get_##NAME() const { return NAME; }
+#define GEN_MUTABLE_HANDLE(NAME)                                               \
+  auto & getMutable_##NAME() { return NAME; }
+#define GEN_HANDLES(NAME)                                                      \
+  GEN_CONST_HANDLE(NAME)                                                       \
+  GEN_MUTABLE_HANDLE(NAME)
 
 #endif // QUINTET_MACRO_H

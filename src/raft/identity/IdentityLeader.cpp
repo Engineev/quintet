@@ -102,13 +102,13 @@ AppendEntriesMessage createAppendEntriesMessage(
     const ServerState & state, const ServerInfo & info,
     Index start) {
   AppendEntriesMessage msg;
-  msg.term = state.currentTerm;
+  msg.term = state.get_currentTerm();
   msg.leaderId = info.local;
-  msg.prevLogIdx = state.entries.size() - 2; // TODO: empty ?
-  msg.prevLogTerm = state.entries[msg.prevLogIdx].term;
+  msg.prevLogIdx = state.get_entries().size() - 2; // TODO: empty ?
+  msg.prevLogTerm = state.get_entries().at(msg.prevLogIdx).term;
   msg.logEntries = std::vector<LogEntry>(
-      state.entries.begin() + start, state.entries.end());
-  msg.commitIdx = state.commitIdx;
+      state.get_entries().begin() + start, state.get_entries().end());
+  msg.commitIdx = state.get_commitIdx();
   return msg;
 }
 
@@ -139,10 +139,10 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
     // TODO: exception; nextIdx == 0 ?
     if (res.second)
       break;
-    if (res.first > state.currentTerm) {
-      state.currentTerm = res.first;
+    if (res.first > state.get_currentTerm()) {
+      state.getMutable_currentTerm() = res.first;
       service.identityTransformer.notify(ServerIdentityNo::Follower,
-                                         state.currentTerm);
+                                         state.get_currentTerm());
       return;
     }
     followerState->nextIdx--;
@@ -150,8 +150,8 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
   }
 
   // Succeed.
-  followerState->matchIdx = state.entries.size() - 1;
-  followerState->nextIdx = state.entries.size();
+  followerState->matchIdx = state.get_entries().size() - 1;
+  followerState->nextIdx = state.get_entries().size();
   followerStateLk.unlock();
   // TODO: update log states
 }
@@ -164,18 +164,19 @@ namespace quintet {
 
 void IdentityLeader::Impl::commitAndAsyncApply(
     boost::strict_lock<ServerState> &, Index commitIdx) {
-  if (state.commitIdx >= commitIdx)
+  if (state.get_commitIdx() >= commitIdx)
     return;
-  auto oldCommitIdx = state.commitIdx;
-  state.commitIdx = commitIdx;
+  auto oldCommitIdx = state.get_commitIdx();
+  state.getMutable_commitIdx() = commitIdx;
 
-  std::vector<LogEntry> entriesToApply(state.entries.begin() + oldCommitIdx + 1,
-                                       state.entries.begin() + commitIdx + 1);
+  std::vector<LogEntry> entriesToApply(
+      state.get_entries().begin() + oldCommitIdx + 1,
+      state.get_entries().begin() + commitIdx + 1);
   applyQueue.addEvent([this, entriesToApply = std::move(entriesToApply)] {
     for (std::size_t i = 0, sz = entriesToApply.size(); i < sz; ++i) {
       service.apply(entriesToApply[i]);
       boost::lock_guard<ServerState> lk(state);
-      ++state.lastApplied; // TODO: assert
+      ++state.getMutable_lastApplied(); // TODO: assert
     }
   });
 }

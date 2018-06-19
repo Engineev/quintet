@@ -244,7 +244,7 @@ void Raft::setAfterTransform(
 }
 
 const ServerInfo &Raft::getInfo() const { return pImpl->info; }
-Term Raft::getCurrentTerm() const { return pImpl->state.currentTerm; }
+Term Raft::getCurrentTerm() const { return pImpl->state.get_currentTerm(); }
 
 void Raft::setRpcLatency(std::uint64_t lb, std::uint64_t ub) {
   pImpl->rpcLatencyLb = lb;

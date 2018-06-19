@@ -12,11 +12,9 @@ public:
 
   ~IdentityLeader() override;
 
-  std::pair<Term /*current term*/, bool /*success*/>
-  RPCAppendEntries(AppendEntriesMessage message) override;
+  Reply RPCAppendEntries(AppendEntriesMessage message) override;
 
-  std::pair<Term /*current term*/, bool /*vote granted*/>
-  RPCRequestVote(RequestVoteMessage message) override;
+  Reply RPCRequestVote(RequestVoteMessage message) override;
 
   AddLogReply RPCAddLog(AddLogMessage message) override { throw; }
 

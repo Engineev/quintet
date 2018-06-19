@@ -71,13 +71,13 @@ IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg) {
   auto &state = pImpl->state;
   // TODO
   boost::lock_guard<ServerState> lk(state);
-  if (msg.term >= state.currentTerm) {
-    state.currentTerm = msg.term;
+  if (msg.term >= state.get_currentTerm()) {
+    state.getMutable_currentTerm() = msg.term;
     service.identityTransformer.notify(ServerIdentityNo::Follower,
-                                       state.currentTerm);
-    return {state.currentTerm, false};
+                                       state.get_currentTerm());
+    return {state.get_currentTerm(), false};
   }
-  return {state.currentTerm, false};
+  return {state.get_currentTerm(), false};
 }
 
 std::pair<Term /*current term*/, bool /*vote granted*/>
@@ -86,24 +86,25 @@ IdentityCandidate::RPCRequestVote(RequestVoteMessage msg) {
 
   boost::lock_guard<ServerState> lk(state);
 
-  if (msg.term < state.currentTerm) {
-    return {state.currentTerm, false};
+  if (msg.term < state.get_currentTerm()) {
+    return {state.get_currentTerm(), false};
   }
-  if (msg.term > state.currentTerm) {
-    state.votedFor = NullServerId;
-    state.currentTerm = msg.term;
+  if (msg.term > state.get_currentTerm()) {
+    state.getMutable_votedFor() = NullServerId;
+    state.getMutable_currentTerm() = msg.term;
     pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower,
                                               msg.term);
     //        return {state.currentTerm, false};
   }
 
-  if ((state.votedFor == NullServerId || state.votedFor == msg.candidateId) &&
+  if ((state.get_votedFor() == NullServerId ||
+      state.get_votedFor() == msg.candidateId) &&
       upToDate(state, msg.lastLogIdx, msg.lastLogTerm)) {
-    state.votedFor = msg.candidateId;
-    return {state.currentTerm, true};
+    state.getMutable_votedFor() = msg.candidateId;
+    return {state.get_currentTerm(), true};
   }
 
-  return {state.currentTerm, false};
+  return {state.get_currentTerm(), false};
 }
 
 AddLogReply IdentityCandidate::RPCAddLog(AddLogMessage message) {
@@ -117,8 +118,8 @@ AddLogReply IdentityCandidate::RPCAddLog(AddLogMessage message) {
 namespace quintet {
 
 void IdentityCandidate::Impl::init() {
-  ++state.currentTerm;
-  state.votedFor = info.local;
+  ++state.getMutable_currentTerm();
+  state.getMutable_votedFor() = info.local;
 
   auto electionTimeout =
       intRand(info.electionTimeout, info.electionTimeout * 2);
@@ -133,7 +134,7 @@ void IdentityCandidate::Impl::init() {
   requestVotes();
 
   service.heartBeatController.bind(
-      electionTimeout, [this, term = state.currentTerm] {
+      electionTimeout, [this, term = state.get_currentTerm()] {
         service.identityTransformer.notify(ServerIdentityNo::Candidate, term);
       });
   service.heartBeatController.start(false, false);
@@ -166,10 +167,10 @@ void IdentityCandidate::Impl::requestVotes() {
       continue;
 
     RequestVoteMessage msg;
-    msg.term = state.currentTerm;
+    msg.term = state.get_currentTerm();
     msg.candidateId = info.local;
-    msg.lastLogIdx = state.entries.size() - 1;
-    msg.lastLogTerm = state.entries.back().term;
+    msg.lastLogIdx = state.get_entries().size() - 1;
+    msg.lastLogTerm = state.get_entries().back().term;
 
     auto request = std::make_shared<Request>();
     request->ctx = std::make_shared<grpc::ClientContext>();

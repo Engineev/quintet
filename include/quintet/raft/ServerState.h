@@ -6,12 +6,23 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include "RaftDefs.h"
+#include "Macro.h"
 
 namespace quintet {
 
-struct ServerState
+class ServerState
     : public boost::shared_lockable_adapter<boost::shared_mutex> {
+public:
+  ServerState() = default;
 
+  GEN_HANDLES(currentTerm);
+  GEN_HANDLES(votedFor);
+  GEN_HANDLES(currentLeader);
+  GEN_HANDLES(entries);
+  GEN_HANDLES(commitIdx);
+  GEN_HANDLES(lastApplied);
+
+private:
   Term currentTerm = InvalidTerm;
   ServerId votedFor = NullServerId;
   ServerId currentLeader = NullServerId;
@@ -26,15 +37,15 @@ struct ServerState
 
 inline bool upToDate(const ServerState &state, std::size_t lastLogIdx,
               Term lastLogTerm) {
-  if (state.entries.empty())
+  if (state.get_entries().empty())
     return true;
-  if (state.entries.back().term < lastLogTerm)
+  if (state.get_entries().back().term < lastLogTerm)
     return true;
 
   // candidate is up to date when
   // the two log lengths are equal
-  if (state.entries.back().term == lastLogTerm &&
-      state.entries.size() - 1 <= lastLogIdx)
+  if (state.get_entries().back().term == lastLogTerm &&
+      state.get_entries().size() - 1 <= lastLogIdx)
     return true;
 
   return false;
