@@ -16,11 +16,13 @@ BOOST_AUTO_TEST_CASE(Basic) {
   const std::size_t SrvNum = 1;
   auto srvs = makeServers(SrvNum);
 
+  quintet::RaftDebugContext ctx;
+  ctx.setBeforeTransform([](No from, No to) {
+    return to == No::Down ? No::Down : No::Follower;
+  });
   for (int i = 0; i < (int)srvs.size(); ++i) {
     auto &srv = srvs[i];
-    srv->setBeforeTransform([](No from, No to) {
-      return to == No::Down ? No::Down : No::Follower;
-    });
+    srv->setDebugContext(ctx);
     srv->AsyncRun();
   }
 
@@ -39,16 +41,18 @@ BOOST_AUTO_TEST_CASE(Naive) {
   const auto ElectionTimeout = srvs.front()->getInfo().electionTimeout;
 
   std::atomic<int> follower2Candidate{0};
+  quintet::RaftDebugContext ctx;
+  ctx.setBeforeTransform([&](No from, No to) {
+    if (to == No::Down || to == No::Follower)
+      return to;
+    if (from == No::Follower && to == No::Candidate) {
+      ++follower2Candidate;
+      return No::Down;
+    }
+    throw;
+  });
   for (auto &srv : srvs) {
-    srv->setBeforeTransform([&](No from, No to) {
-      if (to == No::Down || to == No::Follower)
-        return to;
-      if (from == No::Follower && to == No::Candidate) {
-        ++follower2Candidate;
-        return No::Down;
-      }
-      throw;
-    });
+    srv->setDebugContext(ctx);
     srv->AsyncRun();
   }
 

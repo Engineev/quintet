@@ -10,9 +10,36 @@
 #include "QuintetDefs.h"
 #include "RaftDefs.h"
 
+#include <atomic>
+
 namespace quintet {
 
 struct ServerInfo; // forward declaration
+
+class RaftDebugContext {
+  using No = ServerIdentityNo;
+  friend class Raft;
+public:
+  RaftDebugContext() = default;
+  GEN_COPY(RaftDebugContext, default);
+
+  RaftDebugContext & setBeforeTransform(std::function<No(No, No)> f) {
+    beforeTransform = std::move(f);
+    return *this;
+  }
+  RaftDebugContext & setAfterTransform(std::function<void(No, No)> f) {
+    afterTransform = std::move(f);
+    return *this;
+  }
+
+private:
+  std::function<No(No, No)> beforeTransform = [](No from, No to) { return to; };
+  std::function<void(No, No)> afterTransform = [](No from, No to) {};
+  std::uint64_t rpcLatencyLb = 0, rpcLatencyUb = 0;
+  std::function<void(ServerId, const AppendEntriesMessage &)>
+      beforeSendRpcAppendEntries;
+
+}; // class RaftDebugContext
 
 class Raft {
 public:
@@ -31,14 +58,13 @@ public:
   void Stop();
 
 #ifdef UNIT_TEST
-  void setBeforeTransform(std::function<ServerIdentityNo(ServerIdentityNo, ServerIdentityNo)> f);
-
-  void setAfterTransform(std::function<void(ServerIdentityNo, ServerIdentityNo)> f);
+  void setDebugContext(const RaftDebugContext & ctx);
 
   const ServerInfo & getInfo() const;
 
   Term getCurrentTerm() const;
 
+  [[deprecated("will be merged into RaftDebugContext")]]
   void setRpcLatency(std::uint64_t lb, std::uint64_t ub);
 #endif
 
@@ -48,24 +74,6 @@ private:
 
 }; // class Raft
 
-class RaftDebugContext {
-  using No = ServerIdentityNo;
-public:
-  void setBeforeTransform(std::function<No(No, No)> f) {
-    beforeTransform = std::move(f);
-  }
-  void setAfterTransform(std::function<void(No, No)> f) {
-    afterTransform = std::move(f);
-  }
-
-private:
-  std::function<No(No, No)> beforeTransform = nullptr;
-  std::function<void(No, No)> afterTransform = nullptr;
-  std::uint64_t rpcLatencyLb = 0, rpcLatencyUb = 0;
-  std::function<void(ServerId, const AppendEntriesMessage &)>
-      beforeSendRpcAppendEntries;
-
-}; // class RaftDebugContext
 
 } // namespace quintet
 

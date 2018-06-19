@@ -25,11 +25,13 @@ BOOST_AUTO_TEST_CASE(Basic) {
 
   BOOST_TEST_CHECKPOINT("Made servers");
 
+  quintet::RaftDebugContext ctx;
+  ctx.setBeforeTransform([](No from, No to) {
+    return to == No::Down ? No::Down : No::Candidate;
+  });
   for (int i = 0; i < (int)srvs.size(); ++i) {
     auto &srv = srvs[i];
-    srv->setBeforeTransform([](No from, No to) {
-      return to == No::Down ? No::Down : No::Candidate;
-    });
+    srv->setDebugContext(ctx);
     srv->AsyncRun();
     BOOST_TEST_CHECKPOINT("Server " + std::to_string(i) + " is running.");
   }
@@ -53,7 +55,8 @@ BOOST_AUTO_TEST_CASE(Naive) {
 
   std::atomic<int> candidate2Follower{0}, candidate2Leader{0};
   for (auto &srv : srvs) {
-    srv->setBeforeTransform([&](No from, No to) {
+    quintet::RaftDebugContext ctx;
+    ctx.setBeforeTransform([&](No from, No to) {
       if (to == No::Down)
         return No::Down;
 
@@ -70,13 +73,13 @@ BOOST_AUTO_TEST_CASE(Naive) {
       if (from == No::Candidate && to == No::Candidate)
         return No::Candidate;
       throw;
-    });
-    srv->setAfterTransform([&](No from, No to) {
+    }).setAfterTransform([&](No from, No to) {
       if (from == No::Candidate && to == No::Leader) {
         sendHeartBeat(srv->getInfo().srvList, srv->getInfo().local,
                       srv->getCurrentTerm());
       }
     });
+    srv->setDebugContext(ctx);
     srv->AsyncRun();
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(ElectionTimeout * 15));
@@ -96,18 +99,19 @@ BOOST_AUTO_TEST_CASE(PoorNetwork) {
   const auto ElectionTimeout = srvs.front()->getInfo().electionTimeout;
   for (int i = 0; i < (int)srvs.size(); ++i) {
     auto &srv = srvs[i];
-    srv->setBeforeTransform([&times, i](No from, No to) {
+    quintet::RaftDebugContext ctx;
+    ctx.setBeforeTransform([&times, i](No from, No to) {
       times[i]++;
       if (times[i] >= 5)
         return No::Down;
       return No::Candidate;
-    });
-    srv->setAfterTransform([&](No from, No to) {
+    }).setAfterTransform([&](No from, No to) {
       if (from == No::Candidate && to == No::Leader) {
         sendHeartBeat(srv->getInfo().srvList, srv->getInfo().local,
                       srv->getCurrentTerm());
       }
     });
+    srv->setDebugContext(ctx);
     srv->setRpcLatency(ElectionTimeout, ElectionTimeout * 2);
     srv->AsyncRun();
   }

@@ -60,6 +60,7 @@ struct Raft::Impl {
   void transform(ServerIdentityNo target);
 
 #ifdef UNIT_TEST
+  RaftDebugContext debugContext;
   std::function<ServerIdentityNo(ServerIdentityNo from, ServerIdentityNo to)>
       beforeTransform =
           [](ServerIdentityNo from, ServerIdentityNo to) { return to; };
@@ -173,7 +174,7 @@ void Raft::Impl::transform(ServerIdentityNo target) {
 
   auto actualTarget = target;
 #ifdef IDENTITY_TEST
-  actualTarget = beforeTransform(from, target);
+  actualTarget = debugContext.beforeTransform(from, target);
 #endif
   BOOST_LOG(logger) << "transform from " << IdentityNames[(int)from] << " to "
                     << IdentityNames[(int)target] << " (actually to "
@@ -187,7 +188,7 @@ void Raft::Impl::transform(ServerIdentityNo target) {
   curIdentityAttr.set((int)currentIdentity);
 
 #ifdef IDENTITY_TEST
-  afterTransform(from, target);
+  debugContext.afterTransform(from, target);
 #endif
   if (actualTarget != ServerIdentityNo::Down)
     identities[(std::size_t)actualTarget]->init();
@@ -234,21 +235,16 @@ void Raft::Impl::AddLog(std::string opName, std::string args, PrmIdx idx) {
 
 namespace quintet {
 
-void Raft::setBeforeTransform(
-    std::function<ServerIdentityNo(ServerIdentityNo, ServerIdentityNo)> f) {
-  pImpl->beforeTransform = std::move(f);
-}
-void Raft::setAfterTransform(
-    std::function<void(ServerIdentityNo, ServerIdentityNo)> f) {
-  pImpl->afterTransform = std::move(f);
-}
-
 const ServerInfo &Raft::getInfo() const { return pImpl->info; }
 Term Raft::getCurrentTerm() const { return pImpl->state.get_currentTerm(); }
 
 void Raft::setRpcLatency(std::uint64_t lb, std::uint64_t ub) {
   pImpl->rpcLatencyLb = lb;
   pImpl->rpcLatencyUb = ub;
+}
+
+void Raft::setDebugContext(const RaftDebugContext &ctx) {
+  pImpl->debugContext = ctx;
 }
 
 } // namespace quintet

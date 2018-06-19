@@ -44,6 +44,8 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
   std::unordered_map<Index, std::unique_ptr<LogState>> logStates;
   EventQueue applyQueue;
 
+  AddLogReply RPCAddLog(const AddLogMessage & message);
+
   // append entries
   Reply sendAppendEntries(boost::strict_lock<ServerState> &,
       rpc::RpcClient &client, Index start);
@@ -212,6 +214,18 @@ void IdentityLeader::Impl::init() {
     }
   });
   service.heartBeatController.start(true, true);
+}
+
+AddLogReply IdentityLeader::Impl::RPCAddLog(const AddLogMessage & message) {
+  boost::lock_guard<ServerState> lk(state);
+  LogEntry log;
+  log.term = state.get_currentTerm();
+  log.prmIdx = message.prmIdx;
+  log.srvId = message.srvId;
+  log.args = message.args;
+  log.opName = message.opName;
+  state.getMutable_entries().emplace_back(std::move(log));
+  return {true, NullServerId};
 }
 
 } // namespace quintet
