@@ -19,9 +19,6 @@ struct IdentityFollower::Impl : public IdentityBaseImpl {
   void leave();
 
   Reply appendEntries(const AppendEntriesMessage &msg);
-
-  Reply requestVote(const RequestVoteMessage &msg);
-
 }; // struct IdentityFollower::Impl
 
 IdentityFollower::IdentityFollower(ServerState &state, ServerInfo &info,
@@ -46,7 +43,7 @@ Reply IdentityFollower::RPCAppendEntries(AppendEntriesMessage message) {
 
 std::pair<Term /*current term*/, bool /*vote granted*/>
 IdentityFollower::RPCRequestVote(RequestVoteMessage message) {
-  return pImpl->requestVote(message);
+  return pImpl->defaultRPCRequestVote(std::move(message));
 }
 
 AddLogReply IdentityFollower::RPCAddLog(AddLogMessage message) {
@@ -111,28 +108,6 @@ Reply IdentityFollower::Impl::appendEntries(const AppendEntriesMessage &msg) {
   }
 
   return {state.get_currentTerm(), true};
-}
-
-Reply IdentityFollower::Impl::requestVote(const RequestVoteMessage &msg) {
-  boost::lock_guard<ServerState> lk(state);
-
-  if (msg.term < state.get_currentTerm()) {
-    return {state.get_currentTerm(), false};
-  }
-  if (msg.term > state.get_currentTerm()) {
-    state.getMutable_votedFor() = NullServerId;
-    state.getMutable_currentTerm() = msg.term;
-  }
-
-  // TODO: modify the persistent state at the end of the call
-  if ((state.get_votedFor() == NullServerId ||
-      state.get_votedFor() == msg.candidateId) &&
-      upToDate(state, msg.lastLogIdx, msg.lastLogTerm)) {
-    state.getMutable_votedFor() = msg.candidateId;
-    return {state.get_currentTerm(), true};
-  }
-
-  return {state.get_currentTerm(), false};
 }
 
 } // namespace quintet

@@ -30,16 +30,17 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
         "Part", logging::attrs::constant<std::string>("Identity"));
   }
 
-  struct FollowerState
+  struct FollowerNode
       : public boost::shared_lockable_adapter<boost::shared_mutex> {
     Index nextIdx = Index(-1);
     Index matchIdx = 0;
+    boost::thread appendingThread;
   };
   struct LogState : public boost::shared_lockable_adapter<boost::shared_mutex> {
     std::size_t replicateNum = 0;
   };
 
-  std::unordered_map<ServerId, std::unique_ptr<FollowerState>> followerStates;
+  std::unordered_map<ServerId, std::unique_ptr<FollowerNode>> followerNodes;
   std::unordered_map<Index, std::unique_ptr<LogState>> logStates;
   EventQueue applyQueue;
 
@@ -61,6 +62,7 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
   /// \param commitIdx the new commitIdx
   void commitAndAsyncApply(boost::strict_lock<ServerState> &, Index commitIdx);
 
+  void init();
 
 }; // struct IdentityLeader::Impl
 
@@ -76,7 +78,7 @@ IdentityLeader::~IdentityLeader() = default;
 
 namespace quintet {
 
-void IdentityLeader::init() { throw; }
+void IdentityLeader::init() { pImpl->init(); }
 
 void IdentityLeader::leave() { throw; }
 
@@ -84,9 +86,8 @@ Reply IdentityLeader::RPCAppendEntries(AppendEntriesMessage message) {
   throw;
 }
 
-std::pair<Term /*current term*/, bool /*vote granted*/>
-IdentityLeader::RPCRequestVote(RequestVoteMessage message) {
-  throw;
+Reply IdentityLeader::RPCRequestVote(RequestVoteMessage message) {
+  return pImpl->defaultRPCRequestVote(std::move(message));
 }
 
 } // namespace quintet
@@ -131,11 +132,11 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
       target.toString(), grpc::InsecureChannelCredentials()));
 
   boost::strict_lock<ServerState> serverStateLk(state);
-  auto & followerState = followerStates.at(target);
-  boost::unique_lock<FollowerState> followerStateLk(*followerState);
+  auto & followerNode = followerNodes.at(target);
+  boost::unique_lock<FollowerNode> followerNodeLk(*followerNode);
 
   while (true) {
-    auto res = sendAppendEntries(serverStateLk, client, followerState->nextIdx);
+    auto res = sendAppendEntries(serverStateLk, client, followerNode->nextIdx);
     // TODO: exception; nextIdx == 0 ?
     if (res.second)
       break;
@@ -145,15 +146,24 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
                                          state.get_currentTerm());
       return;
     }
-    followerState->nextIdx--;
+    followerNode->nextIdx--;
     boost::this_thread::interruption_point();
   }
 
   // Succeed.
-  followerState->matchIdx = state.get_entries().size() - 1;
-  followerState->nextIdx = state.get_entries().size();
-  followerStateLk.unlock();
-  // TODO: update log states
+  auto oldMatchIdx = followerNode->matchIdx;
+  Index newCommitIndex = state.get_commitIdx();
+  for (auto iter = logStates.find(oldMatchIdx), end = logStates.end();
+      iter != end; ++iter) {
+    boost::lock_guard<LogState> logLk(*iter->second);
+    LogState & logState = *iter->second;
+    ++logState.replicateNum;
+    newCommitIndex = std::max(newCommitIndex, iter->first);
+  }
+  followerNode->matchIdx = state.get_entries().size() - 1;
+  followerNode->nextIdx = state.get_entries().size();
+  followerNodeLk.unlock();
+  commitAndAsyncApply(serverStateLk, newCommitIndex);
 }
 
 } // namespace quintet
@@ -179,6 +189,29 @@ void IdentityLeader::Impl::commitAndAsyncApply(
       ++state.getMutable_lastApplied(); // TODO: assert
     }
   });
+}
+
+} // namespace quintet
+
+/* -------------------------------------------------------------------------- */
+
+namespace quintet {
+
+void IdentityLeader::Impl::init() {
+  service.heartBeatController.bind(info.electionTimeout / 3, [this] {
+    for (auto & srv : info.srvList) {
+      auto & node = followerNodes.at(srv);
+      node->appendingThread.interrupt();
+    }
+    for (auto & srv : info.srvList) {
+      auto & node = followerNodes.at(srv);
+      boost::lock_guard<FollowerNode> lk(*node);
+      node->appendingThread.join();
+      node->appendingThread = boost::thread(
+          std::bind(&IdentityLeader::Impl::tryAppendEntries, this, srv));
+    }
+  });
+  service.heartBeatController.start(true, true);
 }
 
 } // namespace quintet

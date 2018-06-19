@@ -37,6 +37,8 @@ protected:
     ServerService &service;
 
     AddLogReply defaultAddLog(AddLogMessage);
+
+    Reply defaultRPCRequestVote(RequestVoteMessage msg);
   };
 };
 

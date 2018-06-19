@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <utility>
+#include <raft/service/rpc/RpcDefs.h>
 
 #include "QuintetDefs.h"
 #include "RaftDefs.h"
@@ -46,6 +47,25 @@ private:
   std::unique_ptr<Impl> pImpl;
 
 }; // class Raft
+
+class RaftDebugContext {
+  using No = ServerIdentityNo;
+public:
+  void setBeforeTransform(std::function<No(No, No)> f) {
+    beforeTransform = std::move(f);
+  }
+  void setAfterTransform(std::function<void(No, No)> f) {
+    afterTransform = std::move(f);
+  }
+
+private:
+  std::function<No(No, No)> beforeTransform = nullptr;
+  std::function<void(No, No)> afterTransform = nullptr;
+  std::uint64_t rpcLatencyLb = 0, rpcLatencyUb = 0;
+  std::function<void(ServerId, const AppendEntriesMessage &)>
+      beforeSendRpcAppendEntries;
+
+}; // class RaftDebugContext
 
 } // namespace quintet
 

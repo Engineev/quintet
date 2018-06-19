@@ -80,31 +80,8 @@ IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg) {
   return {state.get_currentTerm(), false};
 }
 
-std::pair<Term /*current term*/, bool /*vote granted*/>
-IdentityCandidate::RPCRequestVote(RequestVoteMessage msg) {
-  auto &state = pImpl->state;
-
-  boost::lock_guard<ServerState> lk(state);
-
-  if (msg.term < state.get_currentTerm()) {
-    return {state.get_currentTerm(), false};
-  }
-  if (msg.term > state.get_currentTerm()) {
-    state.getMutable_votedFor() = NullServerId;
-    state.getMutable_currentTerm() = msg.term;
-    pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower,
-                                              msg.term);
-    //        return {state.currentTerm, false};
-  }
-
-  if ((state.get_votedFor() == NullServerId ||
-      state.get_votedFor() == msg.candidateId) &&
-      upToDate(state, msg.lastLogIdx, msg.lastLogTerm)) {
-    state.getMutable_votedFor() = msg.candidateId;
-    return {state.get_currentTerm(), true};
-  }
-
-  return {state.get_currentTerm(), false};
+Reply IdentityCandidate::RPCRequestVote(RequestVoteMessage msg) {
+  return pImpl->defaultRPCRequestVote(std::move(msg));
 }
 
 AddLogReply IdentityCandidate::RPCAddLog(AddLogMessage message) {
