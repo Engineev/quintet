@@ -80,7 +80,9 @@ void IdentityLeader::init() { throw; }
 
 void IdentityLeader::leave() { throw; }
 
-Reply IdentityLeader::RPCAppendEntries(AppendEntriesMessage message) { throw; }
+Reply IdentityLeader::RPCAppendEntries(AppendEntriesMessage message) {
+  throw;
+}
 
 std::pair<Term /*current term*/, bool /*vote granted*/>
 IdentityLeader::RPCRequestVote(RequestVoteMessage message) {

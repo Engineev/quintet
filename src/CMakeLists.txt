@@ -17,7 +17,7 @@ add_definitions(
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
-find_package(GRPC CONFIG REQUIRED)
+find_package(GRPC REQUIRED)
 include_directories(${GRPC_INCLUDE_DIR})
 
 # link
