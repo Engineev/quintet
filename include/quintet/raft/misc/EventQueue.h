@@ -24,6 +24,8 @@ public:
   /// \brief Graceful shutdown
   void stop();
 
+  void start();
+
 private:
   struct Impl;
   std::unique_ptr<Impl> pImpl;

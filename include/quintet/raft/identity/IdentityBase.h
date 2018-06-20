@@ -6,6 +6,7 @@
 #include "RaftDefs.h"
 #include "Server.h"
 #include "service/rpc/RpcDefs.h"
+#include "RaftDebugContext.h"
 
 namespace quintet {
 
@@ -29,12 +30,15 @@ public:
 
 protected:
   struct IdentityBaseImpl {
-    IdentityBaseImpl(
-        ServerState &state, ServerInfo &info, ServerService &service);
+    IdentityBaseImpl(ServerState &state,
+                     const ServerInfo &info,
+                     ServerService &service,
+                     const RaftDebugContext & debugContext);
 
     ServerState &state;
     const ServerInfo &info;
     ServerService &service;
+    const RaftDebugContext & debugContext;
 
     AddLogReply defaultAddLog(AddLogMessage);
 

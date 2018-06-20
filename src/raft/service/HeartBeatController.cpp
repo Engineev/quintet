@@ -28,9 +28,10 @@ bool HeartBeatController::start(bool immediate, bool repeat) {
 
   assert(!th.joinable());
   th = boost::thread([lk = std::move(lk), period = period, f = func,
-                         immediate = immediate, repeat = repeat] {
+                         immediate = immediate, repeat = repeat, this] {
     boost::this_thread::disable_interruption di;
     if (immediate) {
+      BOOST_LOG(logger) << "HeartBeat!";
       f();
       if (!repeat)
         return;
@@ -42,6 +43,7 @@ bool HeartBeatController::start(bool immediate, bool repeat) {
       } catch (boost::thread_interrupted) {
         return;
       }
+      BOOST_LOG(logger) << "HeartBeat!";
       f();
     } while (repeat);
   });
@@ -55,5 +57,10 @@ void HeartBeatController::bind(
 }
 
 HeartBeatController::~HeartBeatController() { stop(); }
+
+void HeartBeatController::configLogger(const std::string &id) {
+  logger.add_attribute("ServerId", logging::attrs::constant<std::string>(id));
+  logger.add_attribute("Part", logging::attrs::constant<std::string>("HBC"));
+}
 
 } // namespace quintet

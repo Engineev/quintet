@@ -12,35 +12,38 @@
 namespace quintet {
 
 struct EventQueue::Impl {
-  boost::mutex m;
-  boost::condition_variable cv;
+  boost::mutex produceM, consumeM;
+  boost::condition_variable produceCv, consumeCv;
+
   std::queue<std::function<void()>> q;
   boost::thread runningThread;
   boost::atomic_bool paused{false};
 
   void addEvent(std::function<void()> event) {
-    boost::lock_guard<boost::mutex> lk(m);
+    boost::lock_guard<boost::mutex> lk(produceM);
     q.push(std::move(event));
-    cv.notify_all();
+    produceCv.notify_all();
   }
 
   void execute() {
     while (true) {
-      boost::unique_lock<boost::mutex> lk(m);
+      boost::unique_lock<boost::mutex> plk(produceM, boost::defer_lock);
+      boost::unique_lock<boost::mutex> clk(consumeM, boost::defer_lock);
       try {
-        cv.wait(lk, [this] { return !paused && !q.empty(); });
+        boost::lock(plk, clk);
+        produceCv.wait(plk, [this] { return !paused && !q.empty(); });
       } catch (boost::thread_interrupted & e) {
         return;
       }
       auto exe = q.front();
       q.pop();
-      lk.unlock();
+      plk.unlock();
 
       {
         boost::this_thread::disable_interruption d;
         exe();
       }
-      cv.notify_all();
+      consumeCv.notify_all();
     }
   }
 
@@ -48,13 +51,12 @@ struct EventQueue::Impl {
 
   void resume() {
     paused = false;
-    cv.notify_all();
+    consumeCv.notify_all();
   }
 
   void wait() {
-    boost::unique_lock<boost::mutex> lk(m);
-    cv.wait(lk, [this] { return q.empty(); });
-    lk.unlock();
+    boost::unique_lock<boost::mutex> lk(consumeM);
+    consumeCv.wait(lk, [this] { return q.empty(); });
   }
 
   void stop() {
@@ -63,12 +65,16 @@ struct EventQueue::Impl {
     runningThread.interrupt();
     runningThread.join();
   }
+
+  void start() {
+    if (runningThread.joinable())
+      return;
+    runningThread = boost::thread(std::bind(&EventQueue::Impl::execute, this));
+  }
 };
 
 EventQueue::EventQueue() : pImpl(std::make_unique<EventQueue::Impl>()) {
-  pImpl->runningThread = boost::thread([this] {
-    pImpl->execute();
-  });
+  pImpl->start();
 }
 
 EventQueue::~EventQueue() { stop(); }
@@ -84,5 +90,7 @@ void EventQueue::pause() { pImpl->pause(); }
 void EventQueue::resume() { pImpl->resume(); }
 
 void EventQueue::stop() { pImpl->stop(); }
+
+void EventQueue::start() { pImpl->start(); }
 
 } // namespace quintet

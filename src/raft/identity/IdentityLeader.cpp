@@ -24,15 +24,16 @@
 namespace quintet {
 
 struct IdentityLeader::Impl : public IdentityBaseImpl {
-  Impl(ServerState &state, ServerInfo &info, ServerService &service)
-      : IdentityBaseImpl(state, info, service) {
+  Impl(ServerState &state, const ServerInfo &info,
+       ServerService &service, const RaftDebugContext & ctx)
+      : IdentityBaseImpl(state, info, service, ctx) {
     service.logger.add_attribute(
         "Part", logging::attrs::constant<std::string>("Identity"));
   }
 
   struct FollowerNode
       : public boost::shared_lockable_adapter<boost::shared_mutex> {
-    Index nextIdx = Index(-1);
+    Index nextIdx = 0;
     Index matchIdx = 0;
     boost::thread appendingThread;
   };
@@ -41,14 +42,15 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
   };
 
   std::unordered_map<ServerId, std::unique_ptr<FollowerNode>> followerNodes;
-  std::unordered_map<Index, std::unique_ptr<LogState>> logStates;
+  std::vector<std::unique_ptr<LogState>> logStates;
+//  std::unordered_map<Index, std::unique_ptr<LogState>> logStates;
   EventQueue applyQueue;
 
   AddLogReply RPCAddLog(const AddLogMessage & message);
 
   // append entries
   Reply sendAppendEntries(boost::strict_lock<ServerState> &,
-      rpc::RpcClient &client, Index start);
+      rpc::RpcClient &client, Index start, const ServerId & logSrv);
 
   /// \breif Try indefinitely until succeed or \a nextIdx decrease to
   /// the lowest value.
@@ -64,13 +66,18 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
   /// \param commitIdx the new commitIdx
   void commitAndAsyncApply(boost::strict_lock<ServerState> &, Index commitIdx);
 
+  void reinitStates();
+
   void init();
+
+  void leave();
 
 }; // struct IdentityLeader::Impl
 
-IdentityLeader::IdentityLeader(ServerState &state, ServerInfo &info,
-                               ServerService &service)
-    : pImpl(std::make_unique<Impl>(state, info, service)) {}
+IdentityLeader::IdentityLeader(
+    ServerState &state, const ServerInfo &info,
+    ServerService &service, const RaftDebugContext & ctx)
+    : pImpl(std::make_unique<Impl>(state, info, service, ctx)) {}
 
 IdentityLeader::~IdentityLeader() = default;
 
@@ -82,7 +89,7 @@ namespace quintet {
 
 void IdentityLeader::init() { pImpl->init(); }
 
-void IdentityLeader::leave() { throw; }
+void IdentityLeader::leave() { pImpl->leave(); }
 
 Reply IdentityLeader::RPCAppendEntries(AppendEntriesMessage message) {
   throw;
@@ -107,7 +114,7 @@ AppendEntriesMessage createAppendEntriesMessage(
   AppendEntriesMessage msg;
   msg.term = state.get_currentTerm();
   msg.leaderId = info.local;
-  msg.prevLogIdx = state.get_entries().size() - 2; // TODO: empty ?
+  msg.prevLogIdx = state.get_entries().size() - 1;
   msg.prevLogTerm = state.get_entries().at(msg.prevLogIdx).term;
   msg.logEntries = std::vector<LogEntry>(
       state.get_entries().begin() + start, state.get_entries().end());
@@ -122,7 +129,10 @@ auto timeout2Deadline(std::uint64_t ms) {
 } // namespace
 
 Reply IdentityLeader::Impl::sendAppendEntries(
-    boost::strict_lock<ServerState> &, rpc::RpcClient &client, Index start) {
+    boost::strict_lock<ServerState> &, rpc::RpcClient &client, Index start,
+    const ServerId & logSrv) {
+  BOOST_LOG(service.logger)
+    << "sending RPCAppendEntries to " << logSrv.toString();
   auto msg = createAppendEntriesMessage(state, info, start);
   auto ctx = std::make_shared<grpc::ClientContext>();
   ctx->set_deadline(timeout2Deadline(50));
@@ -137,9 +147,24 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
   auto & followerNode = followerNodes.at(target);
   boost::unique_lock<FollowerNode> followerNodeLk(*followerNode);
 
+  std::size_t retryTimes = 0;
   while (true) {
-    auto res = sendAppendEntries(serverStateLk, client, followerNode->nextIdx);
-    // TODO: exception; nextIdx == 0 ?
+    boost::this_thread::interruption_point();
+    { // injection
+      auto msg = createAppendEntriesMessage(state, info, followerNode->nextIdx);
+      debugContext.beforeSendRpcAppendEntries(target, msg);
+    }
+    Reply res;
+    try {
+      res = sendAppendEntries(serverStateLk, client, followerNode->nextIdx, target);
+    } catch (rpc::RpcError & e) {
+      BOOST_LOG(service.logger)
+        << "RpcError: " << e.what() << ". [" << retryTimes << "]";
+      ++retryTimes;
+      if (retryTimes > 2)
+        return;
+      continue;
+    }
     if (res.second)
       break;
     if (res.first > state.get_currentTerm()) {
@@ -148,19 +173,21 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
                                          state.get_currentTerm());
       return;
     }
+    if (followerNode->nextIdx == 0)
+      return;
     followerNode->nextIdx--;
-    boost::this_thread::interruption_point();
   }
 
   // Succeed.
   auto oldMatchIdx = followerNode->matchIdx;
   Index newCommitIndex = state.get_commitIdx();
-  for (auto iter = logStates.find(oldMatchIdx), end = logStates.end();
+  for (auto iter = logStates.begin() + oldMatchIdx, end = logStates.end();
       iter != end; ++iter) {
-    boost::lock_guard<LogState> logLk(*iter->second);
-    LogState & logState = *iter->second;
+    boost::lock_guard<LogState> logLk(**iter);
+    LogState & logState = **iter;
     ++logState.replicateNum;
-    newCommitIndex = std::max(newCommitIndex, iter->first);
+    newCommitIndex = std::max(newCommitIndex,
+        std::size_t(iter - logStates.begin()));
   }
   followerNode->matchIdx = state.get_entries().size() - 1;
   followerNode->nextIdx = state.get_entries().size();
@@ -199,13 +226,30 @@ void IdentityLeader::Impl::commitAndAsyncApply(
 
 namespace quintet {
 
+void IdentityLeader::Impl::reinitStates() {
+  for (auto & srv : info.srvList) {
+    if (srv == info.local)
+      continue;
+    followerNodes.emplace(srv, std::make_unique<FollowerNode>());
+  }
+  logStates.reserve(state.get_entries().size());
+  for (auto & log : logStates)
+    log = std::make_unique<LogState>();
+}
+
 void IdentityLeader::Impl::init() {
+  BOOST_LOG(service.logger) << "init";
+  reinitStates();
   service.heartBeatController.bind(info.electionTimeout / 3, [this] {
     for (auto & srv : info.srvList) {
+      if (srv == info.local)
+        continue;
       auto & node = followerNodes.at(srv);
       node->appendingThread.interrupt();
     }
     for (auto & srv : info.srvList) {
+      if (srv == info.local)
+        continue;
       auto & node = followerNodes.at(srv);
       boost::lock_guard<FollowerNode> lk(*node);
       node->appendingThread.join();
@@ -213,7 +257,19 @@ void IdentityLeader::Impl::init() {
           std::bind(&IdentityLeader::Impl::tryAppendEntries, this, srv));
     }
   });
+  applyQueue.start();
   service.heartBeatController.start(true, true);
+}
+
+void IdentityLeader::Impl::leave() {
+  service.heartBeatController.stop();
+  for (auto & item : followerNodes)
+    item.second->appendingThread.interrupt();
+  for (auto & item : followerNodes)
+    item.second->appendingThread.join();
+  applyQueue.stop();
+  followerNodes.clear();
+  logStates.clear();
 }
 
 AddLogReply IdentityLeader::Impl::RPCAddLog(const AddLogMessage & message) {

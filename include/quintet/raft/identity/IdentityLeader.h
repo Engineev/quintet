@@ -7,8 +7,8 @@ namespace quintet {
 
 class IdentityLeader : public IdentityBase {
 public:
-  IdentityLeader(
-      ServerState & state, ServerInfo & info, ServerService & service);
+  IdentityLeader(ServerState & state, const ServerInfo & info,
+                 ServerService & service, const RaftDebugContext & ctx);
 
   ~IdentityLeader() override;
 

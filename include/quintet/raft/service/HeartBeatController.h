@@ -7,6 +7,8 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
+#include "service/log/Common.h"
+
 namespace quintet {
 
 class HeartBeatController {
@@ -47,6 +49,7 @@ private:
   std::function<void()> func = nullptr;
   boost::thread th;
   std::uint64_t period = 0;
+  boost::log::sources::logger_mt logger;
 
 private: // cached parameters
   bool immediateCache = false;

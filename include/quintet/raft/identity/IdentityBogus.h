@@ -8,7 +8,8 @@ namespace quintet {
 class IdentityBogus : public IdentityBase {
 public:
   IdentityBogus(
-      ServerState & state, ServerInfo & info, ServerService & service) {}
+      ServerState &, const ServerInfo &,
+      ServerService &, const RaftDebugContext &) {}
 
   ~IdentityBogus() override = default;
 

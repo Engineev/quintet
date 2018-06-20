@@ -8,8 +8,9 @@
 namespace quintet {
 
 struct IdentityFollower::Impl : public IdentityBaseImpl {
-  Impl(ServerState &state, ServerInfo &info, ServerService &service)
-      : IdentityBaseImpl(state, info, service) {
+  Impl(ServerState &state, const ServerInfo &info,
+       ServerService &service, const RaftDebugContext & ctx)
+      : IdentityBaseImpl(state, info, service, ctx) {
     service.logger.add_attribute(
         "Part", logging::attrs::constant<std::string>("Identity"));
   }
@@ -21,9 +22,10 @@ struct IdentityFollower::Impl : public IdentityBaseImpl {
   Reply appendEntries(const AppendEntriesMessage &msg);
 }; // struct IdentityFollower::Impl
 
-IdentityFollower::IdentityFollower(ServerState &state, ServerInfo &info,
-                                   ServerService &service)
-    : pImpl(std::make_unique<Impl>(state, info, service)) {}
+IdentityFollower::IdentityFollower(
+    ServerState &state, const ServerInfo &info,
+    ServerService &service, const RaftDebugContext & ctx)
+    : pImpl(std::make_unique<Impl>(state, info, service, ctx)) {}
 
 IdentityFollower::~IdentityFollower() = default;
 

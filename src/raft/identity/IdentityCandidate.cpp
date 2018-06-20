@@ -21,8 +21,9 @@ namespace quintet {
 IdentityCandidate::~IdentityCandidate() = default;
 
 struct IdentityCandidate::Impl : public IdentityBase::IdentityBaseImpl {
-  Impl(ServerState &state, ServerInfo &info, ServerService &service)
-      : IdentityBaseImpl(state, info, service) {
+  Impl(ServerState &state, const ServerInfo &info, ServerService &service,
+       const RaftDebugContext & debugContext)
+      : IdentityBaseImpl(state, info, service, debugContext) {
     service.logger.add_attribute(
         "Part", logging::attrs::constant<std::string>("Identity"));
   }
@@ -45,9 +46,10 @@ struct IdentityCandidate::Impl : public IdentityBase::IdentityBaseImpl {
   void requestVotes();
 };
 
-IdentityCandidate::IdentityCandidate(ServerState &state, ServerInfo &info,
-                                     ServerService &service)
-    : pImpl(std::make_unique<Impl>(state, info, service)) {}
+IdentityCandidate::IdentityCandidate(
+    ServerState &state, const ServerInfo &info,
+    ServerService &service, const RaftDebugContext & context)
+    : pImpl(std::make_unique<Impl>(state, info, service, context)) {}
 
 } // namespace quintet
 

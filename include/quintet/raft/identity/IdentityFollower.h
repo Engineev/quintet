@@ -7,8 +7,8 @@ namespace quintet {
 
 class IdentityFollower : public IdentityBase {
 public:
-  IdentityFollower(
-      ServerState & state, ServerInfo & info, ServerService & service);
+  IdentityFollower(ServerState & state, const ServerInfo & info,
+                   ServerService & service, const RaftDebugContext & context);
 
   ~IdentityFollower() override;
 

@@ -8,7 +8,8 @@ namespace quintet {
 class IdentityCandidate : public IdentityBase {
 public:
   IdentityCandidate(
-      ServerState & state, ServerInfo & info, ServerService & service);
+      ServerState & state, const ServerInfo & info,
+      ServerService & service, const RaftDebugContext & debugContext);
 
   ~IdentityCandidate() override;
 

@@ -4,10 +4,10 @@
 
 namespace quintet {
 
-IdentityBase::IdentityBaseImpl::IdentityBaseImpl(ServerState &state,
-                                                 ServerInfo &info,
-                                                 ServerService &service)
-    : state(state), info(info), service(service) {}
+IdentityBase::IdentityBaseImpl::IdentityBaseImpl(
+    ServerState &state, const ServerInfo &info,
+    ServerService &service, const RaftDebugContext & debugContext)
+    : state(state), info(info), service(service), debugContext(debugContext) {}
 
 AddLogReply IdentityBase::IdentityBaseImpl::defaultAddLog(AddLogMessage) {
   boost::lock_guard<ServerState> lk(state);
