@@ -16,13 +16,15 @@
 namespace quintet {
 namespace rpc {
 
+std::shared_ptr<grpc::ClientContext> makeClientContext(std::uint64_t timeout);
+
 class RpcClient {
 public:
   explicit RpcClient(std::shared_ptr<grpc::Channel> channel);
 
   ~RpcClient();
 
-  RpcClient(RpcClient &&);
+  RpcClient(RpcClient &&) noexcept ;
   RpcClient(const RpcClient &) = delete;
 
   Reply callRpcAppendEntries(std::shared_ptr<grpc::ClientContext> ctx,
@@ -38,7 +40,6 @@ public:
   boost::future<Reply>
   asyncCallRpcRequestVote(std::shared_ptr<grpc::ClientContext> ctx,
                           const RequestVoteMessage &msg);
-
 private:
   struct Impl;
   std::unique_ptr<Impl> pImpl;

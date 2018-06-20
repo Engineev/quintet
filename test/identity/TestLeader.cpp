@@ -4,7 +4,11 @@
 #include <atomic>
 #include <thread>
 
+#include <grpc++/create_channel.h>
+
+#include "RaftClient.h"
 #include "IdentityTestHelper.h"
+#include "service/rpc/RpcClient.h"
 
 namespace utf = boost::unit_test;
 
@@ -54,6 +58,39 @@ BOOST_AUTO_TEST_CASE(Basic) {
   srv->Stop();
   std::size_t otherSrvN = srv->getInfo().srvList.size() - 1;
   BOOST_REQUIRE((otherSrvN * 2 < sendAppendEntriesTimes));
+}
+
+BOOST_AUTO_TEST_CASE(AddLog) {
+  BOOST_TEST_MESSAGE("Test::Identity::Leader::AddLog");
+  using No = quintet::ServerIdentityNo;
+  auto srvs = makeServers(3);
+  std::unique_ptr<quintet::Raft> & leader = srvs.front();
+  quintet::RaftDebugContext leaderCtx;
+  leaderCtx.setBeforeTransform([] (No from, No to) {
+    if (from == No::Down && to == No::Follower)
+      return No::Leader;
+    if (to == No::Down)
+      return No::Down;
+    throw ;
+  });
+  leader->AsyncRun();
+  for (std::size_t i = 1, sz = srvs.size(); i < sz; ++i) {
+    auto & srv = srvs[i];
+    quintet::RaftDebugContext ctx;
+    ctx.setBeforeTransform([] (No from, No to) {
+      if ((from == No::Down && to == No::Follower) || to == No::Down)
+        return to;
+      throw ;
+    });
+    srv->setDebugContext(ctx);
+    srv->AsyncRun();
+  }
+
+  quintet::RaftClient client(leader->Local());
+
+
+  for (auto & srv : srvs)
+    srv->Stop();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

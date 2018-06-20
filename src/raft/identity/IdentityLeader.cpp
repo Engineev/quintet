@@ -34,7 +34,7 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
 
   struct FollowerNode
       : public boost::shared_lockable_adapter<boost::shared_mutex> {
-    Index nextIdx = 0;
+    Index nextIdx = 1;
     Index matchIdx = 0;
     boost::thread appendingThread;
   };
@@ -44,7 +44,6 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
 
   std::unordered_map<ServerId, std::unique_ptr<FollowerNode>> followerNodes;
   std::vector<std::unique_ptr<LogState>> logStates;
-//  std::unordered_map<Index, std::unique_ptr<LogState>> logStates;
   EventQueue applyQueue;
 
   AddLogReply RPCAddLog(const AddLogMessage & message);
@@ -115,7 +114,8 @@ AppendEntriesMessage createAppendEntriesMessage(
   AppendEntriesMessage msg;
   msg.term = state.get_currentTerm();
   msg.leaderId = info.local;
-  msg.prevLogIdx = state.get_entries().size() - 1;
+  assert(start > 0);
+  msg.prevLogIdx = start - 1;
   msg.prevLogTerm = state.get_entries().at(msg.prevLogIdx).term;
   msg.logEntries = std::vector<LogEntry>(
       state.get_entries().begin() + start, state.get_entries().end());
@@ -174,7 +174,7 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
                                          state.get_currentTerm());
       return;
     }
-    if (followerNode->nextIdx == 0)
+    if (followerNode->nextIdx == 1)
       return;
     followerNode->nextIdx--;
   }

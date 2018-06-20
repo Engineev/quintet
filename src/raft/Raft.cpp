@@ -96,6 +96,10 @@ void Raft::Configure(const std::string &filename) {
 void Raft::AsyncRun() { pImpl->asyncRun(); }
 void Raft::Stop() { pImpl->stop(); }
 
+ServerId Raft::Local() const {
+  return pImpl->info.local;
+}
+
 void Raft::BindApply(std::function<void(LogEntry)> f) {
   pImpl->service.apply.bind(std::move(f));
 }

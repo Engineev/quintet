@@ -75,11 +75,18 @@ RpcClient::RpcClient(std::shared_ptr<grpc::Channel> channel)
   pImpl->asyncRun();
 }
 
-RpcClient::RpcClient(RpcClient &&) = default;
+RpcClient::RpcClient(RpcClient &&) noexcept = default;
 
 RpcClient::~RpcClient() {
   pImpl->cq.Shutdown();
   pImpl->runningThread.join();
+}
+
+std::shared_ptr<grpc::ClientContext> makeClientContext(std::uint64_t timeout) {
+  auto res = std::make_shared<grpc::ClientContext>();
+  res->set_deadline(std::chrono::system_clock::now()
+                        + std::chrono::milliseconds(timeout));
+  return res;
 }
 
 } // namespace rpc
