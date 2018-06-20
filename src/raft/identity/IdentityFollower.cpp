@@ -102,12 +102,10 @@ Reply IdentityFollower::Impl::appendEntries(const AppendEntriesMessage &msg) {
       throw std::runtime_error("receive commit when own log is empty");
     }
     Index newCommitIdx = std::min(msg.commitIdx, state.get_entries().size() - 1);
-    for (Index commitItem = state.get_commitIdx() + 1; commitItem <= newCommitIdx;
-      ++commitItem) {
-      service.apply(state.get_entries().at(commitItem));
-    }
     state.getMutable_commitIdx() = newCommitIdx;
+    // TODO: apply entry using the function commitandasyncapply in indentityLeader
   }
+
 
   return { state.get_currentTerm(), true };
 }

@@ -203,6 +203,7 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
 
 namespace quintet {
 
+// TODO: Put this function into impl base 
 void IdentityLeader::Impl::commitAndAsyncApply(
   boost::strict_lock<ServerState> &, Index commitIdx) {
   if (state.get_commitIdx() >= commitIdx)

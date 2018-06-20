@@ -64,6 +64,24 @@ BOOST_AUTO_TEST_CASE(Follower_Naive) {
 
 BOOST_AUTO_TEST_CASE(Follower_AppendEntry) {
   BOOST_TEST_MESSAGE("Test::Identity::Follower::AppendEntry");
+  using No = quintet::ServerIdentityNo;
+
+  auto srvs = makeServers(1);
+  std::unique_ptr<quintet::Raft> & follower = srvs.front();
+  const auto timeout = follower->getInfo().electionTimeout / 2;
+  quintet::RaftDebugContext ctx;
+  std::atomic<int> follower2Candidate{ 0 };
+  ctx.setBeforeTransform([&](No from, No to) {
+    if (to == No::Down || to == No::Follower) return to;
+    if (from == No::Follower && to == No::Candidate) {
+      throw std::runtime_error("Should not transform from Follower to Candidate");
+    }
+    throw std::runtime_error("Unexpected transformation");
+  });
+  follower->AsyncRun();
+  /*for (int i = 0, appendTime = 10; i < appendTime; ++i) {
+    follower->
+  }*/
 
 }
 
