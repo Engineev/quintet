@@ -11,10 +11,28 @@ namespace utf = boost::unit_test;
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Leader, quintet::test::IdentityTestHelper)
 
+BOOST_AUTO_TEST_CASE(Naive) {
+  BOOST_TEST_MESSAGE("Test::Identity::Leader::Naive");
+  using No = quintet::ServerIdentityNo;
+  auto srvs = makeServers(1);
+  std::unique_ptr<quintet::Raft> & srv = srvs.front();
+  quintet::RaftDebugContext ctx;
+  ctx.setBeforeTransform([] (No from, No to) {
+    if (from == No::Down && to == No::Follower)
+      return No::Leader;
+    if (to == No::Down)
+      return No::Down;
+    throw ;
+  });
+  srv->setDebugContext(ctx);
+  srv->AsyncRun();
+  BOOST_REQUIRE_NO_THROW(srv->Stop());
+}
+
 BOOST_AUTO_TEST_CASE(Basic) {
   BOOST_TEST_MESSAGE("Test::Identity::Leader::Basic");
   using No = quintet::ServerIdentityNo;
-  auto srvs = makeServers(2);
+  auto srvs = makeServers(1);
   std::unique_ptr<quintet::Raft> & srv = srvs.front();
   quintet::RaftDebugContext ctx;
 

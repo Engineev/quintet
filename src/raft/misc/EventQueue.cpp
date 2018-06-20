@@ -9,41 +9,49 @@
 #include <boost/thread/condition_variable.hpp>
 #include <boost/atomic.hpp>
 
+#include "service/log/Common.h"
+
 namespace quintet {
 
 struct EventQueue::Impl {
-  boost::mutex produceM, consumeM;
-  boost::condition_variable produceCv, consumeCv;
+  struct Node {
+    std::size_t idx;
+    std::function<void()> event;
+  };
 
-  std::queue<std::function<void()>> q;
+  std::queue<Node> q;
   boost::thread runningThread;
   boost::atomic_bool paused{false};
+  boost::mutex m;
+  boost::condition_variable cv;
+  logging::src::logger_mt logger;
+  std::size_t curIdx = 0;
 
   void addEvent(std::function<void()> event) {
-    boost::lock_guard<boost::mutex> lk(produceM);
-    q.push(std::move(event));
-    produceCv.notify_all();
+    boost::lock_guard<boost::mutex> lk(m);
+    q.push({++curIdx, std::move(event)});
+    BOOST_LOG(logger) << "add event " << curIdx;
+    cv.notify_all();
   }
 
   void execute() {
     while (true) {
-      boost::unique_lock<boost::mutex> plk(produceM, boost::defer_lock);
-      boost::unique_lock<boost::mutex> clk(consumeM, boost::defer_lock);
+      boost::unique_lock<boost::mutex> lk(m);
       try {
-        boost::lock(plk, clk);
-        produceCv.wait(plk, [this] { return !paused && !q.empty(); });
+        cv.wait(lk, [this] { return !paused && !q.empty(); });
       } catch (boost::thread_interrupted & e) {
         return;
       }
-      auto exe = q.front();
+      auto node = q.front();
       q.pop();
-      plk.unlock();
+      BOOST_LOG(logger) << "pop event " << node.idx;
+      lk.unlock();
 
       {
         boost::this_thread::disable_interruption d;
-        exe();
+        node.event();
       }
-      consumeCv.notify_all();
+      cv.notify_all();
     }
   }
 
@@ -51,12 +59,12 @@ struct EventQueue::Impl {
 
   void resume() {
     paused = false;
-    consumeCv.notify_all();
+    cv.notify_all();
   }
 
   void wait() {
-    boost::unique_lock<boost::mutex> lk(consumeM);
-    consumeCv.wait(lk, [this] { return q.empty(); });
+    boost::unique_lock<boost::mutex> lk(m);
+    cv.wait(lk, [this] { return q.empty(); });
   }
 
   void stop() {
@@ -92,5 +100,11 @@ void EventQueue::resume() { pImpl->resume(); }
 void EventQueue::stop() { pImpl->stop(); }
 
 void EventQueue::start() { pImpl->start(); }
+
+void EventQueue::configLogger(const std::string &id) {
+  auto & logger = pImpl->logger;
+  logger.add_attribute("ServerId", logging::attrs::constant<std::string>(id));
+  logger.add_attribute("Part", logging::attrs::constant<std::string>("EQ"));
+}
 
 } // namespace quintet

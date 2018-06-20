@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <functional>
+#include <string>
 
 namespace quintet {
 
@@ -11,6 +12,8 @@ public:
   EventQueue();
 
   ~EventQueue();
+
+  void configLogger(const std::string & id);
 
   // pseudo non-blocking
   void addEvent(std::function<void()> event);

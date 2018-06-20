@@ -14,6 +14,11 @@ BOOST_AUTO_TEST_SUITE(EventQueue)
 
 BOOST_AUTO_TEST_CASE(Basic) {
   BOOST_TEST_MESSAGE("Misc::EventQueue::Basic");
+  {
+    quintet::EventQueue q;
+    q.stop();
+  }
+
   quintet::EventQueue q;
 
   boost::mutex m;

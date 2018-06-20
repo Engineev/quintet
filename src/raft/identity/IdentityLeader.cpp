@@ -29,6 +29,7 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
       : IdentityBaseImpl(state, info, service, ctx) {
     service.logger.add_attribute(
         "Part", logging::attrs::constant<std::string>("Identity"));
+    applyQueue.configLogger(info.local.toString());
   }
 
   struct FollowerNode
@@ -251,8 +252,8 @@ void IdentityLeader::Impl::init() {
       if (srv == info.local)
         continue;
       auto & node = followerNodes.at(srv);
-      boost::lock_guard<FollowerNode> lk(*node);
       node->appendingThread.join();
+      boost::lock_guard<FollowerNode> lk(*node);
       node->appendingThread = boost::thread(
           std::bind(&IdentityLeader::Impl::tryAppendEntries, this, srv));
     }
