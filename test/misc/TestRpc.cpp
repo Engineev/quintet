@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(ServerBaisc) {
   using namespace quintet::rpc;
 
   const Port port = 50001;
-  const ServerId srv = {.addr = "localhost", .port = port};
+  const ServerId srv("localhost", port);
   RpcService service;
   boost::atomic<int> appendEntriesCnt{0};
   service.bindAppendEntries([&appendEntriesCnt](AppendEntriesMessage) {
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(ServerAdvanced) {
   using namespace std::chrono_literals;
 
   const Port port = 50001;
-  const ServerId srv = {.addr = "localhost", .port = port};
+  const ServerId srv("localhost", port);
   RpcService service;
   service.configLogger("RpcService");
   boost::atomic<int> cnt{0};
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(Basic) {
   using namespace quintet::rpc;
 
   const Port port = 50001;
-  const ServerId srv = {.addr = "localhost", .port = port};
+  const ServerId srv("localhost", port);
   RpcService service;
   boost::atomic<int> cnt{0};
   service.bindAppendEntries([&cnt](AppendEntriesMessage) {

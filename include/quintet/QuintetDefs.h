@@ -13,6 +13,9 @@ using PrmIdx = std::uint64_t;
 using Port  = std::uint16_t;
 
 struct ServerId {
+  ServerId() = default;
+  ServerId(std::string addr, Port port) : addr(addr), port(port) {}
+
   std::string addr = "";
   Port port = 0;
 
