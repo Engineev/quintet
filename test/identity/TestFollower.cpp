@@ -10,7 +10,7 @@ namespace utf = boost::unit_test_framework;
 BOOST_AUTO_TEST_SUITE(Identity)
 BOOST_FIXTURE_TEST_SUITE(Follower, quintet::test::IdentityTestHelper)
 
-BOOST_AUTO_TEST_CASE(Basic) {
+BOOST_AUTO_TEST_CASE(Follower_Basic) {
   BOOST_TEST_MESSAGE("Test::Identity::Follower::Basic");
   using No = quintet::ServerIdentityNo;
   const std::size_t SrvNum = 1;
@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(Basic) {
     BOOST_REQUIRE_NO_THROW(srv->Stop());
 }
 
-BOOST_AUTO_TEST_CASE(Naive) {
+BOOST_AUTO_TEST_CASE(Follower_Naive) {
   BOOST_TEST_MESSAGE("Test::Identity::Follower::Naive");
   using No = quintet::ServerIdentityNo;
 
@@ -60,6 +60,11 @@ BOOST_AUTO_TEST_CASE(Naive) {
   for (auto &srv : srvs)
     srv->Stop();
   BOOST_REQUIRE_EQUAL(follower2Candidate, SrvNum);
+}
+
+BOOST_AUTO_TEST_CASE(Follower_AppendEntry) {
+  BOOST_TEST_MESSAGE("Test::Identity::Follower::AppendEntry");
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()
