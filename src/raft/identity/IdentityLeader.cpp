@@ -64,7 +64,7 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
   /// entry will be applied more than once.
   ///
   /// \param commitIdx the new commitIdx
-  void commitAndAsyncApply(boost::strict_lock<ServerState> &, Index commitIdx);
+  void commitAndAsyncApply(Index commitIdx);
 
   void reinitStates();
 
@@ -188,7 +188,7 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
     newCommitIndex = std::max(newCommitIndex,
       std::size_t(iter - logStates.begin()));
   }
-//  TODO: commitAndAsyncApply(serverStateLk, newCommitIndex);
+  commitAndAsyncApply(newCommitIndex);
 }
 
 } // namespace quintet
@@ -197,23 +197,21 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
 
 namespace quintet {
 
-void IdentityLeader::Impl::commitAndAsyncApply(
-  boost::strict_lock<ServerState> &, Index commitIdx) {
-//  if (state.get_commitIdx() >= commitIdx)
-//    return;
-//  auto oldCommitIdx = state.get_commitIdx();
-//  state.getMutable_commitIdx() = commitIdx;
-//
-//  std::vector<LogEntry> entriesToApply(
-//    state.get_entries().begin() + oldCommitIdx + 1,
-//    state.get_entries().begin() + commitIdx + 1);
-//  applyQueue.addEvent([this, entriesToApply = std::move(entriesToApply)]{
-//    for (std::size_t i = 0, sz = entriesToApply.size(); i < sz; ++i) {
-//      service.apply(entriesToApply[i]);
-//      boost::lock_guard<ServerState> lk(state);
-//      ++state.getMutable_lastApplied(); // TODO: assert
-//    }
-//    });
+void IdentityLeader::Impl::commitAndAsyncApply(Index commitIdx) {
+  Index oldCommitIdx;
+  if (!state.set_commitIdx([&oldCommitIdx, commitIdx] (Index curCommitIdx) {
+    oldCommitIdx = curCommitIdx;
+    return curCommitIdx < commitIdx;
+  }, commitIdx))
+    return;
+
+  auto entriesToApply = state.sliceLogEntries(oldCommitIdx + 1, commitIdx + 1);
+  applyQueue.addEvent([this, entriesToApply = std::move(entriesToApply)]{
+    for (std::size_t i = 0, sz = entriesToApply.size(); i < sz; ++i) {
+      service.apply(entriesToApply[i]);
+      state.incLastApplied();
+    }
+  });
 }
 
 } // namespace quintet

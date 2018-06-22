@@ -63,7 +63,9 @@ BOOST_AUTO_TEST_CASE(Basic) {
 BOOST_AUTO_TEST_CASE(AddLog) {
   BOOST_TEST_MESSAGE("Test::Identity::Leader::AddLog");
   using No = quintet::ServerIdentityNo;
-  auto srvs = makeServers(3);
+  using namespace quintet;
+
+  auto srvs = makeServers(1);
   std::unique_ptr<quintet::Raft> & leader = srvs.front();
   quintet::RaftDebugContext leaderCtx;
   leaderCtx.setBeforeTransform([] (No from, No to) {
@@ -73,24 +75,18 @@ BOOST_AUTO_TEST_CASE(AddLog) {
       return No::Down;
     throw ;
   });
+  leader->setDebugContext(leaderCtx);
   leader->AsyncRun();
-  for (std::size_t i = 1, sz = srvs.size(); i < sz; ++i) {
-    auto & srv = srvs[i];
-    quintet::RaftDebugContext ctx;
-    ctx.setBeforeTransform([] (No from, No to) {
-      if ((from == No::Down && to == No::Follower) || to == No::Down)
-        return to;
-      throw ;
-    });
-    srv->setDebugContext(ctx);
-    srv->AsyncRun();
-  }
 
   quintet::RaftClient client(leader->Local());
+  AddLogReply res = client.callRpcAddLog(rpc::makeClientContext(50),
+      {"test", "", 1, quintet::NullServerId});
+  BOOST_REQUIRE(res.success);
 
 
-  for (auto & srv : srvs)
+  for (auto & srv : srvs) {
     srv->Stop();
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

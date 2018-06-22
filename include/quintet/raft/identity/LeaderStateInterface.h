@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 
 #include "ServerState.h"
 #include "ServerInfo.h"
@@ -23,6 +24,10 @@ public:
 
   const std::size_t entriesSize() const;
 
+  std::vector<LogEntry> sliceLogEntries(Index beg, Index end);
+
+  void incLastApplied();
+
   /// \breif currentTerm <- term if condition(currentTerm) is true
   ///
   /// If you want to get the original currentTerm, capture something in
@@ -34,6 +39,7 @@ public:
   /// is updated
   bool set_currentTerm(std::function<bool(Term)> condition, Term term);
 
+  bool set_commitIdx(std::function<bool(Index)> condition, Index idx);
 
   AppendEntriesMessage createAppendEntriesMessage(const ServerInfo & info,
                                                   Index start);

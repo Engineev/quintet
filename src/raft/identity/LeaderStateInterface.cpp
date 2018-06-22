@@ -9,6 +9,7 @@ struct LeaderStateInterface::Impl {
   explicit Impl(ServerState & state) : state(state) {}
 
   ServerState & state;
+  boost::shared_mutex lastAppliedM;
   boost::shared_mutex currentTermM;
   boost::shared_mutex commitIdxM;
   boost::shared_mutex logEntriesM;
@@ -60,6 +61,18 @@ bool LeaderStateInterface::set_currentTerm(std::function<bool(Term)> condition,
   }
   return false;
 }
+
+bool LeaderStateInterface::set_commitIdx(std::function<bool(Index)> condition,
+                                         Index idx) {
+  auto & state = pImpl->state;
+  boost::lock_guard<boost::shared_mutex> lk(pImpl->commitIdxM);
+  if (condition(state.get_commitIdx())) {
+    state.getMutable_commitIdx() = idx;
+    return true;
+  }
+  return false;
+}
+
 const Index LeaderStateInterface::get_commitIdx() const {
   boost::shared_lock_guard<boost::shared_mutex> lk(pImpl->commitIdxM);
   return pImpl->state.get_commitIdx();
@@ -82,6 +95,20 @@ AddLogReply LeaderStateInterface::addLog(const AddLogMessage &msg) {
   log.opName = msg.opName;
   state.getMutable_entries().emplace_back(std::move(log));
   return { true, NullServerId };
+}
+
+std::vector<LogEntry> LeaderStateInterface::sliceLogEntries(Index beg,
+                                                            Index end) {
+  boost::shared_lock_guard<boost::shared_mutex> lk(pImpl->logEntriesM);
+  auto & state = pImpl->state;
+  return std::vector<LogEntry>(
+      state.get_entries().begin() + beg,
+      state.get_entries().begin() + end);
+}
+
+void LeaderStateInterface::incLastApplied() {
+  boost::lock_guard<boost::shared_mutex> lk(pImpl->lastAppliedM);
+  ++pImpl->state.getMutable_lastApplied();
 }
 
 } // namespace quintet
