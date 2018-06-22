@@ -129,6 +129,7 @@ Raft::Impl::RPCRequestVote(RequestVoteMessage msg) {
 };
 
 AddLogReply Raft::Impl::RPCAddLog(AddLogMessage msg) {
+  BOOST_LOG(logger) << "Get RpcAddLog from " << msg.srvId.toString();
   if (currentIdentity == ServerIdentityNo::Down)
     return {false, NullServerId};
   return identities[(int)currentIdentity]->RPCAddLog(std::move(msg));

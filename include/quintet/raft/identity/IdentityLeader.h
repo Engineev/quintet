@@ -16,7 +16,7 @@ public:
 
   Reply RPCRequestVote(RequestVoteMessage message) override;
 
-  AddLogReply RPCAddLog(AddLogMessage message) override { throw; }
+  AddLogReply RPCAddLog(AddLogMessage message) override;
 
   void init() override;
 

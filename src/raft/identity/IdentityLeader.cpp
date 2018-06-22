@@ -17,6 +17,7 @@
 #include "misc/Thread.h"
 #include "service/log/Common.h"
 #include "service/rpc/RpcClient.h"
+#include "identity/LeaderStateInterface.h"
 
 
 /* -------------- constructors, destructors and Impl ------------------------ */
@@ -26,7 +27,7 @@ namespace quintet {
 struct IdentityLeader::Impl : public IdentityBaseImpl {
   Impl(ServerState &state, const ServerInfo &info,
     ServerService &service, const RaftDebugContext & ctx)
-    : IdentityBaseImpl(state, info, service, ctx) {
+    : IdentityBaseImpl(state, info, service, ctx), state(state) {
     service.logger.add_attribute(
       "Part", logging::attrs::constant<std::string>("Identity"));
     applyQueue.configLogger(info.local.toString());
@@ -42,15 +43,14 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
     std::size_t replicateNum = 0;
   };
 
+  LeaderStateInterface state;
   std::unordered_map<ServerId, std::unique_ptr<FollowerNode>> followerNodes;
   std::vector<std::unique_ptr<LogState>> logStates;
   EventQueue applyQueue;
 
-  AddLogReply RPCAddLog(const AddLogMessage & message);
-
   // append entries
-  Reply sendAppendEntries(boost::strict_lock<ServerState> &,
-    rpc::RpcClient &client, Index start, const ServerId & logSrv);
+  Reply sendAppendEntries(rpc::RpcClient &client, AppendEntriesMessage msg,
+                          const ServerId & logSrv);
 
   /// \breif Try indefinitely until succeed or \a nextIdx decrease to
   /// the lowest value.
@@ -64,7 +64,7 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
   /// entry will be applied more than once.
   ///
   /// \param commitIdx the new commitIdx
-  void commitAndAsyncApply(boost::strict_lock<ServerState> &, Index commitIdx);
+  void commitAndAsyncApply(Index commitIdx);
 
   void reinitStates();
 
@@ -99,6 +99,10 @@ Reply IdentityLeader::RPCRequestVote(RequestVoteMessage message) {
   return pImpl->defaultRPCRequestVote(std::move(message));
 }
 
+AddLogReply IdentityLeader::RPCAddLog(AddLogMessage message) {
+  return pImpl->state.addLog(message);
+}
+
 } // namespace quintet
 
 /* -------------------- AppendEntries --------------------------------------- */
@@ -108,33 +112,17 @@ namespace quintet {
 // helper functions
 namespace {
 
-AppendEntriesMessage createAppendEntriesMessage(
-  const ServerState & state, const ServerInfo & info,
-  Index start) {
-  AppendEntriesMessage msg;
-  msg.term = state.get_currentTerm();
-  msg.leaderId = info.local;
-  assert(start > 0);
-  msg.prevLogIdx = start - 1;
-  msg.prevLogTerm = state.get_entries().at(msg.prevLogIdx).term;
-  msg.logEntries = std::vector<LogEntry>(
-    state.get_entries().begin() + start, state.get_entries().end());
-  msg.commitIdx = state.get_commitIdx();
-  return msg;
-}
-
 auto timeout2Deadline(std::uint64_t ms) {
   return std::chrono::system_clock::now() + std::chrono::milliseconds(ms);
 }
 
 } // namespace
 
-Reply IdentityLeader::Impl::sendAppendEntries(
-  boost::strict_lock<ServerState> &, rpc::RpcClient &client, Index start,
-  const ServerId & logSrv) {
+Reply IdentityLeader::Impl::sendAppendEntries(rpc::RpcClient &client,
+                                              AppendEntriesMessage msg,
+                                              const ServerId & logSrv) {
   BOOST_LOG(service.logger)
     << "sending RPCAppendEntries to " << logSrv.toString();
-  auto msg = createAppendEntriesMessage(state, info, start);
   auto ctx = std::make_shared<grpc::ClientContext>();
   ctx->set_deadline(timeout2Deadline(50));
   return client.callRpcAppendEntries(ctx, msg);
@@ -144,20 +132,17 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
   rpc::RpcClient client(grpc::CreateChannel(
     target.toString(), grpc::InsecureChannelCredentials()));
 
-  boost::strict_lock<ServerState> serverStateLk(state);
   auto & followerNode = followerNodes.at(target);
   boost::unique_lock<FollowerNode> followerNodeLk(*followerNode);
 
   std::size_t retryTimes = 0;
   while (true) {
     boost::this_thread::interruption_point();
-    { // injection
-      auto msg = createAppendEntriesMessage(state, info, followerNode->nextIdx);
-      debugContext.beforeSendRpcAppendEntries(target, msg);
-    }
+    auto msg = state.createAppendEntriesMessage(info, followerNode->nextIdx);
+    debugContext.beforeSendRpcAppendEntries(target, msg);
     Reply res;
     try {
-      res = sendAppendEntries(serverStateLk, client, followerNode->nextIdx, target);
+      res = sendAppendEntries(client, msg, target);
     }
     catch (rpc::RpcError & e) {
       BOOST_LOG(service.logger)
@@ -167,14 +152,24 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
         return;
       continue;
     }
-    if (res.second)
+
+    // success
+    if (res.second) {
+      followerNode->nextIdx += msg.logEntries.size();
+      followerNode->matchIdx = followerNode->nextIdx - 1;
       break;
-    if (res.first > state.get_currentTerm()) {
-      state.getMutable_currentTerm() = res.first;
+    }
+
+    // greater term detected
+    if (state.set_currentTerm(
+        [res](Term curTerm) { return res.first > curTerm; },
+        res.first)) {
       service.identityTransformer.notify(ServerIdentityNo::Follower,
-        state.get_currentTerm());
+                                         res.first);
       return;
     }
+
+    // simply failed.
     if (followerNode->nextIdx == 1)
       return;
     followerNode->nextIdx--;
@@ -182,6 +177,8 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
 
   // Succeed.
   auto oldMatchIdx = followerNode->matchIdx;
+  followerNodeLk.unlock();
+
   Index newCommitIndex = state.get_commitIdx();
   for (auto iter = logStates.begin() + oldMatchIdx, end = logStates.end();
     iter != end; ++iter) {
@@ -191,10 +188,7 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
     newCommitIndex = std::max(newCommitIndex,
       std::size_t(iter - logStates.begin()));
   }
-  followerNode->matchIdx = state.get_entries().size() - 1;
-  followerNode->nextIdx = state.get_entries().size();
-  followerNodeLk.unlock();
-  commitAndAsyncApply(serverStateLk, newCommitIndex);
+  commitAndAsyncApply(newCommitIndex);
 }
 
 } // namespace quintet
@@ -203,24 +197,21 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
 
 namespace quintet {
 
-// TODO: Put this function into impl base 
-void IdentityLeader::Impl::commitAndAsyncApply(
-  boost::strict_lock<ServerState> &, Index commitIdx) {
-  if (state.get_commitIdx() >= commitIdx)
+void IdentityLeader::Impl::commitAndAsyncApply(Index commitIdx) {
+  Index oldCommitIdx;
+  if (!state.set_commitIdx([&oldCommitIdx, commitIdx] (Index curCommitIdx) {
+    oldCommitIdx = curCommitIdx;
+    return curCommitIdx < commitIdx;
+  }, commitIdx))
     return;
-  auto oldCommitIdx = state.get_commitIdx();
-  state.getMutable_commitIdx() = commitIdx;
 
-  std::vector<LogEntry> entriesToApply(
-    state.get_entries().begin() + oldCommitIdx + 1,
-    state.get_entries().begin() + commitIdx + 1);
+  auto entriesToApply = state.sliceLogEntries(oldCommitIdx + 1, commitIdx + 1);
   applyQueue.addEvent([this, entriesToApply = std::move(entriesToApply)]{
     for (std::size_t i = 0, sz = entriesToApply.size(); i < sz; ++i) {
       service.apply(entriesToApply[i]);
-      boost::lock_guard<ServerState> lk(state);
-      ++state.getMutable_lastApplied(); // TODO: assert
+      state.incLastApplied();
     }
-    });
+  });
 }
 
 } // namespace quintet
@@ -235,7 +226,7 @@ void IdentityLeader::Impl::reinitStates() {
       continue;
     followerNodes.emplace(srv, std::make_unique<FollowerNode>());
   }
-  logStates.reserve(state.get_entries().size());
+  logStates.reserve(state.entriesSize());
   for (auto & log : logStates)
     log = std::make_unique<LogState>();
 }
@@ -273,18 +264,6 @@ void IdentityLeader::Impl::leave() {
   applyQueue.stop();
   followerNodes.clear();
   logStates.clear();
-}
-
-AddLogReply IdentityLeader::Impl::RPCAddLog(const AddLogMessage & message) {
-  boost::lock_guard<ServerState> lk(state);
-  LogEntry log;
-  log.term = state.get_currentTerm();
-  log.prmIdx = message.prmIdx;
-  log.srvId = message.srvId;
-  log.args = message.args;
-  log.opName = message.opName;
-  state.getMutable_entries().emplace_back(std::move(log));
-  return { true, NullServerId };
 }
 
 } // namespace quintet

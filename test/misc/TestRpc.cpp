@@ -12,6 +12,7 @@
 
 #include "service/rpc/RaftRpc.grpc.pb.h"
 #include "service/rpc/Conversion.h"
+#include "RaftClient.h"
 
 namespace utf = boost::unit_test_framework;
 
@@ -109,6 +110,10 @@ BOOST_AUTO_TEST_CASE(Basic) {
     ++cnt;
     return std::make_pair(Term(), false);
   });
+  service.bindAddLog([&cnt](AddLogMessage) {
+    ++cnt;
+    return AddLogReply();
+  });
   service.asyncRun(port);
 
   RpcClient client(grpc::CreateChannel(srv.addr + ":" + std::to_string(srv.port), grpc::InsecureChannelCredentials()));
@@ -116,6 +121,9 @@ BOOST_AUTO_TEST_CASE(Basic) {
   auto ctx = std::make_shared<grpc::ClientContext>();
   client.callRpcAppendEntries(std::move(ctx), {});
   BOOST_REQUIRE_EQUAL(1, cnt);
+  RaftClient raftClient(srv);
+  raftClient.callRpcAddLog(makeClientContext(50), {});
+  BOOST_REQUIRE_EQUAL(2, cnt);
 
   BOOST_REQUIRE_NO_THROW(service.stop());
 }
