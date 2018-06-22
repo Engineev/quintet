@@ -26,6 +26,7 @@ namespace quintet {
 
 AppendEntriesMessage LeaderStateInterface::createAppendEntriesMessage(
     const ServerInfo &info, Index start) {
+  boost::shared_lock_guard<ServerState> LK(pImpl->state);
   ServerState & state = pImpl->state;
   boost::shared_lock<boost::shared_mutex>
       commitIdxLk(pImpl->commitIdxM, boost::defer_lock),
@@ -47,12 +48,14 @@ AppendEntriesMessage LeaderStateInterface::createAppendEntriesMessage(
 }
 
 const Term LeaderStateInterface::get_currentTerm() const {
+  boost::shared_lock_guard<ServerState> LK(pImpl->state);
   boost::shared_lock_guard<boost::shared_mutex> lk(pImpl->currentTermM);
   return pImpl->state.get_currentTerm();
 }
 
 bool LeaderStateInterface::set_currentTerm(std::function<bool(Term)> condition,
                                            Term term) {
+  boost::shared_lock_guard<ServerState> LK(pImpl->state);
   auto & state = pImpl->state;
   boost::lock_guard<boost::shared_mutex> lk(pImpl->currentTermM);
   if (condition(state.get_currentTerm())) {
@@ -64,6 +67,7 @@ bool LeaderStateInterface::set_currentTerm(std::function<bool(Term)> condition,
 
 bool LeaderStateInterface::set_commitIdx(std::function<bool(Index)> condition,
                                          Index idx) {
+  boost::shared_lock_guard<ServerState> LK(pImpl->state);
   auto & state = pImpl->state;
   boost::lock_guard<boost::shared_mutex> lk(pImpl->commitIdxM);
   if (condition(state.get_commitIdx())) {
@@ -74,16 +78,19 @@ bool LeaderStateInterface::set_commitIdx(std::function<bool(Index)> condition,
 }
 
 const Index LeaderStateInterface::get_commitIdx() const {
+  boost::shared_lock_guard<ServerState> LK(pImpl->state);
   boost::shared_lock_guard<boost::shared_mutex> lk(pImpl->commitIdxM);
   return pImpl->state.get_commitIdx();
 }
 
 const std::size_t LeaderStateInterface::entriesSize() const {
+  boost::shared_lock_guard<ServerState> LK(pImpl->state);
   boost::shared_lock_guard<boost::shared_mutex> lk(pImpl->logEntriesM);
   return pImpl->state.get_entries().size();
 }
 
 AddLogReply LeaderStateInterface::addLog(const AddLogMessage &msg) {
+  boost::shared_lock_guard<ServerState> LK(pImpl->state);
   boost::shared_lock_guard<boost::shared_mutex> curTermLk(pImpl->currentTermM);
   boost::lock_guard<boost::shared_mutex> logEntriesLk(pImpl->logEntriesM);
   auto & state = pImpl->state;
@@ -99,6 +106,7 @@ AddLogReply LeaderStateInterface::addLog(const AddLogMessage &msg) {
 
 std::vector<LogEntry> LeaderStateInterface::sliceLogEntries(Index beg,
                                                             Index end) {
+  boost::shared_lock_guard<ServerState> LK(pImpl->state);
   boost::shared_lock_guard<boost::shared_mutex> lk(pImpl->logEntriesM);
   auto & state = pImpl->state;
   return std::vector<LogEntry>(
@@ -107,6 +115,7 @@ std::vector<LogEntry> LeaderStateInterface::sliceLogEntries(Index beg,
 }
 
 void LeaderStateInterface::incLastApplied() {
+  boost::shared_lock_guard<ServerState> LK(pImpl->state);
   boost::lock_guard<boost::shared_mutex> lk(pImpl->lastAppliedM);
   ++pImpl->state.getMutable_lastApplied();
 }

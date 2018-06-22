@@ -50,6 +50,7 @@ PbAddLogMessage convertAddLogMessage(const AddLogMessage &msg) {
   PbAddLogMessage res;
   res.set_opname(msg.opName);
   res.set_args(msg.args);
+  res.set_prmidx(msg.prmIdx);
   *res.mutable_srvid() = convertServerId(msg.srvId);
   return res;
 }

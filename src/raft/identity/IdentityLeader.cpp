@@ -100,7 +100,9 @@ Reply IdentityLeader::RPCRequestVote(RequestVoteMessage message) {
 }
 
 AddLogReply IdentityLeader::RPCAddLog(AddLogMessage message) {
-  return pImpl->state.addLog(message);
+  auto res = pImpl->state.addLog(message);
+  pImpl->service.heartBeatController.restart();
+  return res;
 }
 
 } // namespace quintet
@@ -109,23 +111,12 @@ AddLogReply IdentityLeader::RPCAddLog(AddLogMessage message) {
 
 namespace quintet {
 
-// helper functions
-namespace {
-
-auto timeout2Deadline(std::uint64_t ms) {
-  return std::chrono::system_clock::now() + std::chrono::milliseconds(ms);
-}
-
-} // namespace
-
 Reply IdentityLeader::Impl::sendAppendEntries(rpc::RpcClient &client,
                                               AppendEntriesMessage msg,
                                               const ServerId & logSrv) {
   BOOST_LOG(service.logger)
     << "sending RPCAppendEntries to " << logSrv.toString();
-  auto ctx = std::make_shared<grpc::ClientContext>();
-  ctx->set_deadline(timeout2Deadline(50));
-  return client.callRpcAppendEntries(ctx, msg);
+  return client.callRpcAppendEntries(rpc::makeClientContext(50), msg);
 }
 
 void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
@@ -234,7 +225,7 @@ void IdentityLeader::Impl::reinitStates() {
 void IdentityLeader::Impl::init() {
   BOOST_LOG(service.logger) << "init";
   reinitStates();
-  service.heartBeatController.bind(info.electionTimeout / 3, [this] {
+  auto heartBeat = [this] () mutable {
     for (auto & srv : info.srvList) {
       if (srv == info.local)
         continue;
@@ -248,11 +239,13 @@ void IdentityLeader::Impl::init() {
       node->appendingThread.join();
       boost::lock_guard<FollowerNode> lk(*node);
       node->appendingThread = boost::thread(
-        std::bind(&IdentityLeader::Impl::tryAppendEntries, this, srv));
+          std::bind(&IdentityLeader::Impl::tryAppendEntries, this, srv));
     }
-  });
+  };
+  service.heartBeatController.bind(info.electionTimeout / 3, heartBeat);
   applyQueue.start();
-  service.heartBeatController.start(true, true);
+  if (debugContext.heartBeatEnabled)
+    service.heartBeatController.start(true, true);
 }
 
 void IdentityLeader::Impl::leave() {
