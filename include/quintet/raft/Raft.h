@@ -14,7 +14,7 @@
 namespace quintet {
 
 struct ServerInfo; // forward declaration
-
+class ServerState;
 
 class Raft {
 public:
@@ -39,8 +39,14 @@ public:
 
   Term getCurrentTerm() const;
 
+  const ServerState & getState() const;
+
   [[deprecated("will be merged into RaftDebugContext")]]
   void setRpcLatency(std::uint64_t lb, std::uint64_t ub);
+
+  // Caution! If the heartbeat is enabled, the invocation will shutdown
+  // the original heartbeat
+  void forceHeartBeat();
 #endif
 
 private:

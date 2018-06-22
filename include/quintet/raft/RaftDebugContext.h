@@ -32,6 +32,11 @@ public:
     return *this;
   }
 
+  RaftDebugContext & setHeartBeatEnabled(bool f) {
+    heartBeatEnabled = f;
+    return *this;
+  }
+
 private:
   std::function<No(No, No)> beforeTransform = [](No from, No to) { return to; };
   std::function<void(No, No)> afterTransform = [](No from, No to) {};
@@ -40,6 +45,8 @@ private:
   std::function<void(ServerId, const AppendEntriesMessage &)>
     beforeSendRpcAppendEntries = [](ServerId, const AppendEntriesMessage &) {};
 
+  bool heartBeatEnabled = true;
+  std::function<void()> heartBeat;
 }; // class RaftDebugContext
 
 

@@ -241,6 +241,9 @@ void Raft::Impl::AddLog(std::string opName, std::string args, PrmIdx idx) {
 namespace quintet {
 
 const ServerInfo &Raft::getInfo() const { return pImpl->info; }
+
+const ServerState &Raft::getState() const { return pImpl->state; }
+
 Term Raft::getCurrentTerm() const { return pImpl->state.get_currentTerm(); }
 
 void Raft::setRpcLatency(std::uint64_t lb, std::uint64_t ub) {
@@ -250,6 +253,10 @@ void Raft::setRpcLatency(std::uint64_t lb, std::uint64_t ub) {
 
 void Raft::setDebugContext(const RaftDebugContext &ctx) {
   pImpl->debugContext = ctx;
+}
+
+void Raft::forceHeartBeat() {
+  pImpl->service.heartBeatController.start(true, false);
 }
 
 } // namespace quintet
