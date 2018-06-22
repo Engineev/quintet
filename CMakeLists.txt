@@ -8,7 +8,7 @@ option(UNIT_TEST "unit test"
 option(MISC_TEST "misc test"
         ON)
 option(IDENTITY_TEST "test the identities resepectively"
-        ON)
+        OFF)
 option(COMPREHENSIVE_TEST "test with normal identity transformation enabled"
         OFF)
 
