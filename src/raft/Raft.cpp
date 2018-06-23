@@ -149,9 +149,8 @@ void Raft::Impl::configure(const std::string &filename) {
   logger.add_attribute("Part", logging::attrs::constant<std::string>("Raft"));
   logger.add_attribute("Identity", curIdentityAttr);
   initServerService();
-  //  identities[(std::size_t)ServerIdentityNo::Follower] =
-  //      std::make_unique<IdentityFollower>(state, info, service,
-  //      debugContext);
+    identities[(std::size_t)ServerIdentityNo::Follower] =
+        std::make_unique<IdentityFollower>(state, info, service, debugContext);
   identities[(std::size_t)ServerIdentityNo::Candidate] =
       std::make_unique<IdentityCandidate>(state, info, service, debugContext);
   identities[(std::size_t)ServerIdentityNo::Leader] =

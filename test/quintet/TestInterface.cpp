@@ -1,7 +1,9 @@
 #include <boost/test/unit_test.hpp>
 #include "Interface.h"
 
-BOOST_AUTO_TEST_SUITE(Interface)
+namespace utf = boost::unit_test;
+
+BOOST_AUTO_TEST_SUITE(Interface, *utf::disabled())
 
 BOOST_AUTO_TEST_CASE(Basic) {
   BOOST_TEST_MESSAGE("Interface::Basic");

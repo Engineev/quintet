@@ -1,4 +1,3 @@
-#ifdef false
 #include <boost/test/unit_test.hpp>
 #include "identity/IdentityFollower.h"
 
@@ -88,5 +87,3 @@ BOOST_AUTO_TEST_CASE(Follower_AppendEntry) {
 
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()
-
-#endif

@@ -99,14 +99,15 @@ AddLogReply IdentityLeader::RPCAddLog(AddLogMessage message) {
 namespace quintet {
 
 AddLogReply IdentityLeader::Impl::addLog(const AddLogMessage &msg) {
-  boost::unique_lock<boost::shared_mutex> logEntriesLk(state.entriesM);
   LogEntry log;
   log.term = state.get_currentTerm();
   log.prmIdx = msg.prmIdx;
   log.srvId = msg.srvId;
   log.args = msg.args;
   log.opName = msg.opName;
+  boost::unique_lock<boost::shared_mutex> logEntriesLk(state.entriesM);
   state.entries.emplace_back(std::move(log));
+  logEntriesLk.unlock();
   service.heartBeatController.restart();
   return { true, NullServerId };
 }
@@ -152,6 +153,7 @@ AppendEntriesMessage createAppendEntriesMessage(const ServerState & state,
 }
 
 void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
+  BOOST_LOG(service.logger) << "tryAppendEntries(" << target.toString() << ")";
   rpc::RpcClient client(grpc::CreateChannel(
     target.toString(), grpc::InsecureChannelCredentials()));
 
@@ -203,16 +205,15 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
   auto oldMatchIdx = followerNode->matchIdx;
   followerNodeLk.unlock();
 
-  boost::unique_lock<boost::shared_mutex> commitIdxLk(state.commitIdxM);
   for (auto iter = logStates.begin() + oldMatchIdx, end = logStates.end();
     iter != end; ++iter) {
     boost::lock_guard<LogState> logLk(**iter);
     LogState & logState = **iter;
     ++logState.replicateNum;
+    boost::unique_lock<boost::shared_mutex> commitIdxLk(state.commitIdxM);
     state.commitIdx = std::max(state.commitIdx,
         std::size_t(iter - logStates.begin()));
   }
-  commitIdxLk.unlock();
 
   applyReadyEntries();
 }
