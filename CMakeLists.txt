@@ -10,12 +10,7 @@ option(MISC_TEST "misc test"
 option(IDENTITY_TEST "test the identities resepectively"
         ON)
 option(COMPREHENSIVE_TEST "test with normal identity transformation enabled"
-        OFF)
-
-if (${IDENTITY_TEST} AND ${COMPREHENSIVE_TEST})
-  message(FATAL_ERROR
-    "identity test and comprehensive can not be enabled simultaneously.")
-endif ()
+        ON)
 
 # common flags
 set(CMAKE_CXX_STANDARD 14)
