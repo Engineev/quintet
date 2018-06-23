@@ -1,22 +1,23 @@
 #include "identity/LeaderStateInterface.h"
+#include "identity/StateInterfaceImpl.h"
 
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/locks.hpp>
 
 namespace quintet {
 
-struct LeaderStateInterface::Impl {
-  explicit Impl(ServerState & state) : state(state) {}
+struct LeaderStateInterface::Impl : public StateInterfaceImpl {
+  explicit Impl(ServerState & state) : StateInterfaceImpl(state) {}
 
-  ServerState & state;
   boost::shared_mutex lastAppliedM;
-  boost::shared_mutex currentTermM;
   boost::shared_mutex commitIdxM;
   boost::shared_mutex logEntriesM;
 };
 
 LeaderStateInterface::LeaderStateInterface(ServerState &state)
-    : pImpl(std::make_unique<Impl>(state)) {}
+    : pImpl(std::make_shared<Impl>(state)) {
+  StateInterface::pImpl = pImpl;
+}
 
 LeaderStateInterface::~LeaderStateInterface() = default;
 
@@ -48,21 +49,12 @@ AppendEntriesMessage LeaderStateInterface::createAppendEntriesMessage(
 }
 
 const Term LeaderStateInterface::get_currentTerm() const {
-  boost::shared_lock_guard<ServerState> LK(pImpl->state);
-  boost::shared_lock_guard<boost::shared_mutex> lk(pImpl->currentTermM);
-  return pImpl->state.get_currentTerm();
+  return pImpl->get_currentTerm();
 }
 
 bool LeaderStateInterface::set_currentTerm(std::function<bool(Term)> condition,
                                            Term term) {
-  boost::shared_lock_guard<ServerState> LK(pImpl->state);
-  auto & state = pImpl->state;
-  boost::lock_guard<boost::shared_mutex> lk(pImpl->currentTermM);
-  if (condition(state.get_currentTerm())) {
-    state.getMutable_currentTerm() = term;
-    return true;
-  }
-  return false;
+  return pImpl->set_currentTerm(std::move(condition), term);
 }
 
 bool LeaderStateInterface::set_commitIdx(std::function<bool(Index)> condition,

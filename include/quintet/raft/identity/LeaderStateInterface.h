@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "StateInterface.h"
 #include "ServerState.h"
 #include "ServerInfo.h"
 #include "service/rpc/RpcDefs.h"
@@ -12,11 +13,11 @@
 namespace quintet {
 
 // thread safe
-class LeaderStateInterface {
+class LeaderStateInterface : public StateInterface {
 public:
   explicit LeaderStateInterface(ServerState & state);
 
-  ~LeaderStateInterface();
+  ~LeaderStateInterface() override ;
 
   const Term get_currentTerm() const;
 
@@ -48,7 +49,7 @@ public:
 
 private:
   struct Impl;
-  std::unique_ptr<Impl> pImpl;
+  std::shared_ptr<Impl> pImpl;
 
 }; // class LeaderStateInterface
 
