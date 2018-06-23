@@ -2,6 +2,7 @@
 
 #include "misc/Rand.h"
 #include "service/log/Common.h"
+#include "misc/EventQueue.h"
 
 /* -------------- constructors, destructors and Impl ------------------------ */
 
@@ -13,19 +14,32 @@ struct IdentityFollower::Impl : public IdentityBaseImpl {
     : IdentityBaseImpl(state, info, service, ctx) {
     service.logger.add_attribute(
       "Part", logging::attrs::constant<std::string>("Identity"));
+    applyQueue.configLogger(info.local.toString());
   }
+  EventQueue applyQueue;
+  boost::shared_mutex lastAppliedM;
 
   void init();
 
   void leave();
 
   Reply appendEntries(const AppendEntriesMessage &msg);
+
+  // commit and reply
+  /// \breif Update \a state.commitIdx and apply the newly-committed
+  /// log entries asynchronously.
+  ///
+  /// This function is thread-safe andi t is guaranteed that no log
+  /// entry will be applied more than once.
+  ///
+  /// \param commitIdx the new commitIdx
+  void commitAndAsyncApply(Index commitIdx);
 }; // struct IdentityFollower::Impl
 
 IdentityFollower::IdentityFollower(
   ServerState &state, const ServerInfo &info,
   ServerService &service, const RaftDebugContext & ctx)
-  : pImpl(std::make_unique<Impl>(state, info, service, ctx)) {}
+    : pImpl(std::make_unique<Impl>(state, info, service, ctx)) {}
 
 IdentityFollower::~IdentityFollower() = default;
 
@@ -102,8 +116,8 @@ Reply IdentityFollower::Impl::appendEntries(const AppendEntriesMessage &msg) {
       throw std::runtime_error("receive commit when own log is empty");
     }
     Index newCommitIdx = std::min(msg.commitIdx, state.get_entries().size() - 1);
-    state.getMutable_commitIdx() = newCommitIdx;
     // TODO: apply entry using the function commitandasyncapply in indentityLeader
+    commitAndAsyncApply(newCommitIdx);
   }
 
 
@@ -111,3 +125,25 @@ Reply IdentityFollower::Impl::appendEntries(const AppendEntriesMessage &msg) {
 }
 
 } // namespace quintet
+
+/* -------------------- Commit and Apply ------------------------------------ */
+
+namespace quintet {
+
+void IdentityFollower::Impl::commitAndAsyncApply(Index commitIdx) {
+  Index oldCommitIdx;
+  state.getMutable_commitIdx() = commitIdx;
+
+  std::vector<LogEntry> entriesToApply(state.get_entries().begin() + state.get_lastApplied() + 1, state.get_entries().begin() + commitIdx + 1);
+  applyQueue.addEvent([ this, entriesToApply = std::move(entriesToApply) ] {
+    for (std::size_t i = 0, sz = entriesToApply.size(); i < sz; ++i) {
+      service.apply(entriesToApply[i]);
+      boost::lock_guard<boost::shared_mutex> lk(lastAppliedM);
+      ++state.getMutable_lastApplied();
+    }
+  });
+}
+
+} // namespace quintet
+
+/* -------------------------------------------------------------------------- */

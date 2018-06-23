@@ -1,0 +1,12 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+IndentCaseLabels: false
+SpaceAfterControlStatementKeyword: true
+#AlignTrailingComments: true
+#AlignAfterOpenBracket: true
+#AlignConsecutiveAssignments: true
+---  
+Language: Cpp  
