@@ -3,6 +3,7 @@
 
 #include "misc/Rand.h"
 #include "service/log/Common.h"
+#include "misc/EventQueue.h"
 
 /* -------------- constructors, destructors and Impl ------------------------ */
 
@@ -14,19 +15,32 @@ struct IdentityFollower::Impl : public IdentityBaseImpl {
     : IdentityBaseImpl(state, info, service, ctx) {
     service.logger.add_attribute(
       "Part", logging::attrs::constant<std::string>("Identity"));
+    applyQueue.configLogger(info.local.toString());
   }
+  EventQueue applyQueue;
+  boost::shared_mutex lastAppliedM;
 
   void init();
 
   void leave();
 
   Reply appendEntries(const AppendEntriesMessage &msg);
+
+  // commit and reply
+  /// \breif Update \a state.commitIdx and apply the newly-committed
+  /// log entries asynchronously.
+  ///
+  /// This function is thread-safe andi t is guaranteed that no log
+  /// entry will be applied more than once.
+  ///
+  /// \param commitIdx the new commitIdx
+  void commitAndAsyncApply(Index commitIdx);
 }; // struct IdentityFollower::Impl
 
 IdentityFollower::IdentityFollower(
   ServerState &state, const ServerInfo &info,
   ServerService &service, const RaftDebugContext & ctx)
-  : pImpl(std::make_unique<Impl>(state, info, service, ctx)) {}
+    : pImpl(std::make_unique<Impl>(state, info, service, ctx)) {}
 
 IdentityFollower::~IdentityFollower() = default;
 
@@ -103,15 +117,15 @@ Reply IdentityFollower::Impl::appendEntries(const AppendEntriesMessage &msg) {
       throw std::runtime_error("receive commit when own log is empty");
     }
     Index newCommitIdx = std::min(msg.commitIdx, state.get_entries().size() - 1);
-    for (Index commitItem = state.get_commitIdx() + 1; commitItem <= newCommitIdx;
-      ++commitItem) {
-      service.apply(state.get_entries().at(commitItem));
-    }
-    state.getMutable_commitIdx() = newCommitIdx;
+    // TODO: apply entry using the function commitandasyncapply in indentityLeader
+    commitAndAsyncApply(newCommitIdx);
   }
+
 
   return { state.get_currentTerm(), true };
 }
 
 } // namespace quintet
+<<<<<<< HEAD
 #endif
+

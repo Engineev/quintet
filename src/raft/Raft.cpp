@@ -93,8 +93,12 @@ namespace quintet {
 void Raft::Configure(const std::string &filename) {
   pImpl->configure(filename);
 }
-void Raft::AsyncRun() { pImpl->asyncRun(); }
-void Raft::Stop() { pImpl->stop(); }
+void Raft::AsyncRun() {
+  pImpl->asyncRun();
+}
+void Raft::Stop() {
+  pImpl->stop();
+}
 
 ServerId Raft::Local() const {
   return pImpl->info.local;
@@ -113,8 +117,7 @@ std::pair<Term /*current term*/, bool /*success*/>
 Raft::Impl::RPCAppendEntries(AppendEntriesMessage msg) {
   BOOST_LOG(logger) << "Get RpcAppendEntries from " << msg.leaderId.toString();
   rpcSleep();
-  if (currentIdentity == ServerIdentityNo::Down)
-    return {InvalidTerm, false};
+  if (currentIdentity == ServerIdentityNo::Down) return {InvalidTerm, false};
 
   return identities[(int)currentIdentity]->RPCAppendEntries(std::move(msg));
 };
@@ -123,15 +126,13 @@ std::pair<Term /*current term*/, bool /*vote granted*/>
 Raft::Impl::RPCRequestVote(RequestVoteMessage msg) {
   BOOST_LOG(logger) << "Get RpcRequestVote from " << msg.candidateId.toString();
   rpcSleep();
-  if (currentIdentity == ServerIdentityNo::Down)
-    return {InvalidTerm, false};
+  if (currentIdentity == ServerIdentityNo::Down) return {InvalidTerm, false};
   return identities[(int)currentIdentity]->RPCRequestVote(std::move(msg));
 };
 
 AddLogReply Raft::Impl::RPCAddLog(AddLogMessage msg) {
   BOOST_LOG(logger) << "Get RpcAddLog from " << msg.srvId.toString();
-  if (currentIdentity == ServerIdentityNo::Down)
-    return {false, NullServerId};
+  if (currentIdentity == ServerIdentityNo::Down) return {false, NullServerId};
   return identities[(int)currentIdentity]->RPCAddLog(std::move(msg));
 }
 
@@ -148,8 +149,9 @@ void Raft::Impl::configure(const std::string &filename) {
   logger.add_attribute("Part", logging::attrs::constant<std::string>("Raft"));
   logger.add_attribute("Identity", curIdentityAttr);
   initServerService();
-//  identities[(std::size_t)ServerIdentityNo::Follower] =
-//      std::make_unique<IdentityFollower>(state, info, service, debugContext);
+  //  identities[(std::size_t)ServerIdentityNo::Follower] =
+  //      std::make_unique<IdentityFollower>(state, info, service,
+  //      debugContext);
   identities[(std::size_t)ServerIdentityNo::Candidate] =
       std::make_unique<IdentityCandidate>(state, info, service, debugContext);
   identities[(std::size_t)ServerIdentityNo::Leader] =
@@ -186,8 +188,7 @@ void Raft::Impl::transform(ServerIdentityNo target) {
                     << IdentityNames[(int)actualTarget] << ")";
 
   rpc.pause();
-  if (from != ServerIdentityNo::Down)
-    identities[(std::size_t)from]->leave();
+  if (from != ServerIdentityNo::Down) identities[(std::size_t)from]->leave();
 
   currentIdentity = actualTarget;
   curIdentityAttr.set((int)currentIdentity);
@@ -233,18 +234,23 @@ void Raft::Impl::AddLog(std::string opName, std::string args, PrmIdx idx) {
   });
 }
 
-
 } // namespace quintet
 
 /* --------------------- Test ----------------------------------------------- */
 
 namespace quintet {
 
-const ServerInfo &Raft::getInfo() const { return pImpl->info; }
+const ServerInfo &Raft::getInfo() const {
+  return pImpl->info;
+}
 
-const ServerState &Raft::getState() const { return pImpl->state; }
+const ServerState &Raft::getState() const {
+  return pImpl->state;
+}
 
-Term Raft::getCurrentTerm() const { return pImpl->state.get_currentTerm(); }
+Term Raft::getCurrentTerm() const {
+  return pImpl->state.get_currentTerm();
+}
 
 void Raft::setRpcLatency(std::uint64_t lb, std::uint64_t ub) {
   pImpl->rpcLatencyLb = lb;
