@@ -14,7 +14,7 @@
 namespace quintet {
 
 struct ServerInfo; // forward declaration
-class ServerState;
+struct ServerState;
 
 class Raft {
 public:

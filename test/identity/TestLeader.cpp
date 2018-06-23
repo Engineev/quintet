@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(AddLog) {
     BOOST_REQUIRE(reply.get().success);
 
   const auto &state = leader->getState();
-  const auto &entries = state.get_entries();
+  const auto &entries = state.entries;
   std::set<PrmIdx> output;
   for (auto &entry : entries) {
     output.insert(entry.prmIdx);

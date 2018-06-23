@@ -27,23 +27,6 @@ public:
   /// \brief To be invoked right after the transformation to initialize
   ///        [non-blocking]
   virtual void init() = 0;
-
-protected:
-  struct IdentityBaseImpl {
-    IdentityBaseImpl(ServerState &state,
-                     const ServerInfo &info,
-                     ServerService &service,
-                     const RaftDebugContext & debugContext);
-
-    ServerState &state;
-    const ServerInfo &info;
-    ServerService &service;
-    const RaftDebugContext & debugContext;
-
-    AddLogReply defaultAddLog(AddLogMessage);
-
-    Reply defaultRPCRequestVote(RequestVoteMessage msg);
-  };
 };
 
 } // namespace quintet

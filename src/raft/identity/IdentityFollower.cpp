@@ -1,3 +1,4 @@
+#ifdef false
 #include "identity/IdentityFollower.h"
 
 #include "misc/Rand.h"
@@ -113,3 +114,4 @@ Reply IdentityFollower::Impl::appendEntries(const AppendEntriesMessage &msg) {
 }
 
 } // namespace quintet
+#endif

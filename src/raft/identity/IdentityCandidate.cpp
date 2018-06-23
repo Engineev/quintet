@@ -1,9 +1,11 @@
 #include "identity/IdentityCandidate.h"
+#include "identity/IdentityBaseImpl.h"
 
 #include <chrono>
 #include <utility>
 
 #include <boost/atomic.hpp>
+#include <boost/thread/locks.hpp>
 
 #include <grpc++/create_channel.h>
 #include <grpc++/client_context.h>
@@ -20,7 +22,7 @@ namespace quintet {
 
 IdentityCandidate::~IdentityCandidate() = default;
 
-struct IdentityCandidate::Impl : public IdentityBase::IdentityBaseImpl {
+struct IdentityCandidate::Impl : public IdentityBaseImpl {
   Impl(ServerState &state, const ServerInfo &info, ServerService &service,
     const RaftDebugContext & debugContext)
     : IdentityBaseImpl(state, info, service, debugContext) {
@@ -69,17 +71,7 @@ namespace quintet {
 
 std::pair<Term /*current term*/, bool /*success*/>
 IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg) {
-  auto &service = pImpl->service;
-  auto &state = pImpl->state;
-  // TODO
-  boost::lock_guard<ServerState> lk(state);
-  if (msg.term >= state.get_currentTerm()) {
-    state.getMutable_currentTerm() = msg.term;
-    service.identityTransformer.notify(ServerIdentityNo::Follower,
-      state.get_currentTerm());
-    return { state.get_currentTerm(), false };
-  }
-  return { state.get_currentTerm(), false };
+  return pImpl->defaultRPCAppendEntries(std::move(msg));
 }
 
 Reply IdentityCandidate::RPCRequestVote(RequestVoteMessage msg) {
@@ -97,8 +89,8 @@ AddLogReply IdentityCandidate::RPCAddLog(AddLogMessage message) {
 namespace quintet {
 
 void IdentityCandidate::Impl::init() {
-  ++state.getMutable_currentTerm();
-  state.getMutable_votedFor() = info.local;
+  state.currentTerm++;
+  state.votedFor = info.local;
 
   auto electionTimeout =
     intRand(info.electionTimeout, info.electionTimeout * 2);
@@ -114,7 +106,6 @@ void IdentityCandidate::Impl::init() {
 
   service.heartBeatController.bind(
     electionTimeout, [this] {
-    boost::lock_guard<ServerState> lk(state);
     auto term = state.get_currentTerm();
     service.identityTransformer.notify(ServerIdentityNo::Candidate, term);
   });
@@ -148,10 +139,13 @@ void IdentityCandidate::Impl::requestVotes() {
       continue;
 
     RequestVoteMessage msg;
-    msg.term = state.get_currentTerm();
-    msg.candidateId = info.local;
-    msg.lastLogIdx = state.get_entries().size() - 1;
-    msg.lastLogTerm = state.get_entries().back().term;
+    { // create the message
+      msg.term = state.get_currentTerm();
+      msg.candidateId = info.local;
+      boost::shared_lock_guard<boost::shared_mutex> lk(state.entriesM);
+      msg.lastLogIdx = state.entries.size() - 1;
+      msg.lastLogTerm = state.entries.back().term;
+    }
 
     auto request = std::make_shared<Request>();
     request->ctx = std::make_shared<grpc::ClientContext>();
