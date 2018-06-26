@@ -12,6 +12,9 @@ option(IDENTITY_TEST "test the identities resepectively"
 option(COMPREHENSIVE_TEST "test with normal identity transformation enabled"
         ON)
 
+option(EXAMPLE "example"
+		ON)
+
 # common flags
 set(CMAKE_CXX_STANDARD 14)
 if (MSVC)
@@ -41,4 +44,8 @@ add_subdirectory(src)
 # test
 if(UNIT_TEST)
     add_subdirectory(test)
+endif()
+
+if(EXAMPLE)
+	add_subdirectory(example)
 endif()
