@@ -73,6 +73,8 @@ BOOST_AUTO_TEST_CASE(AppendEntries) {
       return No::Down;
     throw;
   });
+  std::function<void(BasicLogEntry)> apply = [] (BasicLogEntry) {};
+  leader->BindApply(apply);
   leader->setDebugContext(leaderCtx);
   leader->AsyncRun();
 
@@ -83,6 +85,7 @@ BOOST_AUTO_TEST_CASE(AppendEntries) {
     throw;
   });
   for (std::size_t i = 1; i < N; ++i) {
+    srvs[i]->BindApply(apply);
     srvs[i]->setDebugContext(followerCtx);
     srvs[i]->AsyncRun();
   }

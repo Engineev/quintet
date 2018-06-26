@@ -191,7 +191,8 @@ void Raft::Impl::transform(ServerIdentityNo target) {
                     << " term = " << state.get_currentTerm();
 
   rpc.pause();
-  if (from != ServerIdentityNo::Down) identities[(std::size_t)from]->leave();
+  if (from != ServerIdentityNo::Down)
+    identities[(std::size_t)from]->leave();
 
   currentIdentity = actualTarget;
   curIdentityAttr.set((int)currentIdentity);

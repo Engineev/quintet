@@ -22,4 +22,8 @@ BOOST_AUTO_TEST_CASE(Basic) {
     inf.Shutdown();
 }
 
+BOOST_AUTO_TEST_CASE(Test) {
+
+}
+
 BOOST_AUTO_TEST_SUITE_END()
