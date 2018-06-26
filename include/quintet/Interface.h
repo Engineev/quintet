@@ -18,6 +18,8 @@
 
 namespace quintet {
 
+template <class T> class Fuck;
+
 class Interface {
 public:
   Interface();

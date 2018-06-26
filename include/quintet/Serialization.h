@@ -4,6 +4,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include <iostream>
+
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/hana/for_each.hpp>
@@ -53,13 +55,14 @@ void serializeTypeInfo(std::vector<std::size_t> & types) {
 } // namespace
 
 template <class... Args> std::string serialize(const Args &... args) {
-  std::vector<std::size_t> types;
-  serializeTypeInfo<Args...>(types);
+//  std::vector<std::size_t> types;
+//  serializeTypeInfo<Args...>(types);
 
   std::stringstream ss;
   {
     boost::archive::text_oarchive oa(ss);
-    serialize_impl(oa, types, args...);
+//    serialize_impl(oa, types, args...);
+    serialize_impl(oa, args...);
   }
   return std::string{std::istreambuf_iterator<char>(ss), {}};
 }
@@ -70,13 +73,15 @@ boost::hana::tuple<Args...> deserialize(std::string str) {
   tuple<Args...> res;
   std::stringstream ss(str);
   boost::archive::text_iarchive ia(ss);
-  std::vector<std::size_t> typesSerialized;
-  ia >> typesSerialized;
 
-  std::vector<std::size_t> types;
-  serializeTypeInfo<Args...>(types);
-  if (types != typesSerialized)
-    throw TypeMismatched();
+//  std::vector<std::size_t> typesSerialized;
+//  ia >> typesSerialized;
+
+//  std::vector<std::size_t> types;
+//  serializeTypeInfo<Args...>(types);
+
+//  if (types != typesSerialized)
+//    throw TypeMismatched();
 
   for_each(res, [&](auto & element) { ia >> element; });
 

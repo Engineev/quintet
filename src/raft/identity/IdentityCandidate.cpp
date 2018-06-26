@@ -107,6 +107,11 @@ namespace quintet {
 void IdentityCandidate::Impl::init() {
   state.currentTerm++;
   state.votedFor = info.local;
+  votesReceived = 1;
+  if (votesReceived > info.srvList.size() / 2) {
+    service.identityTransformer.notify(ServerIdentityNo::Leader,
+                                       state.currentTerm);
+  }
 
   auto electionTimeout =
     intRand(info.electionTimeout, info.electionTimeout * 2);
@@ -117,7 +122,7 @@ void IdentityCandidate::Impl::init() {
     info.srvList.begin(), info.srvList.end(), std::back_inserter(srvs),
     [local = info.local](const ServerId &id) { return local != id; });
 
-  votesReceived = 1;
+
   requestVotes();
 
   service.heartBeatController.bind(

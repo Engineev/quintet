@@ -57,7 +57,12 @@ void Interface::addLog(BasicLogEntry entry) {
 //        << "trying " << srv.toString();
 
       RaftClient client(srv);
-      auto reply = client.callRpcAddLog(rpc::makeClientContext(50), msg);
+      AddLogReply reply;
+      try {
+        reply = client.callRpcAddLog(rpc::makeClientContext(50), msg);
+      } catch (rpc::RpcError & e) {
+        reply.success = false;
+      }
       if (reply.success) {
         BOOST_LOG(pImpl->raft.getLogger())
           << "Succeeded. Leader = " << srv.toString();
