@@ -4,6 +4,7 @@
 
 #include "service/rpc/RpcClient.h"
 #include "ServerInfo.h"
+#include "service/log/Common.h"
 
 namespace quintet {
 
@@ -15,7 +16,10 @@ void Interface::Start() {
   pImpl->raft.AsyncRun();
 }
 
-void Interface::Shutdown() { pImpl->raft.Stop(); }
+void Interface::Shutdown() {
+  pImpl->raft.Stop();
+  pImpl->threads.clearWithInterruption();
+}
 
 void Interface::apply(BasicLogEntry entry) {
   auto res = pImpl->fs.at(entry.get_opName())(entry.get_args());
@@ -43,14 +47,27 @@ void Interface::addLog(BasicLogEntry entry) {
     }
     lk.unlock();
 
-    for (auto & srv : pImpl->raft.getInfo().srvList) { // TODO
+    const auto srvList = pImpl->raft.getInfo().srvList;
+    auto iter = srvList.cbegin(), end = srvList.cend();
+    while (true) {
+      auto & srv = *iter;
+      ++iter;
+
+//      BOOST_LOG(pImpl->raft.getLogger())
+//        << "trying " << srv.toString();
+
       RaftClient client(srv);
       auto reply = client.callRpcAddLog(rpc::makeClientContext(50), msg);
       if (reply.success) {
+        BOOST_LOG(pImpl->raft.getLogger())
+          << "Succeeded. Leader = " << srv.toString();
         lk.lock();
         pImpl->cachedLeader = srv;
         return;
       }
+      std::this_thread::yield();
+      if (iter == end)
+        iter = srvList.begin();
     }
   }));
 }

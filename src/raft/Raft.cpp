@@ -268,4 +268,8 @@ void Raft::forceHeartBeat() {
   pImpl->service.heartBeatController.start(true, false);
 }
 
+logging::src::logger_mt & Raft::getLogger() {
+  return pImpl->logger;
+}
+
 } // namespace quintet

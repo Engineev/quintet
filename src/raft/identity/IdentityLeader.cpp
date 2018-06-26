@@ -178,7 +178,10 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
     debugContext.beforeSendRpcAppendEntries(target, msg);
     Reply res;
     try {
-      BOOST_LOG(service.logger) << "{" << randId << "} sending...";
+      BOOST_LOG(service.logger)
+        << "{" << randId << "} sending... prevLogIdx = "
+        << msg.prevLogIdx << ", prevLogTerm = " << msg.prevLogTerm
+        << ", lastLogIdx = " << msg.prevLogIdx + msg.logEntries.size();
       res = sendAppendEntries(client, msg, target);
       BOOST_LOG(service.logger) << "{" << randId << "} replied";
     } catch (rpc::RpcError & e) {
@@ -187,8 +190,6 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
         BOOST_LOG(service.logger) << "{" << randId << "} failed. RpcError";
         return;
       } else {
-//        client = rpc::RpcClient(grpc::CreateChannel(target.toString(),
-//            grpc::InsecureChannelCredentials()));
         BOOST_LOG(service.logger)
           << "{" << randId << "} retry. RpcError: "
           << e.what();
@@ -222,21 +223,25 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
     followerNode->nextIdx--;
   }
 
-  BOOST_LOG(service.logger)
+  BOOST_LOG(service.logger) << "{" << randId << "}"
     << "matchIdx: " << oldMatchIdx << " -> " << followerNode->matchIdx;
   followerNodeLk.unlock();
 
   // Succeed.
   boost::shared_lock<boost::shared_mutex> logStatesLk(logStatesM);
-  for (auto iter = logStates.begin() + oldMatchIdx, end = logStates.end();
-    iter < end; ++iter) {
-    boost::lock_guard<LogState> logLk(**iter);
-    LogState & logState = **iter;
+  BOOST_LOG(service.logger)
+    << "{" << randId << "} logStates.size() = " << logStates.size();
+  for (std::size_t i = oldMatchIdx + 1; i < logStates.size(); ++i) {
+    BOOST_LOG(service.logger) << "{" << randId << "} 2";
+    boost::lock_guard<LogState> logLk(*logStates[i]);
+    LogState & logState = *logStates[i];
     ++logState.replicateNum;
+    BOOST_LOG(service.logger)
+      << "{" << randId << "} logStates[" << i << "].replicateNum = "
+      << logState.replicateNum;
     if (logState.replicateNum > info.srvList.size() / 2) {
       boost::unique_lock<boost::shared_mutex> commitIdxLk(state.commitIdxM);
-      Index newCommitIdx = std::max(state.commitIdx,
-                                    std::size_t(iter - logStates.begin()));
+      Index newCommitIdx = std::max(state.commitIdx, i);
       if (state.commitIdx < newCommitIdx) {
         BOOST_LOG(service.logger)
           << "commitIdx: " << state.commitIdx << " -> " << newCommitIdx;
@@ -260,7 +265,7 @@ void IdentityLeader::Impl::reinitStates() {
       continue;
     followerNodes.emplace(srv, std::make_unique<FollowerNode>());
   }
-  logStates.reserve(state.entries.size());
+  logStates.resize(state.entries.size());
   for (auto & log : logStates)
     log = std::make_unique<LogState>();
 }

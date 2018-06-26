@@ -100,7 +100,7 @@ Reply IdentityBaseImpl::defaultRPCAppendEntries(AppendEntriesMessage msg,
   }
   { // 2. up to date ?
     boost::shared_lock<boost::shared_mutex> entriesLk(state.entriesM);
-
+//    bool upToDate = false;
     if (state.entries.size() <= msg.prevLogIdx ||
         state.entries.at(msg.prevLogIdx).term != msg.prevLogTerm) {
       if (state.entries.size() <= msg.prevLogIdx)
@@ -109,11 +109,12 @@ Reply IdentityBaseImpl::defaultRPCAppendEntries(AppendEntriesMessage msg,
           << "} entries.size() = "
           << state.entries.size() << " <= "
           << msg.prevLogIdx << " = prevLogIdx";
-      else
+      else {
         BOOST_LOG(service.logger)
           << "{" << randId
           << "} local.prevLogTerm = " << state.entries[msg.prevLogIdx].term
-          << "!= " << msg.prevLogTerm << " = msg.prevLogTerm";
+          << " != " << msg.prevLogTerm << " = msg.prevLogTerm";
+      }
       return {curTerm, false};
     }
   }
@@ -121,14 +122,20 @@ Reply IdentityBaseImpl::defaultRPCAppendEntries(AppendEntriesMessage msg,
     boost::lock_guard<boost::shared_mutex> entriesLk(state.entriesM);
     Index idxOffset = 0;
     while (idxOffset < msg.logEntries.size()
-        && msg.prevLogIdx + idxOffset < state.entries.size()
-        && state.entries[msg.prevLogIdx + idxOffset].term
+        && msg.prevLogIdx + idxOffset + 1 < state.entries.size()
+        && state.entries[msg.prevLogIdx + idxOffset + 1].term
             == msg.logEntries[idxOffset].term)
       ++idxOffset;
     if (idxOffset != msg.logEntries.size()) { // Conflict does exist
-      state.entries.resize(msg.prevLogIdx + idxOffset);
+      BOOST_LOG(service.logger)
+        << "{" << randId << "} add " << msg.logEntries.size() - idxOffset
+        << " entries.";
+      state.entries.resize(msg.prevLogIdx + idxOffset + 1);
       std::copy(msg.logEntries.cbegin() + idxOffset, msg.logEntries.cend(),
                 std::back_inserter(state.entries));
+    } else {
+      BOOST_LOG(service.logger)
+        << "{" << randId << "} Nothing to be appended";
     }
   }
   { // 5.

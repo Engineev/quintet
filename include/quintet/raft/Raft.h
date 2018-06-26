@@ -6,10 +6,12 @@
 #include <memory>
 #include <utility>
 #include <raft/service/rpc/RpcDefs.h>
+#include <boost/log/sources/logger.hpp>
 
 #include "QuintetDefs.h"
 #include "RaftDefs.h"
 #include "RaftDebugContext.h"
+#include "service/log/Common.h"
 
 namespace quintet {
 
@@ -47,6 +49,8 @@ public:
   // Caution! If the heartbeat is enabled, the invocation will shutdown
   // the original heartbeat
   void forceHeartBeat();
+
+  logging::src::logger_mt & getLogger();
 #endif
 
 private:
