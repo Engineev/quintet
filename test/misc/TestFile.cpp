@@ -4,7 +4,7 @@
 namespace utf = boost::unit_test_framework;
 
 BOOST_AUTO_TEST_SUITE(Misc)
-BOOST_AUTO_TEST_SUITE(FileIO)
+BOOST_AUTO_TEST_SUITE(FileIO, *utf::disabled())
 
 BOOST_AUTO_TEST_CASE(Basic) {
   BOOST_TEST_MESSAGE("Misc::FileIO::Value");

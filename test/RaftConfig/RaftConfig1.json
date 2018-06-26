@@ -1,11 +1,11 @@
 {
   "local" : {
-    "address" : "localhost 8001"
+    "address" : "127.0.0.2 50002"
   },
   "electionTimeout" : 300,
   "serverList" : {
-    "" : "localhost 8000",
-    "" : "localhost 8001",
-    "" : "localhost 8002"
+    "" : "127.0.0.1 50001",
+    "" : "127.0.0.2 50002",
+    "" : "127.0.0.3 50003"
   }
 }

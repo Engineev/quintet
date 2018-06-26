@@ -16,7 +16,7 @@ namespace quintet {
 using Term  = std::uint64_t;
 using Index = std::size_t;
 
-const Term InvalidTerm = std::numeric_limits<Term>::max();
+const Term InvalidTerm = 0;
 
 const std::size_t IdentityNum = 5;
 enum class ServerIdentityNo {
@@ -41,7 +41,7 @@ struct RpcReply {
 namespace quintet {
 
 struct LogEntry {
-  Term term;
+  Term term = InvalidTerm;
   std::string opName;
   std::string args;
   PrmIdx prmIdx;

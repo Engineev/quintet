@@ -1,6 +1,7 @@
 #include "Raft.h"
 
 #include <algorithm>
+#include <unordered_map>
 #include <array>
 
 #include <boost/log/attributes/mutable_constant.hpp>
@@ -31,7 +32,10 @@ struct Raft::Impl {
   ServerService service;
   rpc::RpcService rpc;
   logging::src::logger_mt logger;
-
+  struct RpcThreadNode {
+    boost::mutex m;
+    boost::thread t;
+  };
   EventQueue eventQueue; // to synchronize between transformations and 'AddLog's
 
   void AddLog(std::string opName, std::string args, PrmIdx idx);
@@ -104,7 +108,7 @@ ServerId Raft::Local() const {
   return pImpl->info.local;
 }
 
-void Raft::BindApply(std::function<void(LogEntry)> f) {
+void Raft::BindApply(std::function<void(BasicLogEntry)> f) {
   pImpl->service.apply.bind(std::move(f));
 }
 } // namespace quintet
@@ -113,25 +117,24 @@ void Raft::BindApply(std::function<void(LogEntry)> f) {
 
 namespace quintet {
 
-std::pair<Term /*current term*/, bool /*success*/>
-Raft::Impl::RPCAppendEntries(AppendEntriesMessage msg) {
+Reply Raft::Impl::RPCAppendEntries(AppendEntriesMessage msg) {
   BOOST_LOG(logger) << "Get RpcAppendEntries from " << msg.leaderId.toString();
   rpcSleep();
-  if (currentIdentity == ServerIdentityNo::Down) return {InvalidTerm, false};
-
+  if (currentIdentity == ServerIdentityNo::Down)
+    return {InvalidTerm, false};
   return identities[(int)currentIdentity]->RPCAppendEntries(std::move(msg));
 };
 
-std::pair<Term /*current term*/, bool /*vote granted*/>
-Raft::Impl::RPCRequestVote(RequestVoteMessage msg) {
+Reply Raft::Impl::RPCRequestVote(RequestVoteMessage msg) {
   BOOST_LOG(logger) << "Get RpcRequestVote from " << msg.candidateId.toString();
   rpcSleep();
-  if (currentIdentity == ServerIdentityNo::Down) return {InvalidTerm, false};
+  if (currentIdentity == ServerIdentityNo::Down)
+    return {InvalidTerm, false};
   return identities[(int)currentIdentity]->RPCRequestVote(std::move(msg));
 };
 
 AddLogReply Raft::Impl::RPCAddLog(AddLogMessage msg) {
-  BOOST_LOG(logger) << "Get RpcAddLog from " << msg.srvId.toString();
+//  BOOST_LOG(logger) << "Get RpcAddLog from " << msg.srvId.toString();
   if (currentIdentity == ServerIdentityNo::Down) return {false, NullServerId};
   return identities[(int)currentIdentity]->RPCAddLog(std::move(msg));
 }
@@ -184,7 +187,8 @@ void Raft::Impl::transform(ServerIdentityNo target) {
 #endif
   BOOST_LOG(logger) << "transform from " << IdentityNames[(int)from] << " to "
                     << IdentityNames[(int)target] << " (actually to "
-                    << IdentityNames[(int)actualTarget] << ")";
+                    << IdentityNames[(int)actualTarget] << ")"
+                    << " term = " << state.get_currentTerm();
 
   rpc.pause();
   if (from != ServerIdentityNo::Down) identities[(std::size_t)from]->leave();

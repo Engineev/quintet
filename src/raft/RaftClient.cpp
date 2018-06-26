@@ -12,6 +12,10 @@ struct RaftClient::Impl {
   grpc::CompletionQueue cq;
   boost::thread runningThread;
 
+  ~Impl() {
+    stop();
+  }
+
   struct AsyncClientCall {
     rpc::PbAddLogReply reply;
     std::shared_ptr<grpc::ClientContext> context;
@@ -20,6 +24,11 @@ struct RaftClient::Impl {
     std::unique_ptr<
         grpc::ClientAsyncResponseReader<rpc::PbAddLogReply>> response;
   };
+
+  void stop() {
+    cq.Shutdown();
+    runningThread.join();
+  }
 
   void run() {
     void *tag;
@@ -72,8 +81,7 @@ RaftClient::RaftClient(const ServerId &target)
 RaftClient::RaftClient(RaftClient &&) noexcept = default;
 
 RaftClient::~RaftClient() {
-  pImpl->cq.Shutdown();
-  pImpl->runningThread.join();
+  pImpl->stop();
 }
 
 } // namespace quintet

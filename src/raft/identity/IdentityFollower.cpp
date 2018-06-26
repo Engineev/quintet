@@ -46,7 +46,9 @@ Reply IdentityFollower::RPCAppendEntries(AppendEntriesMessage message) {
 }
 
 Reply IdentityFollower::RPCRequestVote(RequestVoteMessage message) {
-  return pImpl->defaultRPCRequestVote(std::move(message));
+  int randId = intRand(100, 999);
+  return pImpl->defaultRPCRequestVote(std::move(message),
+                                      ServerIdentityNo::Follower, randId);
 }
 
 AddLogReply IdentityFollower::RPCAddLog(AddLogMessage message) {
@@ -62,8 +64,10 @@ namespace quintet {
 void IdentityFollower::Impl::init() {
   auto electionTimeout =
     intRand(info.electionTimeout, info.electionTimeout * 2);
+  BOOST_LOG(service.logger) << "electionTimeout = " << electionTimeout;
   service.heartBeatController.bind(electionTimeout, [this] {
     auto term = state.get_currentTerm();
+    BOOST_LOG(service.logger) << "Time out! term = " << term;
     service.identityTransformer.notify(ServerIdentityNo::Candidate, term);
   });
   service.heartBeatController.start(false, false);
@@ -74,13 +78,21 @@ void IdentityFollower::Impl::leave() {
 }
 
 Reply IdentityFollower::Impl::appendEntries(const AppendEntriesMessage &msg) {
+  int randId = intRand(1000, 9999);
+  BOOST_LOG(service.logger)
+    << "{" << randId << "} get RPCAppendEntries from "
+    << msg.leaderId.toString();
   {
     auto curTerm = state.get_currentTerm();
-    if (msg.term < curTerm)
+    if (msg.term < curTerm) {
+      BOOST_LOG(service.logger)
+        << "{" << randId << "} msg.term = " << msg.term << " < "
+        << curTerm << " = currentTerm. Return false";
       return {curTerm, false};
+    }
   }
   service.heartBeatController.restart();
-  return defaultRPCAppendEntries(msg);
+  return defaultRPCAppendEntries(msg, ServerIdentityNo::Follower, randId);
 }
 
 } // namespace quintet

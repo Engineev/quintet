@@ -6,8 +6,7 @@
 namespace quintet {
 
 struct IdentityBaseImpl {
-  IdentityBaseImpl(ServerState &state,
-                   const ServerInfo &info,
+  IdentityBaseImpl(ServerState &state, const ServerInfo &info,
                    ServerService &service,
                    const RaftDebugContext &debugContext);
 
@@ -18,16 +17,22 @@ struct IdentityBaseImpl {
 
   AddLogReply defaultAddLog(AddLogMessage);
 
-  Reply defaultRPCRequestVote(RequestVoteMessage msg);
+  Reply
+  defaultRPCRequestVote(RequestVoteMessage msg,
+                        ServerIdentityNo identity = ServerIdentityNo::Bogus,
+                        int randId = 0);
 
-  Reply defaultRPCAppendEntries(AppendEntriesMessage msg);
+  Reply
+  defaultRPCAppendEntries(AppendEntriesMessage msg,
+                          ServerIdentityNo identity = ServerIdentityNo::Bogus,
+                          int randId = 0);
 
   /// \brief the second bullet of "Rules for Servers, All Servers"
-  bool checkRpcTerm(Term term);
+  bool checkRpcTerm(Term term, ServerIdentityNo identity);
 
   std::shared_ptr<void> applyReadyEntries();
 };
 
 } // namespace quintet
 
-#endif //QUINTET_IDENTITYBASEIMPL_H
+#endif // QUINTET_IDENTITYBASEIMPL_H

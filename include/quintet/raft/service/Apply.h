@@ -10,14 +10,16 @@ namespace quintet {
 
 class Apply {
 public:
-  void bind(std::function<void(quintet::LogEntry)> f) {
+  void bind(std::function<void(quintet::BasicLogEntry)> f) {
     apply = std::move(f);
   }
 
   void operator()(std::vector<LogEntry> entries) {
     for (auto && entry : entries)
       applyQueue.addEvent([this, entry = std::move(entry)] () mutable {
-        apply(std::move(entry));
+        BasicLogEntry basicEntry(entry.opName, entry.args,
+                                 entry.prmIdx, entry.srvId);
+        apply(std::move(basicEntry));
       });
   }
 
@@ -27,7 +29,7 @@ public:
 
 private:
   EventQueue applyQueue;
-  std::function<void(quintet::LogEntry)> apply = nullptr;
+  std::function<void(quintet::BasicLogEntry)> apply = nullptr;
 };
 
 } /* namespace quintet */

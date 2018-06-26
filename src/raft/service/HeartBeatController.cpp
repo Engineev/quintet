@@ -31,7 +31,6 @@ bool HeartBeatController::start(bool immediate, bool repeat) {
                          immediate = immediate, repeat = repeat, this] {
     boost::this_thread::disable_interruption di;
     if (immediate) {
-      BOOST_LOG(logger) << "HeartBeat!";
       f();
       if (!repeat)
         return;
@@ -43,7 +42,6 @@ bool HeartBeatController::start(bool immediate, bool repeat) {
       } catch (boost::thread_interrupted) {
         return;
       }
-      BOOST_LOG(logger) << "HeartBeat!";
       f();
     } while (repeat);
   });

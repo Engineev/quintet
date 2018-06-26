@@ -39,10 +39,11 @@ struct IdentityLeader::Impl : public IdentityBaseImpl {
     boost::thread appendingThread;
   };
   struct LogState : public boost::shared_lockable_adapter<boost::shared_mutex> {
-    std::size_t replicateNum = 0;
+    std::size_t replicateNum = 1;
   };
 
   std::unordered_map<ServerId, std::unique_ptr<FollowerNode>> followerNodes;
+  boost::shared_mutex logStatesM;
   std::vector<std::unique_ptr<LogState>> logStates;
 
   AddLogReply addLog(const AddLogMessage & msg);
@@ -81,11 +82,13 @@ void IdentityLeader::init() { pImpl->init(); }
 void IdentityLeader::leave() { pImpl->leave(); }
 
 Reply IdentityLeader::RPCAppendEntries(AppendEntriesMessage message) {
-  return pImpl->defaultRPCAppendEntries(std::move(message));
+  return pImpl->defaultRPCAppendEntries(std::move(message),
+                                        ServerIdentityNo::Leader);
 }
 
 Reply IdentityLeader::RPCRequestVote(RequestVoteMessage message) {
-  return pImpl->defaultRPCRequestVote(std::move(message));
+  return pImpl->defaultRPCRequestVote(std::move(message),
+                                      ServerIdentityNo::Leader);
 }
 
 AddLogReply IdentityLeader::RPCAddLog(AddLogMessage message) {
@@ -99,6 +102,8 @@ AddLogReply IdentityLeader::RPCAddLog(AddLogMessage message) {
 namespace quintet {
 
 AddLogReply IdentityLeader::Impl::addLog(const AddLogMessage &msg) {
+  BOOST_LOG(service.logger)
+    << "get RPCAddLog from " << msg.srvId.toString();
   LogEntry log;
   log.term = state.get_currentTerm();
   log.prmIdx = msg.prmIdx;
@@ -108,8 +113,10 @@ AddLogReply IdentityLeader::Impl::addLog(const AddLogMessage &msg) {
   boost::unique_lock<boost::shared_mutex> logEntriesLk(state.entriesM);
   state.entries.emplace_back(std::move(log));
   logEntriesLk.unlock();
-  service.heartBeatController.restart();
-  return { true, NullServerId };
+  boost::lock_guard<boost::shared_mutex> logStatesLk(logStatesM);
+  logStates.emplace_back(std::make_unique<LogState>());
+//  service.heartBeatController.restart(); TODO
+  return { true, info.local };
 }
 
 } // namespace quintet
@@ -121,9 +128,7 @@ namespace quintet {
 Reply IdentityLeader::Impl::sendAppendEntries(rpc::RpcClient &client,
                                               AppendEntriesMessage msg,
                                               const ServerId & logSrv) {
-  BOOST_LOG(service.logger)
-    << "sending RPCAppendEntries to " << logSrv.toString();
-  return client.callRpcAppendEntries(rpc::makeClientContext(50), msg);
+  return client.callRpcAppendEntries(rpc::makeClientContext(100), msg);
 }
 
 namespace {
@@ -131,53 +136,69 @@ namespace {
 AppendEntriesMessage createAppendEntriesMessage(const ServerState & state,
                                                 const ServerInfo & info,
                                                 Index start) {
-  boost::shared_lock<boost::shared_mutex>
-      commitIdxLk(state.commitIdxM, boost::defer_lock),
-      currentTermLk(state.currentTermM, boost::defer_lock),
-      logEntriesLk(state.entriesM, boost::defer_lock);
-  boost::lock(commitIdxLk, currentTermLk, logEntriesLk);
 
   AppendEntriesMessage msg;
-  msg.term = state.currentTerm;
+  msg.term = state.get_currentTerm();
+  msg.commitIdx = state.get_commitIdx();
   msg.leaderId = info.local;
   assert(start > 0);
   msg.prevLogIdx = start - 1;
+
+  boost::shared_lock<boost::shared_mutex> logEntriesLk(state.entriesM);
   msg.prevLogTerm = state.entries.at(msg.prevLogIdx).term;
   msg.logEntries = std::vector<LogEntry>(
       state.entries.begin() + start, state.entries.end());
-  msg.commitIdx = state.commitIdx;
-
   return msg;
 }
 
 }
 
 void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
-  BOOST_LOG(service.logger) << "tryAppendEntries(" << target.toString() << ")";
+  int randId = intRand(100, 999);
+  BOOST_LOG(service.logger)
+    << "{" << randId << "} tryAppendEntries(" << target.toString() << ")";
+
+
   rpc::RpcClient client(grpc::CreateChannel(
     target.toString(), grpc::InsecureChannelCredentials()));
 
   auto & followerNode = followerNodes.at(target);
   boost::unique_lock<FollowerNode> followerNodeLk(*followerNode);
+  auto oldMatchIdx = followerNode->matchIdx;
 
   std::size_t retryTimes = 0;
   while (true) {
-    boost::this_thread::interruption_point();
+    try {
+      boost::this_thread::interruption_point();
+    } catch (boost::thread_interrupted &) {
+      BOOST_LOG(service.logger) << "{" << randId << "} interrupted";
+      return;
+    }
     auto msg = createAppendEntriesMessage(state, info, followerNode->nextIdx);
     debugContext.beforeSendRpcAppendEntries(target, msg);
     Reply res;
     try {
+      BOOST_LOG(service.logger) << "{" << randId << "} sending...";
       res = sendAppendEntries(client, msg, target);
-    }
-    catch (rpc::RpcError & e) {
-      BOOST_LOG(service.logger)
-        << "RpcError: " << e.what() << ". [" << retryTimes << "]";
+      BOOST_LOG(service.logger) << "{" << randId << "} replied";
+    } catch (rpc::RpcError & e) {
       ++retryTimes;
-      if (retryTimes > 2)
+      if (retryTimes > 2) {
+        BOOST_LOG(service.logger) << "{" << randId << "} failed. RpcError";
         return;
+      } else {
+//        client = rpc::RpcClient(grpc::CreateChannel(target.toString(),
+//            grpc::InsecureChannelCredentials()));
+        BOOST_LOG(service.logger)
+          << "{" << randId << "} retry. RpcError: "
+          << e.what();
+      }
       continue;
     }
 
+    BOOST_LOG(service.logger)
+      << "{" << randId << "} result: term = " << res.first
+      << ", flag = " << res.second;
     // success
     if (res.second) {
       followerNode->nextIdx += msg.logEntries.size();
@@ -201,18 +222,27 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
     followerNode->nextIdx--;
   }
 
-  // Succeed.
-  auto oldMatchIdx = followerNode->matchIdx;
+  BOOST_LOG(service.logger)
+    << "matchIdx: " << oldMatchIdx << " -> " << followerNode->matchIdx;
   followerNodeLk.unlock();
 
+  // Succeed.
+  boost::shared_lock<boost::shared_mutex> logStatesLk(logStatesM);
   for (auto iter = logStates.begin() + oldMatchIdx, end = logStates.end();
-    iter != end; ++iter) {
+    iter < end; ++iter) {
     boost::lock_guard<LogState> logLk(**iter);
     LogState & logState = **iter;
     ++logState.replicateNum;
-    boost::unique_lock<boost::shared_mutex> commitIdxLk(state.commitIdxM);
-    state.commitIdx = std::max(state.commitIdx,
-        std::size_t(iter - logStates.begin()));
+    if (logState.replicateNum > info.srvList.size() / 2) {
+      boost::unique_lock<boost::shared_mutex> commitIdxLk(state.commitIdxM);
+      Index newCommitIdx = std::max(state.commitIdx,
+                                    std::size_t(iter - logStates.begin()));
+      if (state.commitIdx < newCommitIdx) {
+        BOOST_LOG(service.logger)
+          << "commitIdx: " << state.commitIdx << " -> " << newCommitIdx;
+        state.commitIdx = newCommitIdx;
+      }
+    }
   }
 
   applyReadyEntries();
@@ -236,7 +266,6 @@ void IdentityLeader::Impl::reinitStates() {
 }
 
 void IdentityLeader::Impl::init() {
-  BOOST_LOG(service.logger) << "init";
   reinitStates();
   auto heartBeat = [this] () mutable {
     for (auto & srv : info.srvList) {
@@ -255,7 +284,7 @@ void IdentityLeader::Impl::init() {
           std::bind(&IdentityLeader::Impl::tryAppendEntries, this, srv));
     }
   };
-  service.heartBeatController.bind(info.electionTimeout / 3, heartBeat);
+  service.heartBeatController.bind(info.electionTimeout / 2, heartBeat);
   if (debugContext.heartBeatEnabled)
     service.heartBeatController.start(true, true);
 }

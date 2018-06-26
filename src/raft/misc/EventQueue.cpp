@@ -30,7 +30,6 @@ struct EventQueue::Impl {
   void addEvent(std::function<void()> event) {
     boost::lock_guard<boost::mutex> lk(m);
     q.push({++curIdx, std::move(event)});
-    BOOST_LOG(logger) << "add event " << curIdx;
     cv.notify_all();
   }
 
@@ -44,7 +43,6 @@ struct EventQueue::Impl {
       }
       auto node = q.front();
       q.pop();
-      BOOST_LOG(logger) << "pop event " << node.idx;
       lk.unlock();
 
       {

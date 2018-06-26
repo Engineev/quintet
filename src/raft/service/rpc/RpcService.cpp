@@ -134,12 +134,10 @@ struct RpcService::Impl {
   }
 
   void pause() {
-    BOOST_LOG(logger) << "Paused";
     paused = true;
   }
 
   void resume() {
-    BOOST_LOG(logger) << "Resume";
     paused = false;
     cv.notify_all();
   }

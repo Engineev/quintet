@@ -71,11 +71,27 @@ namespace quintet {
 
 std::pair<Term /*current term*/, bool /*success*/>
 IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg) {
-  return pImpl->defaultRPCAppendEntries(std::move(msg));
+  int randId = intRand(100, 999);
+  BOOST_LOG(pImpl->service.logger)
+    << "{" << randId << "} Get RPCAppendEntries from "
+    << msg.leaderId.toString();
+  Term curTerm = pImpl->state.get_currentTerm();
+  if (msg.term == curTerm) {
+    pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower,
+                                              curTerm);
+    return {false, curTerm};
+  }
+  return pImpl->defaultRPCAppendEntries(std::move(msg),
+                                        ServerIdentityNo::Candidate);
 }
 
 Reply IdentityCandidate::RPCRequestVote(RequestVoteMessage msg) {
-  return pImpl->defaultRPCRequestVote(std::move(msg));
+  int randId = intRand(1000, 9999);
+  BOOST_LOG(pImpl->service.logger)
+      << "{" << randId << "} Get RPCRequestVote from "
+      << msg.candidateId.toString();
+  return pImpl->defaultRPCRequestVote(std::move(msg),
+                                      ServerIdentityNo::Candidate, randId);
 }
 
 AddLogReply IdentityCandidate::RPCAddLog(AddLogMessage message) {
@@ -113,9 +129,6 @@ void IdentityCandidate::Impl::init() {
 }
 
 void IdentityCandidate::Impl::leave() {
-  BOOST_LOG(service.logger)
-    << "leave(); " << requests.size() << " threads remaining";
-  auto start = boost::chrono::high_resolution_clock::now();
   service.heartBeatController.stop();
 
   for (auto &t : requests)
@@ -125,12 +138,6 @@ void IdentityCandidate::Impl::leave() {
   for (auto &t : requests)
     t->t.join();
   requests.clear();
-  BOOST_LOG(service.logger)
-    << "leave()[done]; took "
-    << boost::chrono::duration_cast<boost::chrono::milliseconds>(
-      boost::chrono::high_resolution_clock::now() - start)
-    .count()
-    << " ms";
 }
 
 void IdentityCandidate::Impl::requestVotes() {
@@ -155,32 +162,22 @@ void IdentityCandidate::Impl::requestVotes() {
       srv.addr + ":" + std::to_string(srv.port),
       grpc::InsecureChannelCredentials()));
     request->t = boost::thread([this, request, msg, srv]() mutable {
-      Term termReceived;
-      bool res;
-      auto tag = intRand(0, 100);
+      Term termReceived = InvalidTerm;
+      bool res = false;
 
       for (int i = 0; i < 2; ++i) {
         try {
-          BOOST_LOG(service.logger)
-            << "{" << tag << "} Sending RequestVote to " << srv.toString();
           std::tie(termReceived, res) =
             request->client->callRpcRequestVote(request->ctx, msg);
         }
         catch (boost::thread_interrupted &e) {
-          BOOST_LOG(service.logger) << "{" << tag << "} Interrupted";
           return;
         }
         catch (rpc::RpcError &e) {
-          BOOST_LOG(service.logger)
-            << "{" << tag << "} RpcError: " << e.what();
           return;
         }
         break;
       }
-      BOOST_LOG(service.logger)
-        << "{" << tag
-        << "} Receive the result of RPCRequestVote from " << srv.toString()
-        << ". TermReceived = " << termReceived << ", res = " << res;
       if (termReceived != msg.term || !res)
         return;
       votesReceived += res;

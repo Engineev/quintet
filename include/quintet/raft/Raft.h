@@ -22,7 +22,7 @@ public:
 
   ~Raft();
 
-  void BindApply(std::function<void(LogEntry)> apply);
+  void BindApply(std::function<void(BasicLogEntry)> apply);
 
   ServerId Local() const;
 

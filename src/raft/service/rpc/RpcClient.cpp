@@ -21,6 +21,15 @@ struct RpcClient::Impl {
     std::unique_ptr<grpc::ClientAsyncResponseReader<PbReply>> response;
   };
 
+  ~Impl() {
+    stop();
+  }
+
+  void stop() {
+    cq.Shutdown();
+    runningThread.join();
+  }
+
   void run() {
     void *tag;
     bool ok = false;
@@ -78,8 +87,7 @@ RpcClient::RpcClient(std::shared_ptr<grpc::Channel> channel)
 RpcClient::RpcClient(RpcClient &&) noexcept = default;
 
 RpcClient::~RpcClient() {
-  pImpl->cq.Shutdown();
-  pImpl->runningThread.join();
+  pImpl->stop();
 }
 
 std::shared_ptr<grpc::ClientContext> makeClientContext(std::uint64_t timeout) {
@@ -115,6 +123,7 @@ RpcClient::asyncCallRpcRequestVote(std::shared_ptr<grpc::ClientContext> ctx,
                                    const RequestVoteMessage &msg) {
   return pImpl->asyncCallRequestVote(std::move(ctx), msg);
 }
+
 
 } // namespace rpc
 } // namespace quintet
