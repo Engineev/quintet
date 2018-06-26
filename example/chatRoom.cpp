@@ -16,16 +16,16 @@ int main(int arg, char **argv) {
   std::string path = std::string(CMAKE_SOURCE_DIR) +
       "/example/RaftConfig/RaftConfig" + std::string(argv[1]) +
       ".json";
-  std::cerr << path << std::endl;
+  //std::cerr << path << std::endl;
   inf.Configure(path);
 
-  inf.bind("print", [=](std::string s) -> void { 
-    std::cout << "< " << argv[1] << " >: " << s << std::endl; });
+  inf.bind("print", [](std::string id, std::string s) -> void { 
+    std::cout << "< " << id << " >: " << s << std::endl; });
   inf.Start();
 
   std::string s;
   while (std::cin >> s) {
-    inf.call("print", s);
+    inf.call("print", std::string(argv[1]), s);
   }
   inf.Shutdown();
   return 0;
