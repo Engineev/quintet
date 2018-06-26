@@ -154,6 +154,7 @@ AppendEntriesMessage createAppendEntriesMessage(const ServerState & state,
 }
 
 void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
+  boost::this_thread::disable_interruption di;
   int randId = intRand(100, 999);
   BOOST_LOG(service.logger)
     << "{" << randId << "} tryAppendEntries(" << target.toString() << ")";
@@ -169,6 +170,7 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
   std::size_t retryTimes = 0;
   while (true) {
     try {
+      boost::this_thread::restore_interruption ri(di);
       boost::this_thread::interruption_point();
     } catch (boost::thread_interrupted &) {
       BOOST_LOG(service.logger) << "{" << randId << "} interrupted";
@@ -178,6 +180,7 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
     debugContext.beforeSendRpcAppendEntries(target, msg);
     Reply res;
     try {
+      boost::this_thread::restore_interruption ri(di);
       BOOST_LOG(service.logger)
         << "{" << randId << "} sending... prevLogIdx = "
         << msg.prevLogIdx << ", prevLogTerm = " << msg.prevLogTerm
