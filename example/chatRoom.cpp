@@ -8,8 +8,6 @@ int main(int arg, char **argv) {
   auto &initializer = quintet::logging::Initializer::getInstance();
   initializer.addId("127.0.0.1:50001");
   initializer.addId("127.0.0.2:50002");
-  initializer.addId("127.0.0.3:50003");
-  initializer.addId("localhost:8004");
   initializer.init();
 
   quintet::Interface inf;

@@ -24,6 +24,7 @@ void Interface::Shutdown() {
 void Interface::apply(BasicLogEntry entry) {
   auto res = pImpl->fs.at(entry.get_opName())(entry.get_args());
   if (entry.get_srvId() == pImpl->raft.Local()) {
+    BOOST_LOG(pImpl->raft.getLogger()) << "prmIdx(out) = " << entry.get_prmIdx();
     auto prm = pImpl->prms.find(entry.get_prmIdx());
     assert(prm != pImpl->prms.end());
     prm->second.set_value(res);

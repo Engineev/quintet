@@ -226,7 +226,7 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
     followerNode->nextIdx--;
   }
 
-  BOOST_LOG(service.logger) << "{" << randId << "}"
+  BOOST_LOG(service.logger) << "{" << randId << "} "
     << "matchIdx: " << oldMatchIdx << " -> " << followerNode->matchIdx;
   followerNodeLk.unlock();
 

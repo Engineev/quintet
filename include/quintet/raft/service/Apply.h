@@ -15,12 +15,13 @@ public:
   }
 
   void operator()(std::vector<LogEntry> entries) {
-    for (auto && entry : entries)
-      applyQueue.addEvent([this, entry = std::move(entry)] () mutable {
-        BasicLogEntry basicEntry(entry.opName, entry.args,
-                                 entry.prmIdx, entry.srvId);
+    for (auto && entry : entries) {
+      BasicLogEntry basicEntry(entry.opName, entry.args,
+                               entry.prmIdx, entry.srvId);
+      applyQueue.addEvent([this, basicEntry = std::move(basicEntry)]() mutable {
         apply(std::move(basicEntry));
       });
+    }
   }
 
   void wait() {

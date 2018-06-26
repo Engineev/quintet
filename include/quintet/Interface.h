@@ -35,6 +35,7 @@ public:
       const std::string &opName, Args... rawArgs) {
     std::string args = serialize(rawArgs...);
     PrmIdx idx = pImpl->curPrmIdx++;
+    BOOST_LOG(pImpl->raft.getLogger()) << "prmIdx(in) = " << idx;
     boost::promise<boost::any> prm;
     auto fut = prm.get_future();
     pImpl->prms.emplace(idx, std::move(prm));
