@@ -77,6 +77,7 @@ IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg) {
     << msg.leaderId.toString();
   Term curTerm = pImpl->state.get_currentTerm();
   if (msg.term == curTerm) {
+    BOOST_LOG(pImpl->service.logger) << "{" << randId << "} false. term ==";
     pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower,
                                               curTerm);
     return {false, curTerm};

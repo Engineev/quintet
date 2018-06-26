@@ -1,10 +1,10 @@
 {
   "local" : {
-    "address" : "localhost 8001"
+    "address" : "192.168.1.106 8000"
   },
   "electionTimeout" : 300,
   "serverList": {
-    "": "localhost 8001",
-    "": "localhost 8000"
+    "mw": "192.168.1.117 8000",
+    "engineev": "192.168.1.106 8000"
   }
 }

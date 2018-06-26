@@ -42,9 +42,17 @@ void Interface::addLog(BasicLogEntry entry) {
     boost::unique_lock<boost::mutex> lk(pImpl->cachedM);
     if (pImpl->cachedLeader != NullServerId) {
       RaftClient client(pImpl->cachedLeader);
-      auto reply = client.callRpcAddLog(rpc::makeClientContext(50), msg);
-      if (reply.success)
-        return;
+      while (true) {
+        AddLogReply reply;
+        try {
+          reply = client.callRpcAddLog(rpc::makeClientContext(50), msg);
+        } catch (rpc::RpcError) {
+          BOOST_LOG(pImpl->raft.getLogger()) << "AddLogReply retry";
+          continue;
+        }
+        if (reply.success)
+          return;
+      }
     }
     lk.unlock();
 

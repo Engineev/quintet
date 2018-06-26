@@ -6,8 +6,7 @@
 int main(int arg, char **argv) {
   if (arg != 2) throw;
   auto &initializer = quintet::logging::Initializer::getInstance();
-  initializer.addId("127.0.0.1:50001");
-  initializer.addId("127.0.0.2:50002");
+  initializer.addId("192.168.1.106:8000");
   initializer.init();
 
   quintet::Interface inf;
