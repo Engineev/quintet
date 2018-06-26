@@ -111,6 +111,11 @@ AddLogReply IdentityLeader::Impl::addLog(const AddLogMessage &msg) {
   log.args = msg.args;
   log.opName = msg.opName;
   boost::unique_lock<boost::shared_mutex> logEntriesLk(state.entriesM);
+  for (auto riter = state.entries.rbegin(); riter != state.entries.rend();
+      ++riter) {
+    if (riter->srvId == msg.srvId && riter->prmIdx == msg.prmIdx)
+      return {true, info.local};
+  }
   state.entries.emplace_back(std::move(log));
   logEntriesLk.unlock();
   boost::lock_guard<boost::shared_mutex> logStatesLk(logStatesM);

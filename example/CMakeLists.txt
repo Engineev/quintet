@@ -1,9 +1,7 @@
 include_directories(../src)
 
-file(GLOB EXP_SOURCE ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
-
-# todo if
-add_executable(${PROJECT_NAME}_exp ${EXP_SOURCE})
+add_executable(chatroom chatRoom.cpp)
+add_executable(example example.cpp)
 
 # boost
 find_package(Boost REQUIRED
@@ -16,7 +14,8 @@ add_definitions(
 )
 
 # link
-target_link_libraries(${PROJECT_NAME}_exp ${PROJECT_NAME} ${Boost_LIBRARIES})
+target_link_libraries(chatroom ${PROJECT_NAME} ${Boost_LIBRARIES})
+target_link_libraries(example ${PROJECT_NAME} ${Boost_LIBRARIES})
 
 # config
 add_definitions(-DCMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")

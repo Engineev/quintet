@@ -159,6 +159,8 @@ Reply IdentityBaseImpl::defaultRPCAppendEntries(AppendEntriesMessage msg,
 bool IdentityBaseImpl::checkRpcTerm(Term term, ServerIdentityNo identity) {
   boost::lock_guard<boost::shared_mutex> lk(state.currentTermM);
   if (state.currentTerm > term) {
+    BOOST_LOG(service.logger)
+      << "currentTerm: " << state.currentTerm << " -> " << term;
     state.currentTerm = term;
     if (identity != ServerIdentityNo::Follower)
       service.identityTransformer.notify(ServerIdentityNo::Follower, term);

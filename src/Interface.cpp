@@ -39,22 +39,23 @@ void Interface::addLog(BasicLogEntry entry) {
     msg.opName = entry.get_opName();
     msg.args = entry.get_args();
     msg.prmIdx = entry.get_prmIdx();
-    boost::unique_lock<boost::mutex> lk(pImpl->cachedM);
-    if (pImpl->cachedLeader != NullServerId) {
-      RaftClient client(pImpl->cachedLeader);
-      while (true) {
-        AddLogReply reply;
-        try {
-          reply = client.callRpcAddLog(rpc::makeClientContext(50), msg);
-        } catch (rpc::RpcError) {
-          BOOST_LOG(pImpl->raft.getLogger()) << "AddLogReply retry";
-          continue;
-        }
-        if (reply.success)
-          return;
-      }
-    }
-    lk.unlock();
+
+//    boost::unique_lock<boost::mutex> lk(pImpl->cachedM);
+//    if (pImpl->cachedLeader != NullServerId) {
+//      RaftClient client(pImpl->cachedLeader);
+//      while (true) {
+//        AddLogReply reply;
+//        try {
+//          reply = client.callRpcAddLog(rpc::makeClientContext(50), msg);
+//        } catch (rpc::RpcError & e) {
+//          BOOST_LOG(pImpl->raft.getLogger()) << "AddLogReply retry";
+//          continue;
+//        }
+//        if (reply.success)
+//          return;
+//      }
+//    }
+//    lk.unlock();
 
     const auto srvList = pImpl->raft.getInfo().srvList;
     auto iter = srvList.cbegin(), end = srvList.cend();
@@ -75,8 +76,8 @@ void Interface::addLog(BasicLogEntry entry) {
       if (reply.success) {
         BOOST_LOG(pImpl->raft.getLogger())
           << "Succeeded. Leader = " << srv.toString();
-        lk.lock();
-        pImpl->cachedLeader = srv;
+//        lk.lock();
+//        pImpl->cachedLeader = srv;
         return;
       }
       std::this_thread::yield();

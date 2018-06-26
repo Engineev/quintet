@@ -80,7 +80,6 @@ IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg) {
     BOOST_LOG(pImpl->service.logger) << "{" << randId << "} false. term ==";
     pImpl->service.identityTransformer.notify(ServerIdentityNo::Follower,
                                               curTerm);
-    return {false, curTerm};
   }
   return pImpl->defaultRPCAppendEntries(std::move(msg),
                                         ServerIdentityNo::Candidate);
