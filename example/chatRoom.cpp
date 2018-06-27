@@ -9,7 +9,7 @@
 int main(int arg, char **argv) {
   if (arg != 2) throw;
   auto &initializer = quintet::logging::Initializer::getInstance();
-  initializer.addId("192.168.1.106:8000");
+  initializer.addId("192.168.1.117:8000");
   initializer.addId("172.20.10.9:8000");
   initializer.init();
 
@@ -20,7 +20,7 @@ int main(int arg, char **argv) {
   inf.Configure(path);
 
   inf.bind("print", [](std::string id, std::string s) -> void {
-    std::reverse(s.begin(), s.end());
+    //std::reverse(s.begin(), s.end());
     std::cout << "< " << id << " >: " << s << std::endl;
   });
   inf.Start();
