@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package quintet.rpc;
+
+message PbExternalMessage {
+  string opName = 1;
+  string args = 2;
+//   string callerId = 3;
+}
+
+message PbExternalReply {
+  bool success = 1;
+  string LeaderId = 2;
+}
+
+service External {
+  rpc call (PbExternalMessage) returns (PbExternalReply) {}
+}
+
