@@ -7,7 +7,6 @@ target_link_libraries(
   ${PROJECT_NAME}_test
   ${PROJECT_NAME}
   ${Boost_LIBRARIES}
-  ${boost_serialization}
 )
 
 # config

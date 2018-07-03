@@ -9,8 +9,8 @@ message PbExternalMessage {
 }
 
 message PbExternalReply {
-  bool success = 1;
-  string LeaderId = 2;
+  string LeaderId = 1; // Null if the server itself is the leader
+  string ret = 2;
 }
 
 service External {

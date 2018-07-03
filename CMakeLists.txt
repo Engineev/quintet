@@ -27,7 +27,8 @@ if (UNIT_TEST)
 endif ()
 
 set(Boost_USE_STATIC_LIBS FALSE)
-find_package(Boost REQUIRED COMPONENTS thread log unit_test_framework)
+find_package(Boost REQUIRED
+  COMPONENTS thread log unit_test_framework serialization)
 include_directories(${Boost_INCLUDE_DIR})
 add_definitions(
   -D BOOST_THREAD_VERSION=4
@@ -35,7 +36,6 @@ add_definitions(
 )
 
 # source
-add_subdirectory(dependencies/src)
 add_subdirectory(src)
 
 # test

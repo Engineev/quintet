@@ -13,7 +13,6 @@ find_package(GRPC REQUIRED)
 include_directories(${GRPC_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME}
   ${Boost_LIBRARIES}
-  ${boost_serialization}
   ${PROTOBUF_LIBRARIES}
   ${GRPC_LIBRARIES}
 )
