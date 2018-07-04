@@ -1,7 +1,7 @@
 #ifndef QUINTET_CONVERSION_H
 #define QUINTET_CONVERSION_H
 
-#include "Quintet.pb.h"
+#include "quintet.pb.h"
 #include "common.h"
 
 // Common -> Pb

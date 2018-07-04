@@ -6,7 +6,7 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include "rpc/Quintet.grpc.pb.h"
+#include "rpc/quintet.grpc.pb.h"
 #include "rpc/client_impl.h"
 
 namespace quintet {

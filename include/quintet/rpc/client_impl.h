@@ -10,7 +10,7 @@
 
 #include "client_context.h"
 #include "common.h"
-#include "rpc/Quintet.grpc.pb.h"
+#include "rpc/quintet.grpc.pb.h"
 #include "rpc/error.h"
 #include "rpc/conversion.h"
 #include "misc/object.h"

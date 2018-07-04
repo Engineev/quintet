@@ -19,7 +19,7 @@ endif ()
 
 include_directories(
   include/quintet
-  dependencies/include
+  include/quintet/rpc
 )
 
 if (UNIT_TEST)
@@ -36,6 +36,9 @@ add_definitions(
 )
 
 # source
+if (GEN_GRPC)
+  add_subdirectory(protobuf)
+endif ()
 add_subdirectory(src)
 
 # test
