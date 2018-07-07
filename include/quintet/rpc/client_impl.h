@@ -25,14 +25,36 @@ public:
     stub = Rpc::NewStub(
         grpc::CreateChannel(target.toString(),
                             grpc::InsecureChannelCredentials()));
-    asyncRun();
   }
 
   ~ClientImpl() {
     stop();
   }
 
-  void run() {
+  void stop() {
+    cq.Shutdown();
+    runningThread.join();
+  }
+
+protected:
+  void startImpl(boost::thread t) {
+    runningThread = std::move(t);
+  }
+
+  template <class Request, class FuncP>
+  boost::future<Result> asyncCallImpl(ClientContext ctx, Request request, FuncP f) {
+    auto call = new AsyncClientCall;
+    call->context.set_deadline(std::chrono::system_clock::now()
+                               + std::chrono::milliseconds(ctx.getTimeout()));
+    auto res = call->prm.get_future();
+    auto rstub = *stub;
+    call->response = (rstub.*f)(&call->context, std::move(request), &cq);
+    call->response->Finish(&call->reply, &call->status, (void *)call);
+    return res;
+  }
+
+  template <class Func>
+  void runImpl(Func react) {
     void *tag;
     bool ok = false;
     while (cq.Next(&tag, &ok)) {
@@ -44,37 +66,8 @@ public:
                 call->status.error_message()));
         return;
       }
-      auto leader = rpc::convertServerId(call->reply.leaderid());
-      if (!leader) {
-        call->prm.set_exception(rpc::NotLeader(leader));
-        return;
-      }
-      Object obj;
-      obj.getMutable_buffer() = call->reply.ret();
-      call->prm.set_value(obj);
+      react(call->prm, call->reply);
     }
-  }
-
-  void asyncRun() {
-    runningThread = boost::thread([this] { run(); });
-  }
-
-  void stop() {
-    cq.Shutdown();
-    runningThread.join();
-  }
-  
-
-protected:
-  template <class Request>
-  boost::future<Result> asyncCallImpl(ClientContext ctx, Request request) {
-    auto call = new AsyncClientCall;
-    call->context.set_deadline(std::chrono::system_clock::now()
-                               + std::chrono::milliseconds(ctx.getTimeout()));
-    auto res = call->prm.get_future();
-    call->response = stub->Asynccall(&call->context, std::move(request), &cq);
-    call->response->Finish(&call->reply, &call->status, (void *)call);
-    return res;
   }
 
 private:

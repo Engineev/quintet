@@ -3,16 +3,17 @@ execute_process(
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
 )
 
-file(GLOB GRPC_HEADERS *.h)
-foreach (HEADER ${GRPC_HEADERS})
-  file(RELATIVE_PATH HEADER_NAME ${CMAKE_CURRENT_LIST_DIR} ${HEADER})
-  set(NEW_HEADER "../include/quintet/rpc/${HEADER_NAME}")
-  file(RENAME ${HEADER} ${NEW_HEADER})
-endforeach ()
+function(move FILENAME TAR_DIR)
+  file(RENAME ${FILENAME} "${TAR_DIR}/${FILENAME}")
+endfunction()
 
-file(GLOB GRPC_SOURCES *.cc)
-foreach (SOURCE ${GRPC_SOURCES})
-  file(RELATIVE_PATH SOURCE_NAME ${CMAKE_CURRENT_LIST_DIR} ${SOURCE})
-  set(NEW_SOURCE "../src/rpc/${SOURCE_NAME}")
-  file(RENAME ${SOURCE} ${NEW_SOURCE})
-endforeach ()
+move("quintet.grpc.pb.h"  "../include/quintet/rpc")
+move("quintet.pb.h"       "../include/quintet/rpc")
+move("raft.grpc.pb.h"     "../include/quintet/raft/rpc")
+move("raft.pb.h"          "../include/quintet/raft/rpc")
+
+move("quintet.grpc.pb.cc" "../src/rpc")
+move("quintet.pb.cc"      "../src/rpc")
+move("raft.grpc.pb.cc"    "../src/raft/rpc")
+move("raft.pb.cc"         "../src/raft/rpc")
+

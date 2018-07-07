@@ -22,4 +22,7 @@
   GEN_CONST_HANDLE(NAME)                                                       \
   GEN_MUTABLE_HANDLE(NAME)
 
+#define GEN_PIMPL_CTOR(NAME)                                                   \
+  NAME :: NAME() : pImpl(std::make_unique<Impl>()) {}
+
 #endif // QUINTET_MACRO_H

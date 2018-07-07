@@ -20,6 +20,7 @@ endif ()
 include_directories(
   include/quintet
   include/quintet/rpc
+  include/quintet/raft/rpc
 )
 
 if (UNIT_TEST)

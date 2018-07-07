@@ -15,16 +15,33 @@ class Client::Impl
     : public rpc::ClientImpl<rpc::PbExternalReply, Object, rpc::External> {
 public:
   explicit Impl(const ServerId &target)
-      : rpc::ClientImpl<rpc::PbExternalReply, Object, rpc::External>(target) {}
+      : rpc::ClientImpl<rpc::PbExternalReply, Object, rpc::External>(target) {
+    startImpl(boost::thread([this] { run(); }));
+  }
 
   boost::future<Object> asyncCall(ClientContext ctx, const std::string &opName,
                                   const std::string &args) {
     rpc::PbExternalMessage request;
     request.set_opname(opName);
     request.set_args(args);
-    return asyncCallImpl(ctx, std::move(request));
+    return asyncCallImpl(ctx, std::move(request),
+                         &rpc::External::Stub::Asynccall);
   }
 
+private:
+  void run() {
+    runImpl([] (boost::promise<Object> & prm,
+                    const rpc::PbExternalReply & reply) {
+      auto leader = rpc::convertServerId(reply.leaderid());
+      if (!leader) {
+        prm.set_exception(rpc::NotLeader(leader));
+        return;
+      }
+      Object obj;
+      obj.getMutable_buffer() = reply.ret();
+      prm.set_value(obj);
+    });
+  }
 }; // class Client::Impl
 
 } // namespace quintet
