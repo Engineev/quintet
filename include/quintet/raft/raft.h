@@ -6,18 +6,17 @@
 
 #include "common.h"
 #include "raft_common.h"
+#include "server_info.h"
 
 namespace quintet {
 namespace raft {
 
 class Raft {
 public:
-  Raft();
+  explicit Raft(const ServerInfo & info);
   ~Raft();
 
   void BindApply(std::function<void(BasicLogEntry)> apply);
-
-  void Configure(const std::string & filename);
 
   void Start();
 

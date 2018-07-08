@@ -14,6 +14,7 @@ const char *IdentityNames[] = {"Follower", "Candidate", "Leader", "Down",
 
 using Term = std::uint64_t;
 const Term InvalidTerm = 0;
+using Index = std::size_t;
 
 class LogEntry : public BasicLogEntry {
 public:

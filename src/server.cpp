@@ -13,20 +13,14 @@
 namespace quintet {
 
 struct Server::Impl {
+  Impl(const std::string & filename) : raft(info) {
+    info.load(filename);
+  }
+
   raft::Raft raft;
   std::unordered_map<std::string, std::function<boost::any(std::string)>> fs;
   ServerInfo info;
   rpc::RpcServer rpc;
-
-
-  void configure(const std::string & filename) {
-    raft.Configure(filename);
-    info.load(filename);
-    rpc.start(info.get_local().get_port());
-  }
-
-  void start() { throw; }
-
 
   void bind(const std::string &name, std::function<boost::any(std::string)> f);
 
@@ -41,7 +35,8 @@ void Server::Impl::bind(const std::string &name,
 
 namespace quintet {
 
-Server::Server() : pImpl(std::make_unique<Impl>()) {}
+Server::Server(const std::string &filename)
+    : pImpl(std::make_unique<Impl>(filename)) {}
 Server::~Server() = default;
 
 Server &Server::bindImpl(const std::string &name,
@@ -50,15 +45,12 @@ Server &Server::bindImpl(const std::string &name,
   return *this;
 }
 
-void Server::Configure() {
-
+void Server::Start() {
+  pImpl->rpc.start(pImpl->info.get_local().get_port());
+  throw ;
 }
-void Server::Start() { pImpl->start(); }
-void Server::Wait() {
+void Server::Wait() { throw ; }
+void Server::Shutdown() { throw ; }
 
-}
-void Server::Shutdown() {
-
-}
 
 } // namespace quintet

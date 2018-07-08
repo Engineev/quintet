@@ -11,13 +11,11 @@ class IdentityBase {
 public:
   virtual ~IdentityBase() = default;
 
-//  virtual std::pair<Term /*current term*/, bool /*success*/>
-//  RPCAppendEntries(AppendEntriesMessage message) = 0;
+  virtual Reply RPCAppendEntries(AppendEntriesMessage message) = 0;
 
-//  virtual std::pair<Term /*current term*/, bool /*vote granted*/>
-//  RPCRequestVote(RequestVoteMessage message) = 0;
+  virtual Reply RPCRequestVote(RequestVoteMessage message) = 0;
 
-//  virtual AddLogReply RPCAddLog(AddLogMessage msg) = 0;
+  virtual std::pair<bool, ServerId> AddLog(BasicLogEntry entry) = 0;
 
   virtual void leave() = 0;
 

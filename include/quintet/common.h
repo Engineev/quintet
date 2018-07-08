@@ -23,6 +23,8 @@ public:
 
   explicit operator bool() const;
 
+  void clear();
+
 private:
   std::string addr;
   Port port = 0;

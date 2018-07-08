@@ -13,4 +13,9 @@ ServerId::operator bool() const {
   return addr.empty() && port == 0;
 }
 
+void ServerId::clear() {
+  addr.clear();
+  port = 0;
+}
+
 } // namespace quintet
