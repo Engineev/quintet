@@ -21,9 +21,17 @@ public:
 
   std::string toString(std::string sep = ":") const;
 
-  explicit operator bool() const;
+  const bool empty() const;
 
   void clear();
+
+  bool operator==(const ServerId & rhs) const {
+    return addr == rhs.addr && port == rhs.port;
+  }
+
+  bool operator!=(const ServerId & rhs) const {
+    return !(*this == rhs);
+  }
 
 private:
   std::string addr;
@@ -47,5 +55,15 @@ private:
 }; // class BasicLogEntry
 
 } // namespace quintet
+
+// hash
+namespace std {
+template <>
+struct hash<quintet::ServerId> {
+  std::size_t operator()(const quintet::ServerId& id) const {
+    return std::hash<std::string>()(id.toString());
+  }
+};
+} // namespace ::std
 
 #endif //QUINTET_COMMON_H

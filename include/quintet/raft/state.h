@@ -24,19 +24,26 @@ struct State {
   Index commitIdx = 0;
   Index lastApplied = 0;
 
+  ServerId curLeader;
+
   mutable boost::shared_mutex
       currentTermM, voteForM, currentLeaderM, entriesM,
-      commitIdxM, lastAppliedM;
+      commitIdxM, lastAppliedM, curLeaderM;
 
   // some helper functions
-  const Term get_currentTerm() const {
+  const Term syncGet_currentTerm() const {
     boost::shared_lock_guard<boost::shared_mutex> lk(currentTermM);
     return currentTerm;
   }
 
-  const Index get_commitIdx() const {
+  const Index syncGet_commitIdx() const {
     boost::shared_lock_guard<boost::shared_mutex> lk(commitIdxM);
     return commitIdx;
+  }
+
+  const ServerId syncGet_curLeader() const {
+    boost::shared_lock_guard<boost::shared_mutex> lk(curLeaderM);
+    return curLeader;
   }
 };
 

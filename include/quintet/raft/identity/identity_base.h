@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "raft/raft_common.h"
+#include "raft/rpc/common.h"
 
 namespace quintet {
 namespace raft {

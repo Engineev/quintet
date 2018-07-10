@@ -33,7 +33,7 @@ private:
     runImpl([] (boost::promise<Object> & prm,
                     const rpc::PbExternalReply & reply) {
       auto leader = rpc::convertServerId(reply.leaderid());
-      if (!leader) {
+      if (!leader.empty()) {
         prm.set_exception(rpc::NotLeader(leader));
         return;
       }

@@ -9,13 +9,13 @@ std::string ServerId::toString(std::string sep) const {
   return addr + sep + std::to_string(port);
 }
 
-ServerId::operator bool() const {
-  return addr.empty() && port == 0;
-}
-
 void ServerId::clear() {
   addr.clear();
   port = 0;
+}
+
+const bool ServerId::empty() const {
+  return addr.empty() && port == 0;
 }
 
 } // namespace quintet

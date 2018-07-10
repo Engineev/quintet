@@ -3,6 +3,7 @@
 
 #include "./service/apply.h"
 #include "./service/identity_transformer.h"
+#include "./service/heartbeat_controller.h"
 
 namespace quintet {
 namespace raft {
@@ -10,6 +11,7 @@ namespace raft {
 struct Service {
   Apply apply;
   IdentityTransformer identityTransformer;
+  HeartbeatController heartbeatController;
 }; // struct Service
 
 } // namespace raft
