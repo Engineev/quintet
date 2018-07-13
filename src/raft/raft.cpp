@@ -6,10 +6,13 @@
 
 #include "raft/state.h"
 #include "raft/service.h"
+#include "raft/identity/identity.h"
 #include "raft/rpc/rpc_server.h"
 #include "raft/identity/identity.h"
 #include "misc/event_queue.h"
 #include "misc/macro.h"
+#include "misc/rand.h"
+
 
 namespace quintet {
 namespace raft {
@@ -40,6 +43,25 @@ struct Raft::Impl {
 
   void transform(IdentityNo target);
 
+#ifdef UNIT_TEST
+  DebugContext debugContext;
+
+  void rpcSleep() {
+    std::size_t ub = debugContext.get_rpcLatencyUb(),
+                lb = debugContext.get_rpcLatencyLb();
+    if (ub < lb) {
+      auto t = lb;
+      lb = ub;
+      ub = t;
+    }
+    if (ub > 0) {
+      auto time = intRand(lb, ub);
+//      BOOST_LOG(service.logger) << "RPCLatency = " << time << " ms.";
+      boost::this_thread::sleep_for(boost::chrono::milliseconds(time));
+    }
+  }
+#endif
+
 }; // struct Raft::Impl
 
 void Raft::Impl::triggerTransformation(IdentityNo target) {
@@ -50,9 +72,7 @@ void Raft::Impl::transform(IdentityNo target) {
   auto from = curIdentity;
 
   auto actualTarget = target;
-#ifdef IDENTITY_TEST
-  actualTarget = debugContext.beforeTransform(from, target);
-#endif
+  actualTarget = debugContext.get_beforeTrans()(from, target);
 
   rpc.pause();
   if (from != IdentityNo::Down)
@@ -61,9 +81,7 @@ void Raft::Impl::transform(IdentityNo target) {
   curIdentity = actualTarget;
   reinit();
 
-#ifdef IDENTITY_TEST
-  debugContext.afterTransform(from, target);
-#endif
+  debugContext.get_afterTrans()(from, target);
   if (actualTarget != IdentityNo::Down)
     identities[(std::size_t)actualTarget]->init();
   rpc.resume();
@@ -81,13 +99,12 @@ void Raft::Impl::init() {
 //  logger.add_attribute("Identity", curIdentityAttr);
   service.identityTransformer.bind(std::bind(&Raft::Impl::triggerTransformation,
                                              this, std::placeholders::_1));
-  throw ; // TODO
-//  identities[(std::size_t)IdentityNo::Follower] =
-//      std::make_unique<IdentityFollower>(state, info, service, debugContext);
-//  identities[(std::size_t)IdentityNo::Candidate] =
-//      std::make_unique<IdentityCandidate>(state, info, service, debugContext);
-//  identities[(std::size_t)IdentityNo::Leader] =
-//      std::make_unique<IdentityLeader>(state, info, service, debugContext);
+  identities[(std::size_t)IdentityNo::Follower] =
+      std::make_unique<IdentityFollower>(state, info, service, debugContext);
+  identities[(std::size_t)IdentityNo::Candidate] =
+      std::make_unique<IdentityCandidate>(state, info, service, debugContext);
+  identities[(std::size_t)IdentityNo::Leader] =
+      std::make_unique<IdentityLeader>(state, info, service, debugContext);
   curIdentity = IdentityNo::Down;
 
   rpc.bindRequestVote(
@@ -143,6 +160,22 @@ void Raft::Shutdown() {
   pImpl->eventQueue.stop();
 }
 
+} // namespace raft
+} // namespace quintet
+
+namespace quintet {
+namespace raft {
+
+void Raft::setDebugContext(const DebugContext &ctx) {
+  pImpl->debugContext = ctx;
+}
+
+const ServerInfo &Raft::getInfo() const {
+  return pImpl->info;
+}
+Term Raft::getCurrentTerm() const {
+  return pImpl->state.syncGet_currentTerm();
+}
 
 } // namespace raft
 } // namespace quintet

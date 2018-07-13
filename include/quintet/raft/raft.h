@@ -7,9 +7,12 @@
 #include "common.h"
 #include "raft_common.h"
 #include "server_info.h"
+#include "debug_context.h"
 
 namespace quintet {
 namespace raft {
+
+struct State;
 
 class Raft {
 public:
@@ -23,6 +26,21 @@ public:
   void Shutdown();
 
   std::pair<bool, ServerId> AddLog(BasicLogEntry entry);
+
+#ifdef UNIT_TEST
+  void setDebugContext(const DebugContext & ctx);
+
+  const ServerInfo & getInfo() const;
+
+  Term getCurrentTerm() const;
+
+//  const State & getState() const;
+
+  // Caution! If the heartbeat is enabled, the invocation will shutdown
+  // the original heartbeat
+//  void forceHeartBeat();
+
+#endif
 
 private:
   struct Impl;

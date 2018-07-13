@@ -43,6 +43,7 @@ protected:
 
   template <class Request, class FuncP>
   boost::future<Result> asyncCallImpl(ClientContext ctx, Request request, FuncP f) {
+    assert(ctx.getTimeout());
     auto call = new AsyncClientCall;
     call->context.set_deadline(std::chrono::system_clock::now()
                                + std::chrono::milliseconds(ctx.getTimeout()));

@@ -16,6 +16,9 @@ public:
   GEN_DEFAULT_CTOR_AND_ASSIGNMENT(ServerId);
   ServerId(std::string addr, Port port);
 
+  // e.g. 127.0.0.1:1080
+  ServerId(const std::string & exAddr);
+
   GEN_CONST_HANDLE(addr);
   GEN_CONST_HANDLE(port);
 

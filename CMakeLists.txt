@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.5)
 project(quintet)
 
 # option
-option(UNIT_TEST "unit test"
-        ON)
+option(UNIT_TEST "unit test" ON)
+option(RAFT_TEST "raft test" ON)
 
 # common flags
 set(CMAKE_CXX_STANDARD 14)

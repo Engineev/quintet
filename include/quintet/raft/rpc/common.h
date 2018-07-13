@@ -23,6 +23,7 @@ private:
 
 class AppendEntriesMessage {
 public:
+  AppendEntriesMessage() = default;
   AppendEntriesMessage(Term term, const ServerId &leaderId, size_t prevLogIdx,
                        Term prevLogTerm, std::vector<LogEntry> logEntries,
                        size_t commitIdx)

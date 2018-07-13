@@ -1,5 +1,10 @@
 file(GLOB TEST_SOURCE ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
 
+if (RAFT_TEST)
+  file(GLOB_RECURSE TMP ${CMAKE_CURRENT_LIST_DIR}/raft/*.cpp)
+  set(TEST_SOURCE ${TEST_SOURCE} ${TMP})
+endif ()
+
 add_executable(${PROJECT_NAME}_test ${TEST_SOURCE})
 
 # link

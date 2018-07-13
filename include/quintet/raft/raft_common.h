@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "common.h"
 
@@ -9,8 +10,8 @@ namespace raft {
 
 const std::size_t IdentityNum = 3;
 enum class IdentityNo { Follower = 0, Candidate, Leader, Down, Error };
-const char *IdentityNames[] = {"Follower", "Candidate", "Leader", "Down",
-                               "Error"};
+const std::vector<std::string> IdentityNames
+    = {"Follower", "Candidate", "Leader", "Down", "Error"};
 
 using Term = std::uint64_t;
 const Term InvalidTerm = 0;
