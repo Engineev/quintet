@@ -3,6 +3,7 @@
 #include <array>
 
 #include <boost/thread/future.hpp>
+#include <boost/log/attributes/mutable_constant.hpp>
 
 #include "raft/state.h"
 #include "raft/service.h"
@@ -18,10 +19,17 @@ namespace quintet {
 namespace raft {
 
 struct Raft::Impl {
-  explicit Impl(const ServerInfo & info) : info(info) { init(); }
+  explicit Impl(const ServerInfo & info) : info(info) {
+    init();
+    BOOST_LOG(service.logger)
+      << "==============================="
+      << " Raft::Raft() "
+      << "===============================";
+  }
 
   std::array<std::unique_ptr<IdentityBase>, IdentityNum> identities;
   IdentityNo curIdentity = IdentityNo::Down;
+  logging::attrs::mutable_constant<int> curIdentityAttr{(int)IdentityNo::Down};
 
   EventQueue eventQueue; // to synchronize between transformations and 'AddLog's
 
@@ -73,12 +81,18 @@ void Raft::Impl::transform(IdentityNo target) {
 
   auto actualTarget = target;
   actualTarget = debugContext.get_beforeTrans()(from, target);
+  BOOST_LOG(service.logger)
+    << "transform from " << IdentityNames[(int)from] << " to "
+    << IdentityNames[(int)target] << " (actually to "
+    << IdentityNames[(int)actualTarget] << ")"
+    << " term = " << state.currentTerm;
 
   rpc.pause();
   if (from != IdentityNo::Down)
     identities[(std::size_t)from]->leave();
 
   curIdentity = actualTarget;
+  curIdentityAttr.set((int)curIdentity);
   reinit();
 
   debugContext.get_afterTrans()(from, target);
@@ -93,10 +107,10 @@ void Raft::Impl::reinit() {
 }
 
 void Raft::Impl::init() {
-//  logger.add_attribute(
-//      "ServerId", logging::attrs::constant<std::string>(info.local.toString()));
-//  logger.add_attribute("Part", logging::attrs::constant<std::string>("Raft"));
-//  logger.add_attribute("Identity", curIdentityAttr);
+  service.logger.add_attribute(
+      "ServerId", logging::attrs::constant<std::string>(info.get_local().toString()));
+  service.logger.add_attribute("Identity", curIdentityAttr);
+
   service.identityTransformer.bind(std::bind(&Raft::Impl::triggerTransformation,
                                              this, std::placeholders::_1));
   identities[(std::size_t)IdentityNo::Follower] =
@@ -115,15 +129,21 @@ void Raft::Impl::init() {
 }
 
 Reply Raft::Impl::RPCAppendEntries(AppendEntriesMessage msg) {
+  int rid = intRand(1000, 1999);
+  BOOST_LOG(service.logger) << LOG_RID
+    << "Get RpcAppendEntries from " << msg.get_leaderId().toString();
   if (curIdentity == IdentityNo::Down)
     return {InvalidTerm, false};
-  return identities[(int)curIdentity]->RPCAppendEntries(std::move(msg));
+  return identities[(int)curIdentity]->RPCAppendEntries(std::move(msg), rid);
 }
 
 Reply Raft::Impl::RPCRequestVote(RequestVoteMessage msg) {
+  int rid = intRand(2000, 2999);
+  BOOST_LOG(service.logger) << LOG_RID
+    << "Get RpcRequestVote from " << msg.get_candidateId().toString();
   if (curIdentity == IdentityNo::Down)
     return {InvalidTerm, false};
-  return identities[(int)curIdentity]->RPCRequestVote(std::move(msg));
+  return identities[(int)curIdentity]->RPCRequestVote(std::move(msg), rid);
 }
 
 } // namespace raft

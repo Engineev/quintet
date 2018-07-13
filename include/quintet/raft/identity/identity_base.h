@@ -12,9 +12,9 @@ class IdentityBase {
 public:
   virtual ~IdentityBase() = default;
 
-  virtual Reply RPCAppendEntries(AppendEntriesMessage message) = 0;
+  virtual Reply RPCAppendEntries(AppendEntriesMessage message, int rid) = 0;
 
-  virtual Reply RPCRequestVote(RequestVoteMessage message) = 0;
+  virtual Reply RPCRequestVote(RequestVoteMessage message, int rid) = 0;
 
   virtual std::pair<bool, ServerId> AddLog(BasicLogEntry entry) = 0;
 

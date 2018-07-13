@@ -157,7 +157,7 @@ std::pair<bool, ServerId> IdentityCandidate::AddLog(BasicLogEntry entry) {
 namespace quintet {
 namespace raft {
 
-Reply IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg) {
+Reply IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg, int rid) {
   int randId = intRand(100, 999);
 //  BOOST_LOG(pImpl->service.logger)
 //      << "{" << randId << "} Get RPCAppendEntries from "
@@ -170,7 +170,7 @@ Reply IdentityCandidate::RPCAppendEntries(AppendEntriesMessage msg) {
   return pImpl->defaultRPCAppendEntries(std::move(msg), IdentityNo::Candidate);
 }
 
-Reply IdentityCandidate::RPCRequestVote(RequestVoteMessage msg) {
+Reply IdentityCandidate::RPCRequestVote(RequestVoteMessage msg, int rid) {
   int randId = intRand(1000, 9999);
 //  BOOST_LOG(pImpl->service.logger)
 //      << "{" << randId << "} Get RPCRequestVote from "

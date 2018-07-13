@@ -50,7 +50,7 @@ void IdentityFollower::leave() {
   pImpl->service.heartbeatController.stop();
 }
 
-Reply IdentityFollower::RPCAppendEntries(AppendEntriesMessage msg) {
+Reply IdentityFollower::RPCAppendEntries(AppendEntriesMessage msg, int rid) {
   int randId = intRand(1000, 9999);
 //  BOOST_LOG(service.logger)
 //      << "{" << randId << "} get RPCAppendEntries from "
@@ -68,7 +68,7 @@ Reply IdentityFollower::RPCAppendEntries(AppendEntriesMessage msg) {
   return pImpl->defaultRPCAppendEntries(msg, IdentityNo::Follower, randId);
 }
 
-Reply IdentityFollower::RPCRequestVote(RequestVoteMessage message) {
+Reply IdentityFollower::RPCRequestVote(RequestVoteMessage message, int rid) {
   int randId = intRand(100, 999);
   return pImpl->defaultRPCRequestVote(std::move(message), IdentityNo::Follower,
                                       randId);

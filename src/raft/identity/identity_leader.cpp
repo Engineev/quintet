@@ -120,7 +120,7 @@ void IdentityLeader::Impl::tryAppendEntries(const ServerId & target) {
       return;
     }
     auto msg = createAppendEntriesMessage(state, info, followerNode->nextIdx);
-//    debugContext.beforeSendRpcAppendEntries(target, msg);
+    debugContext.get_beforeSendingRpcAppendEntries()(target, msg);
     Reply res;
     try {
       boost::this_thread::restore_interruption ri(di);
@@ -252,11 +252,11 @@ void IdentityLeader::leave() {
   pImpl->logStates.clear();
 }
 
-Reply IdentityLeader::RPCAppendEntries(AppendEntriesMessage message) {
+Reply IdentityLeader::RPCAppendEntries(AppendEntriesMessage message, int rid) {
   return pImpl->defaultRPCAppendEntries(std::move(message), IdentityNo::Leader);
 }
 
-Reply IdentityLeader::RPCRequestVote(RequestVoteMessage message) {
+Reply IdentityLeader::RPCRequestVote(RequestVoteMessage message, int rid) {
   return pImpl->defaultRPCRequestVote(std::move(message), IdentityNo::Leader);
 }
 

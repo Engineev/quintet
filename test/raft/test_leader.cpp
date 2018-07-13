@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(Basic) {
       std::chrono::milliseconds(srv->getInfo().get_electionTimeout() * 3 / 2));
   srv->Shutdown();
   std::size_t otherSrvN = srv->getInfo().get_srvList().size() - 1;
-  BOOST_REQUIRE((otherSrvN * 2 < sendAppendEntriesTimes));
+  BOOST_REQUIRE_LE(otherSrvN * 2, sendAppendEntriesTimes);
 }
 
 #ifdef false

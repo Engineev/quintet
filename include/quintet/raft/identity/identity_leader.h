@@ -16,9 +16,9 @@ public:
 
   ~IdentityLeader() override;
 
-  Reply RPCAppendEntries(AppendEntriesMessage message) override;
+  Reply RPCAppendEntries(AppendEntriesMessage message, int rid) override;
 
-  Reply RPCRequestVote(RequestVoteMessage message) override;
+  Reply RPCRequestVote(RequestVoteMessage message, int rid) override;
 
   std::pair<bool, ServerId> AddLog(BasicLogEntry entry) override;
 

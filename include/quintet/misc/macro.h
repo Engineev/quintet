@@ -25,4 +25,6 @@
 #define GEN_PIMPL_CTOR(NAME)                                                   \
   NAME :: NAME() : pImpl(std::make_unique<Impl>()) {}
 
+#define LOG_RID "{" << rid << "} "
+
 #endif // QUINTET_MACRO_H
