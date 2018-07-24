@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package conerto.rpc;
+
+enum Status {
+  OK = 0;
+  NOT_LEADER = 1;
+}
+
+
+

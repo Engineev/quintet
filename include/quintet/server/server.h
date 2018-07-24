@@ -1,0 +1,6 @@
+#ifndef QUINTET_SERVER_H
+#define QUINTET_SERVER_H
+
+
+
+#endif //QUINTET_SERVER_H

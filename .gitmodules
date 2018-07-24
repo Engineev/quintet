@@ -1,0 +1,3 @@
+[submodule "dependencies/theatre"]
+	path = dependencies/theatre
+	url = https://github.com/Engineev/theatre.git

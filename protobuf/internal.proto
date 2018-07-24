@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package conerto.server.protocal;
+
+message BasicLogEntry {
+  string opName = 1;
+  string args = 2;
+}
+
+message Result {
+  string str = 1;
+}
