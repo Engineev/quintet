@@ -1,18 +1,19 @@
 #ifndef QUINTET_RAFT_H
 #define QUINTET_RAFT_H
 
-#include <theatre/string.h>
-#include <theatre/actor.h>
-
-#include "common.h"
+#include "actor_types.h"
 
 namespace quintet {
 
-class Raft {
+class Raft : public RaftActor {
 public:
+  Raft();
+  ~Raft();
+
+  void bindMailboxes(ConfigActor::Mailbox config);
 
 private:
-
+  GEN_PIMPL_DEF();
 
 }; /* namespace quintet */
 

@@ -25,4 +25,11 @@
 #define GEN_PIMPL_CTOR(NAME)                                                   \
   NAME :: NAME() : pImpl(std::make_unique<Impl>()) {}
 
+#define GEN_PIMPL_DTOR(NAME)                                                   \
+  NAME :: ~NAME() = default;
+
+#define GEN_PIMPL_DEF()                                                        \
+  struct Impl;                                                                 \
+  std::unique_ptr<Impl> pImpl;
+
 #endif //QUINTET_MACRO_H
