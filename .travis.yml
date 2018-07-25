@@ -13,7 +13,10 @@ addons:
       - libtool
       - pkg-config
 
-install: ./script/install-grpc.sh
+install:
+  - export CC=gcc-5
+  - export CXX=g++-5
+  - ./script/install-grpc.sh
 
 matrix:
   include:
