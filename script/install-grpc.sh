@@ -1,4 +1,7 @@
-#!/bin/sh
+#! /bin/sh
+
+export CC=gcc-5
+export CXX=g++-5
 
 git clone -b $(curl -L https://grpc.io/release) https://github.com/grpc/grpc
 cd grpc

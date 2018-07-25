@@ -12,9 +12,6 @@ addons:
       - autoconf
       - libtool
       - pkg-config
-env:
-  - CC=gcc-5
-  - CXX=g++-5
 
 install: ./script/install-grpc.sh
 
