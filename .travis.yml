@@ -12,6 +12,7 @@ addons:
       - autoconf
       - libtool
       - pkg-config
+      - libboost-all-dev
 
 install:
   - export CC=gcc-5
