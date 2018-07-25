@@ -4,32 +4,25 @@ language: cpp
 
 addons:
   apt:
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
-      libboost-all-dev
+      - g++-5
+      - build-essential
+      - autoconf
+      - libtool
+      - pkg-config
+
+install: script/install-grpc.sh
 
 matrix:
   include:
     - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-            - libboost-all-dev
       env: COMPILER=g++-5
     - compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5 # to update libstdc++
-            - libboost-all-dev
       env: COMPILER=clang++
 
 script:
-  - clang -v && g++ -v && cmake --version
   - mkdir build
   - cd build
   - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. && make
