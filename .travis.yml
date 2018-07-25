@@ -23,11 +23,9 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-3.7
           packages:
-            - clang-3.7
             - libboost-all-dev
-      env: COMPILER=clang++-3.7
+      env: COMPILER=clang++
 
 script:
   - clang -v && g++ -v && cmake --version
