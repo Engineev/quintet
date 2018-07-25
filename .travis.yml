@@ -24,6 +24,7 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - g++-5 # to update libstdc++
             - libboost-all-dev
       env: COMPILER=clang++
 
