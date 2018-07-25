@@ -1,20 +1,26 @@
-#ifndef CONCERTO_STATE_MACHINE_H
-#define CONCERTO_STATE_MACHINE_H
+#ifndef QUINTET_STATE_MACHINE_H
+#define QUINTET_STATE_MACHINE_H
 
 #include <functional>
 #include <memory>
 
+#include <theatre/actor.h>
+#include <theatre/string.h>
 
 namespace quintet {
-namespace server {
+namespace {
+  using SaveT = THEATRE_TAG("save");
+  using LoadT = THEATRE_TAG("load");
+}
 
-class StateMachine {
+class StateMachine  {
 public:
   StateMachine();
   ~StateMachine();
 
-  StateMachine& bindSave(std::function<void()> save_);
-  StateMachine& bindLoad(std::function<void()> load_);
+private:
+  void save();
+  void load();
 
 private:
   struct Impl;
@@ -22,7 +28,6 @@ private:
 
 }; // class StateMachine
 
-} // namespace server
 } // namespace quintet
 
-#endif //CONCERTO_STATE_MACHINE_H
+#endif //QUINTET_STATE_MACHINE_H

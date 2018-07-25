@@ -3,6 +3,13 @@ cmake_minimum_required(VERSION 3.5)
 project(quintet)
 
 set(CMAKE_CXX_STANDARD 14)
+if (APPLE)
+  message(STATUS "macOS detected")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -o2 -Wall")
+elseif(UNIX AND NOT APPLE)
+  message(STATUS "Linux detected")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -o2 -Wall -pthread")
+endif ()
 
 include_directories(include/quintet)
 
