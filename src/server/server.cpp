@@ -4,6 +4,7 @@
 #include "server/config.h"
 #include "server/raft.h"
 #include "server/rpc_sender.h"
+#include "server/rpc_receiver.h"
 
 namespace quintet {
 
@@ -14,12 +15,15 @@ struct Server::Impl {
   Config config;
   Raft raft;
   RpcSender rpcSender;
+  RpcReceiver rpcReceiver;
+
 
 
 }; /* struct Server::Impl */
 
 Server::Impl::Impl() {
   raft.bindMailboxes(config.getMailbox(), rpcSender.getMailbox());
+  rpcReceiver.bindMailboxes(raft.getMailbox());
 }
 
 } /* namespace quintet */

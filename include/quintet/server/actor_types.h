@@ -31,6 +31,9 @@ using SendAppendEntriesRpc = THEATRE_TAG("SAERpc");
 using SendRequestVoteRpc = THEATRE_TAG("SRVRpc");
 using ConfigSender = THEATRE_TAG("configSend");
 
+// RPC Receiver
+
+
 } /* namespace tag */
 
 // clang-format off
