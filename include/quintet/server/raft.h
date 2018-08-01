@@ -8,9 +8,11 @@ namespace quintet {
 class Raft : public RaftActor {
 public:
   Raft();
+
   ~Raft();
 
-  void bindMailboxes(ConfigActor::Mailbox config);
+  void bindMailboxes(ConfigActor::Mailbox config,
+                     RpcSenderActor::Mailbox rpcSender) {}
 
 private:
   GEN_PIMPL_DEF();

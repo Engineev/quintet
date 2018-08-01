@@ -1,11 +1,41 @@
 syntax = "proto3";
 
-package conerto.rpc;
+package quintet.rpc;
+
+message Empty {}
 
 enum Status {
   OK = 0;
   NOT_LEADER = 1;
 }
 
+message RegisterClientReply {
+  Status status = 1;
+  string clientId = 2;
+  string leaderHint = 3;
+}
 
+message ClientRequestMessage {
+  string clientId = 1;
+  uint64 sequenceNum = 2;
+  
+  string opName = 3;
+  string args = 4;
+}
+
+message ClientRequestReply {
+  Status status = 1;
+  string leaderHint = 2;
+
+  string response = 3;
+}
+
+service External {
+
+  rpc RegisterClient (Empty) returns (RegisterClientReply) {}
+
+  rpc ClientRequest (ClientRequestMessage) returns (ClientRequestReply) {}
+
+  // TODO ClientQuery
+}
 

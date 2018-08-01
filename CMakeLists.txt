@@ -13,6 +13,9 @@ endif ()
 
 include_directories(include/quintet)
 
+# dependecncies
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+
 set(Boost_USE_STATIC_LIBS FALSE)
 find_package(Boost REQUIRED
   COMPONENTS thread log unit_test_framework)
@@ -21,6 +24,20 @@ add_definitions(
   -D BOOST_THREAD_VERSION=4
   -D BOOST_LOG_DYN_LINK
 )
+
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+
+# link
+find_package(GRPC REQUIRED)
+include_directories(${GRPC_INCLUDE_DIR})
+
+if (GEN_GRPC)
+  message(STATUS "generating gRPC files...")
+  execute_process(
+    COMMAND bash ${CMAKE_SOURCE_DIR}/protobuf/gen_grpc_files.sh
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/protobuf)
+endif ()
 
 add_subdirectory(src)
 add_subdirectory(test)

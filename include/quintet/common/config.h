@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <utility>
 #include <string>
 #include <stdexcept>
 #include <vector>
@@ -16,10 +18,19 @@ public:
 
   std::string toString() const { return id; }
 
+  bool valid() const { return !id.empty(); }
+
 private:
   std::string id;
 }; /* class ServerId */
 
+bool operator==(const ServerId & lhs, const ServerId & rhs) {
+  return lhs.toString() == rhs.toString();
+}
+
+bool operator!=(const ServerId & lhs, const ServerId & rhs) {
+  return !(lhs == rhs);
+}
 
 /// The configuration of the cluster and this server
 class ServerInfo {
@@ -41,3 +52,12 @@ private:
 };
 
 } /* namespace quintet */
+
+namespace std {
+template <>
+struct hash<quintet::ServerId> {
+  size_t operator()(const quintet::ServerId& id) const {
+    return hash<string>()(id.toString());
+  }
+};
+} /* namespace std */

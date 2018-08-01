@@ -32,18 +32,31 @@ private:
   Term term = InvalidTerm;
 }; /* class LogEntry */
 
-/// The reply to the raft RPCs
-class RpcReply {
+/// The reply to the AppendEntries RPCs
+class AppendEntriesReply {
 public:
-  RpcReply(Term term, bool success) : term(term), success(success) {}
-  GEN_DEFAULT_CTOR_AND_ASSIGNMENT(RpcReply);
+  AppendEntriesReply(Term term, bool success) : term(term), success(success) {}
+  GEN_DEFAULT_CTOR_AND_ASSIGNMENT(AppendEntriesReply);
   GEN_CONST_HANDLE(term);
   GEN_CONST_HANDLE(success);
 
 private:
   Term term = InvalidTerm;
   bool success = false;
-}; // class RpcReply
+}; // class ReplyEntriesReply
+
+/// The reply to the RequestVote RPCs
+class RequestVoteReply {
+public:
+  RequestVoteReply(Term term, bool voteGranted) : term(term), voteGranted(voteGranted) {}
+  GEN_DEFAULT_CTOR_AND_ASSIGNMENT(RequestVoteReply);
+  GEN_CONST_HANDLE(term);
+  GEN_CONST_HANDLE(voteGranted);
+
+private:
+  Term term = InvalidTerm;
+  bool voteGranted = false;
+}; // class RequestVoteReply
 
 /// A structure which packages the arguments of AppendEntries RPC
 class AppendEntriesMessage {

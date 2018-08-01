@@ -3,21 +3,23 @@
 #include "common/macro.h"
 #include "server/config.h"
 #include "server/raft.h"
+#include "server/rpc_sender.h"
 
 namespace quintet {
 
 struct Server::Impl {
-  /// Bind everything
+  /// Bind everything in the ctor
   Impl();
 
   Config config;
   Raft raft;
+  RpcSender rpcSender;
 
 
 }; /* struct Server::Impl */
 
 Server::Impl::Impl() {
-  raft.bindMailboxes(config.getMailbox());
+  raft.bindMailboxes(config.getMailbox(), rpcSender.getMailbox());
 }
 
 } /* namespace quintet */
