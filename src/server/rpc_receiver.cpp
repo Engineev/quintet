@@ -12,6 +12,8 @@ namespace quintet {
 
 class InternalRpcService : public rpc::Internal::Service {
 public:
+  InternalRpcService() = default;
+
   void bindMailbox(RaftActor::Mailbox toRaft_);
 
   grpc::Status AppendEntries(grpc::ServerContext *context,
@@ -34,13 +36,16 @@ InternalRpcService::AppendEntries(grpc::ServerContext *context,
                                   const rpc::AppendEntriesMessage *request,
                                   rpc::AppendEntriesReply *response) {
   std::vector<LogEntry> entries;
-  for (int i = 0; i < request->entries_size(); ++i)
-    entries.emplace_back(request->entries(i));
+  for (int i = 0; i < request->entries_size(); ++i) {
+    LogEntry entry(request->entries(i).opname(),
+        request->entries(i).args(), request->entries(i).term());
+    entries.emplace_back(std::move(entry));
+  }
   AppendEntriesMessage msg(request->term(), request->leaderid(),
                            request->prevlogindex(), request->prevlogterm(),
                            std::move(entries), request->leadercommit());
   AppendEntriesReply reply =
-      toRaft->send<tag::SendAppendEntriesRpc>(std::move(msg)).get();
+      toRaft.send<tag::AppendEntries>(msg, 0).get();
   response->set_success(reply.get_success());
   response->set_term(reply.get_term());
   return grpc::Status::OK;
@@ -52,7 +57,7 @@ InternalRpcService::RequestVote(grpc::ServerContext *context,
   RequestVoteMessage msg(request->term(), request->candidateid(),
                          request->lastlogindex(), request->lastlogterm());
   RequestVoteReply reply =
-      toRaft->send<tag::SendRequestVoteRpc>(std::move(msg));
+      toRaft.send<tag::RequestVote>(std::move(msg), 0).get();
   response->set_term(reply.get_term());
   response->set_votegranted(reply.get_voteGranted());
   return grpc::Status::OK;

@@ -15,7 +15,7 @@ struct Client::Impl {
   ServerInfo info;
 
   std::string identifier;
-  std::atomic_uint64_t cmdSerialNum{1};
+  std::atomic<uint64_t> cmdSerialNum{1};
   std::uint64_t cmdReceivedNum{0};
 
   ServerId curLeader;
