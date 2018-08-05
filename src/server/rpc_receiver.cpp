@@ -1,9 +1,11 @@
 #include <server/rpc_receiver.h>
 
+#include <atomic>
 #include <thread>
 
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
+#include <quintet/server/rpc_receiver.h>
 
 #include "rpc/internal.grpc.pb.h"
 #include "server/actor_types.h"
@@ -24,28 +26,39 @@ public:
                            const rpc::RequestVoteMessage *request,
                            rpc::RequestVoteReply *response) override;
 
+  void block() { blocked = true; }
+  void unblock() { blocked = false; }
+
 private:
+  std::atomic<bool> blocked{true};
   RaftActor::Mailbox toRaft;
+
+  void wait() {
+    while (blocked)
+      std::this_thread::yield();
+  }
 }; // class InternalService
 
 void InternalRpcService::bindMailbox(RaftActor::Mailbox toRaft_) {
   toRaft = std::move(toRaft_);
 }
+
 grpc::Status
 InternalRpcService::AppendEntries(grpc::ServerContext *context,
                                   const rpc::AppendEntriesMessage *request,
                                   rpc::AppendEntriesReply *response) {
+  wait();
+
   std::vector<LogEntry> entries;
   for (int i = 0; i < request->entries_size(); ++i) {
-    LogEntry entry(request->entries(i).opname(),
-        request->entries(i).args(), request->entries(i).term());
+    LogEntry entry(request->entries(i).opname(), request->entries(i).args(),
+                   request->entries(i).term());
     entries.emplace_back(std::move(entry));
   }
   AppendEntriesMessage msg(request->term(), request->leaderid(),
                            request->prevlogindex(), request->prevlogterm(),
                            std::move(entries), request->leadercommit());
-  AppendEntriesReply reply =
-      toRaft.send<tag::AppendEntries>(msg, 0).get();
+  AppendEntriesReply reply = toRaft.send<tag::AppendEntries>(msg, 0).get();
   response->set_success(reply.get_success());
   response->set_term(reply.get_term());
   return grpc::Status::OK;
@@ -54,6 +67,8 @@ grpc::Status
 InternalRpcService::RequestVote(grpc::ServerContext *context,
                                 const rpc::RequestVoteMessage *request,
                                 rpc::RequestVoteReply *response) {
+  wait();
+
   RequestVoteMessage msg(request->term(), request->candidateid(),
                          request->lastlogindex(), request->lastlogterm());
   RequestVoteReply reply =
@@ -78,13 +93,17 @@ struct RpcReceiver::Impl {
 
 namespace quintet {
 
-GEN_PIMPL_CTOR(RpcReceiver)
-GEN_PIMPL_DTOR(RpcReceiver);
+RpcReceiver::RpcReceiver() : pImpl(std::make_unique<Impl>()) {
+  bind<tag::BlockRpcReceiver>(
+      std::bind(&InternalRpcService::block, &pImpl->service));
+  bind<tag::UnblockRpcReceiver>(
+      std::bind(&InternalRpcService::unblock, &pImpl->service));
+}
+GEN_PIMPL_DTOR(RpcReceiver)
 
 void RpcReceiver::bindMailboxes(RaftActor::Mailbox toRaft) {
   pImpl->service.bindMailbox(std::move(toRaft));
 };
-
 
 void RpcReceiver::asyncRun(std::uint16_t port) {
   std::string addr = "0.0.0.0:" + std::to_string(port);
@@ -93,6 +112,11 @@ void RpcReceiver::asyncRun(std::uint16_t port) {
   builder.RegisterService(&pImpl->service);
   pImpl->server = builder.BuildAndStart();
   pImpl->runningThread = std::thread([this] { pImpl->server->Wait(); });
+}
+
+void RpcReceiver::shutdown() {
+  pImpl->server->Shutdown();
+  pImpl->runningThread.join();
 }
 
 } /* namespace quintet */

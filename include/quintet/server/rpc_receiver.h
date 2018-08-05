@@ -8,14 +8,17 @@
 
 namespace quintet {
 
-class RpcReceiver {
+class RpcReceiver : public RpcReceiverActor {
 public:
   RpcReceiver();
   ~RpcReceiver();
 
   void bindMailboxes(RaftActor::Mailbox toRaft);
 
+  // Blocked
   void asyncRun(std::uint16_t port);
+
+  void shutdown();
 
 private:
   GEN_PIMPL_DEF();

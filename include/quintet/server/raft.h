@@ -11,8 +11,15 @@ public:
 
   ~Raft();
 
-  void bindMailboxes(ConfigActor::Mailbox config,
-                     RpcSenderActor::Mailbox rpcSender) {}
+  void start(std::string filename);
+
+  void shutdown();
+
+  void bindMailboxes(
+      ConfigActor::Mailbox config,
+      IdentityTransformerActor::Mailbox identityTransformer,
+      RpcSenderActor::Mailbox rpcSender,
+      TimerActor::Mailbox timer);
 
 private:
   GEN_PIMPL_DEF();

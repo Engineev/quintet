@@ -1,13 +1,14 @@
 #ifndef QUINTET_SERVER_H
 #define QUINTET_SERVER_H
 
+#include <string>
 #include <memory>
 
 namespace quintet {
 
 class Server {
 public:
-  Server();
+  Server(const std::string & filename);
   ~Server();
 
   void start();

@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "../common.h"
+#include "common.h"
 #include "common/config.h"
 #include "common/macro.h"
 

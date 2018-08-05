@@ -7,7 +7,7 @@
 
 #include "common.h"
 #include "common/client_context.h"
-#include "raft/common.h"
+#include "raft_common.h"
 
 namespace quintet {
 
@@ -24,7 +24,10 @@ using LoadConfig = THEATRE_TAG("lConfig");
 using SaveConfig = THEATRE_TAG("sConfig");
 
 // Timer
-using BindFunc = THEATRE_TAG("BindFunc");
+using TimerBind = THEATRE_TAG("TimerBind");
+using TimerStart = THEATRE_TAG("TimerStart");
+using TimerStop = THEATRE_TAG("TimerStop");
+using TimerRestart = THEATRE_TAG("TimerRe");
 
 // RPC Sender
 using SendAppendEntriesRpc = THEATRE_TAG("SAERpc");
@@ -32,7 +35,12 @@ using SendRequestVoteRpc = THEATRE_TAG("SRVRpc");
 using ConfigSender = THEATRE_TAG("configSend");
 
 // RPC Receiver
+using BlockRpcReceiver = THEATRE_TAG("blockRpcR");
+using UnblockRpcReceiver = THEATRE_TAG("unblockRpc");
 
+// IdentityTransformer
+using TriggerTransform = THEATRE_TAG("triTran");
+using ResetTransformer = THEATRE_TAG("resetTran");
 
 } /* namespace tag */
 
@@ -50,6 +58,14 @@ using ConfigActor = theatre::Actor<
     theatre::Behavior<tag::LoadConfig, ServerInfo(std::string /* filename */)>,
     theatre::Behavior<tag::SaveConfig, void(ServerInfo, std::string)>>;
 
+using TimerActor = theatre::Actor<
+    theatre::Behavior<tag::TimerBind,
+                      void(std::uint64_t /* timeout */, std::function<void()>)>,
+    theatre::Behavior<tag::TimerStart,
+                      void(bool /* immediate */, bool /* repeat */)>,
+    theatre::Behavior<tag::TimerStop, void()>,
+    theatre::Behavior<tag::TimerRestart, void()>>;
+
 using RpcSenderActor = theatre::Actor<
     theatre::Behavior<tag::ConfigSender, void(const std::vector<ServerId> &)>,
     theatre::Behavior<
@@ -58,6 +74,14 @@ using RpcSenderActor = theatre::Actor<
     theatre::Behavior<
         tag::SendRequestVoteRpc,
         RequestVoteReply(ServerId, ClientContext, RequestVoteMessage)>>;
+
+using RpcReceiverActor = theatre::Actor<
+    theatre::Behavior<tag::BlockRpcReceiver, void()>,
+    theatre::Behavior<tag::UnblockRpcReceiver, void()>>;
+
+using IdentityTransformerActor = theatre::Actor<
+    theatre::Behavior<tag::TriggerTransform, void(IdentityNo /* target */)>,
+    theatre::Behavior<tag::ResetTransformer, void()>>;
 
 // clang-format on
 } /* namespace quintet */

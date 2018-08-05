@@ -5,6 +5,7 @@ add_executable(${PROJECT_NAME}_test ${TEST_SOURCE})
 # link
 target_link_libraries(
   ${PROJECT_NAME}_test
+  ${PROJECT_NAME}
   ${Boost_LIBRARIES}
 )
 

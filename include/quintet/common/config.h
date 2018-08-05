@@ -24,11 +24,11 @@ private:
   std::string id;
 }; /* class ServerId */
 
-bool operator==(const ServerId & lhs, const ServerId & rhs) {
+inline bool operator==(const ServerId & lhs, const ServerId & rhs) {
   return lhs.toString() == rhs.toString();
 }
 
-bool operator!=(const ServerId & lhs, const ServerId & rhs) {
+inline bool operator!=(const ServerId & lhs, const ServerId & rhs) {
   return !(lhs == rhs);
 }
 
