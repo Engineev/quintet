@@ -23,13 +23,25 @@ void Logger::addId(const std::string &id) {
 std::string Logger::fmtCurrentTime() {
   using namespace std::chrono;
   auto now = system_clock::now();
-  auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+  auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 10000;
   auto timer = system_clock::to_time_t(now);
   std::tm bt = *std::localtime(&timer);
   std::ostringstream oss;
   oss << std::put_time(&bt, "%F %T");
-  oss << '.' << std::setfill('0') << std::setw(3) << ms.count();
+  oss << '.' << std::setfill('0') << std::setw(4) << ms.count();
   return oss.str();
+}
+
+std::string Logger::fmtIdentity(IdentityNo id) {
+  if (id == IdentityNo::Down)
+    return "Down     ";
+  if (id == IdentityNo::Follower)
+    return "Follower ";
+  if (id == IdentityNo::Candidate)
+    return "Candidate";
+  if (id == IdentityNo::Follower)
+    return "Follower ";
+  return "Unknown  ";
 }
 
 } // namespace quintet

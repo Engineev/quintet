@@ -8,7 +8,7 @@ namespace quintet {
 struct IdentityTransformer::Impl {
   RaftActor::Mailbox toRaft;
   std::atomic<bool> triggered{false};
-  std::future<void> last;
+  std::thread runningThread;
 
   void trigger(IdentityNo target);
 
@@ -19,9 +19,11 @@ struct IdentityTransformer::Impl {
 void IdentityTransformer::Impl::trigger(IdentityNo target) {
   if (triggered.exchange(true))
     return;
-  if (last.valid())
-    last.get();
-  last = toRaft.send<tag::TransformIdentity>(target);
+  if (runningThread.joinable())
+    runningThread.join();
+  runningThread = std::thread([this, target] {
+    toRaft.send<tag::TransformIdentity>(target).get();
+  });
 }
 
 void IdentityTransformer::Impl::reset() { triggered = false; }
@@ -35,7 +37,10 @@ IdentityTransformer::IdentityTransformer() : pImpl(std::make_unique<Impl>()) {
   bind<tag::TriggerTransform>(std::bind(&Impl::trigger, &*pImpl, ph::_1));
   bind<tag::ResetTransformer>(std::bind(&Impl::reset, &*pImpl));
 }
-GEN_PIMPL_DTOR(IdentityTransformer)
+IdentityTransformer::~IdentityTransformer() {
+  if (pImpl->runningThread.joinable())
+    pImpl->runningThread.join();
+}
 
 void IdentityTransformer::bindMailboxes(RaftActor::Mailbox toRaft) {
   pImpl->toRaft = std::move(toRaft);

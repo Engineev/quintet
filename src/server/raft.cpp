@@ -3,15 +3,19 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <unordered_map>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <thread>
-#include <quintet/server/raft.h>
+
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/shared_lock_guard.hpp>
 
 #include "common/utils.h"
 #include "server/raft_state.h"
 #include "server/logger.h"
+#include "server/rpc_error.h"
 
 namespace quintet {
 
@@ -32,6 +36,10 @@ struct Raft::Impl {
 
   std::string getIdentityName(IdentityNo id);
 
+  AppendEntriesReply rpc_appendEntries(AppendEntriesMessage msg);
+
+  RequestVoteReply rpc_requestVote(RequestVoteMessage msg);
+
   // ------------------------- default -------------------------------------- //
 
   void sendTriggerTransform(IdentityNo target);
@@ -45,10 +53,9 @@ struct Raft::Impl {
     return {};
   }
 
-  AppendEntriesReply default_rpc_appendEntries(AppendEntriesMessage msg,
-                                               int rid);
+  AppendEntriesReply default_rpc_appendEntries(AppendEntriesMessage msg);
 
-  RequestVoteReply default_rpc_requestVote(RequestVoteMessage msg, int rid);
+  RequestVoteReply default_rpc_requestVote(RequestVoteMessage msg);
 
   // ------------------------- follower ------------------------------------- //
 
@@ -56,9 +63,9 @@ struct Raft::Impl {
 
   void foll_leave();
 
-  AppendEntriesReply foll_rpc_appendEntries(AppendEntriesMessage msg, int rid);
+  AppendEntriesReply foll_rpc_appendEntries(AppendEntriesMessage msg);
 
-  RequestVoteReply foll_rpc_requestVote(RequestVoteMessage msg, int rid);
+  RequestVoteReply foll_rpc_requestVote(RequestVoteMessage msg);
 
   // ------------------------- candidate ------------------------------------ //
 
@@ -73,11 +80,23 @@ struct Raft::Impl {
 
   void cand_leave();
 
-  AppendEntriesReply cand_rpc_appendEntries(AppendEntriesMessage msg, int rid);
+  AppendEntriesReply cand_rpc_appendEntries(AppendEntriesMessage msg);
 
-  RequestVoteReply cand_rpc_requestVote(RequestVoteMessage msg, int rid);
+  RequestVoteReply cand_rpc_requestVote(RequestVoteMessage msg);
 
   // ------------------------- leader    ------------------------------------ //
+
+  struct FollowerState {
+    Index nextIdx = 1;
+    Index matchIdx = 0;
+    std::thread appendingThread;
+    boost::shared_mutex m;
+  };
+  std::unordered_map<ServerId, std::unique_ptr<FollowerState>> followerStates;
+
+  void lead_init();
+
+  void lead_leave();
 
 }; /* struct Raft::Impl */
 
@@ -88,11 +107,13 @@ void Raft::Impl::transform(IdentityNo target) {
     foll_leave();
   else if (curIdentity == IdentityNo::Candidate)
     cand_leave();
+  else if (curIdentity == IdentityNo::Leader)
+    lead_leave();
   else
-    std::cerr << "Unimplemented 'leave()'\n";
+    std::terminate();
 
   Logger::instance().addLog(info.get_local().toString(),
-      "transform from ", getIdentityName(curIdentity),
+      "Transform from ", getIdentityName(curIdentity),
       " to ", getIdentityName(target));
   curIdentity = target;
 
@@ -101,8 +122,10 @@ void Raft::Impl::transform(IdentityNo target) {
     foll_init();
   else if (target == IdentityNo::Candidate)
     cand_init();
+  else if (curIdentity == IdentityNo::Leader)
+    lead_init();
   else
-    std::cerr << "Unimplemented 'init()'\n";
+    std::terminate();
 }
 
 std::string Raft::Impl::getIdentityName(IdentityNo id) {
@@ -115,6 +138,32 @@ std::string Raft::Impl::getIdentityName(IdentityNo id) {
   if (id == IdentityNo::Down)
     return "down";
   throw;
+}
+
+AppendEntriesReply Raft::Impl::rpc_appendEntries(AppendEntriesMessage msg) {
+  // clang-format off
+  Logger::instance().addLog(
+      info.get_local().toString(), curIdentity, "{", msg.get_debugId(), "}",
+      "get AppendEntries RPC from ", msg.get_leaderId().toString());
+  // clang-format on
+  if (curIdentity == IdentityNo::Follower)
+    return foll_rpc_appendEntries(std::move(msg));
+  if (curIdentity == IdentityNo::Candidate)
+    return cand_rpc_appendEntries(std::move(msg));
+  std::terminate();
+}
+
+RequestVoteReply Raft::Impl::rpc_requestVote(RequestVoteMessage msg) {
+  // clang-format off
+  Logger::instance().addLog(
+      info.get_local().toString(), curIdentity, "{", msg.get_debugId(), "}",
+      "get RequestVote RPC from ", msg.get_candidateId().toString());
+  // clang-format on
+  if (curIdentity == IdentityNo::Follower)
+    return foll_rpc_requestVote(std::move(msg));
+  if (curIdentity == IdentityNo::Candidate)
+    return cand_rpc_requestVote(std::move(msg));
+  std::terminate();
 }
 
 // ------------------------- default ---------------------------------------- //
@@ -149,8 +198,7 @@ bool Raft::Impl::LogUpToDate(std::size_t lastLogIdx, Term lastLogTerm) {
          state.entries.size() - 1 <= lastLogIdx;
 }
 
-RequestVoteReply Raft::Impl::default_rpc_requestVote(RequestVoteMessage msg,
-                                                     int rid) {
+RequestVoteReply Raft::Impl::default_rpc_requestVote(RequestVoteMessage msg) {
   using std::to_string;
   checkRpcTerm(msg.get_term());
   auto defer = applyReadyEntries();
@@ -201,7 +249,7 @@ RequestVoteReply Raft::Impl::default_rpc_requestVote(RequestVoteMessage msg,
 }
 
 AppendEntriesReply
-Raft::Impl::default_rpc_appendEntries(AppendEntriesMessage msg, int rid) {
+Raft::Impl::default_rpc_appendEntries(AppendEntriesMessage msg) {
   checkRpcTerm(msg.get_term());
   auto defer = applyReadyEntries();
   auto curTerm = state.syncGet_currentTerm();
@@ -257,11 +305,30 @@ void Raft::Impl::foll_init() {
   auto electionTimeout = intRand<std::uint64_t>(
       info.get_electionTimeout(), info.get_electionTimeout() * 2);
   toTimer.send<tag::TimerBind>(electionTimeout, [this] {
+    Logger::instance().addLog(info.get_local().toString(), IdentityNo::Follower,
+        "ElectionTimeout exceeded.");
     sendTriggerTransform(IdentityNo::Candidate);
   }).get();
   toTimer.send<tag::TimerStart>(false, false).get();
 }
 
+void Raft::Impl::foll_leave() {
+  toTimer.send<tag::TimerStop>().get();
+}
+
+AppendEntriesReply
+Raft::Impl::foll_rpc_appendEntries(AppendEntriesMessage msg) {
+  auto curTerm = state.syncGet_currentTerm();
+  if (msg.get_term() < curTerm)
+    return {curTerm, false};
+
+  toTimer.send<tag::TimerRestart>().get();
+  return default_rpc_appendEntries(std::move(msg));
+}
+
+RequestVoteReply Raft::Impl::foll_rpc_requestVote(RequestVoteMessage msg) {
+  return default_rpc_requestVote(std::move(msg));
+}
 
 // ------------------------- candidate -------------------------------------- //
 
@@ -276,16 +343,30 @@ RequestVoteMessage Raft::Impl::createRequestVoteMessage() const {
 
 void Raft::Impl::requestVotes() {
   requesting.reserve(info.get_srvList().size() - 1);
-  RequestVoteMessage msg = createRequestVoteMessage();
   ClientContext ctx;
   ctx.getMutable_timeout() = 50;
 
   for (const ServerId &srv : info.get_srvList()) {
     if (srv == info.get_local())
       continue;
-    requesting.emplace_back(std::thread([this, srv, msg, ctx]() mutable {
-      RequestVoteReply reply =
-          toRpcSender.send<tag::SendRequestVoteRpc>(srv, ctx, msg).get();
+    requesting.emplace_back(std::thread([this, srv, ctx]() mutable {
+      const auto LocalStr = info.get_local().toString();
+
+      RequestVoteMessage msg = createRequestVoteMessage();
+      // clang-format off
+      Logger::instance().addLog(
+          LocalStr, IdentityNo::Candidate, "{", msg.get_debugId(), "} ",
+          "Sending RequestVote RPC to ", srv.toString());
+      // clang-format on
+      RequestVoteReply reply;
+      try {
+        reply = toRpcSender.send<tag::SendRequestVoteRpc>(srv, ctx, msg).get();
+      } catch (RpcError & e) {
+        Logger::instance().addLog(
+            LocalStr, IdentityNo::Candidate, "{", msg.get_debugId(), "} ",
+            e.what());
+        return;
+      }
       if (reply.get_term() != msg.get_term() || !reply.get_voteGranted())
         return;
       votesReceived += reply.get_voteGranted();
@@ -309,7 +390,7 @@ void Raft::Impl::cand_init() {
 
   // clang-format off
   toTimer.send<tag::TimerBind>(electionTimeout, [this] {
-    toIdentityTransformer.send<tag::TriggerTransform>(IdentityNo::Leader).get();
+    sendTriggerTransform(IdentityNo::Candidate);
   }).get();
   // clang-format on
   toTimer.send<tag::TimerStart>(false, false).get();
@@ -322,45 +403,74 @@ void Raft::Impl::cand_leave() {
   requesting.clear();
 }
 
-AppendEntriesReply Raft::Impl::cand_rpc_appendEntries(AppendEntriesMessage msg,
-                                                      int rid) {
+AppendEntriesReply
+Raft::Impl::cand_rpc_appendEntries(AppendEntriesMessage msg) {
   Term curTerm = state.syncGet_currentTerm();
   if (msg.get_term() == curTerm)
     sendTriggerTransform(IdentityNo::Follower);
-  return default_rpc_appendEntries(std::move(msg), rid);
+  return default_rpc_appendEntries(std::move(msg));
 }
 
-RequestVoteReply Raft::Impl::cand_rpc_requestVote(RequestVoteMessage msg,
-                                                  int rid) {
-  return default_rpc_requestVote(std::move(msg), rid);
+RequestVoteReply Raft::Impl::cand_rpc_requestVote(RequestVoteMessage msg) {
+  return default_rpc_requestVote(std::move(msg));
 }
-void Raft::Impl::foll_leave() {
-  toTimer.send<tag::TimerStop>().get();
-}
-
-AppendEntriesReply
-Raft::Impl::foll_rpc_appendEntries(AppendEntriesMessage msg, int rid) {
-  auto curTerm = state.syncGet_currentTerm();
-  if (msg.get_term() < curTerm)
-    return {curTerm, false};
-
-  toTimer.send<tag::TimerRestart>().get();
-  return default_rpc_appendEntries(std::move(msg), rid);
-}
-
-RequestVoteReply
-Raft::Impl::foll_rpc_requestVote(RequestVoteMessage msg, int rid) {
-  return default_rpc_requestVote(std::move(msg), rid);
-}
-
-
 // ------------------------- leader ----------------------------------------- //
+
+void Raft::Impl::lead_init() {
+  // re-init the states
+  for (auto & srv : info.get_srvList()) {
+    if (srv == info.get_local())
+      continue;
+    followerStates.emplace(srv, std::make_unique<FollowerState>());
+  }
+
+  auto heartBeat = [this] () mutable {
+    for (auto &srv : info.get_srvList()) {
+      if (srv == info.get_local())
+        continue;
+      FollowerState &node = *followerStates.at(srv);
+      if (node.appendingThread.joinable())
+        node.appendingThread.join();
+      std::lock_guard<boost::shared_mutex> lk(node.m);
+      node.appendingThread = std::thread([this, srv] {
+        // TODO
+        ClientContext ctx;
+        ctx.getMutable_timeout() = 50;
+        AppendEntriesMessage msg(
+            state.syncGet_currentTerm(), info.get_local(), 0, 0, {}, 0);
+        toRpcSender.send<tag::SendAppendEntriesRpc>(srv, ctx, msg).get();
+      });
+    }
+  };
+  toTimer.send<tag::TimerBind>(info.get_electionTimeout() / 2, heartBeat).get();
+  toTimer.send<tag::TimerStart>(true, true).get();
+}
+
+void Raft::Impl::lead_leave() {
+  toTimer.send<tag::TimerStop>().get();
+//    for (auto & item : followerStates)
+//      item.second->appendingThread.interrupt();
+  for (auto & item : followerStates)
+    item.second->appendingThread.join();
+//    pImpl->service.apply.wait();
+  followerStates.clear();
+//    pImpl->logStates.clear();
+}
 
 } /* namespace quintet */
 
 namespace quintet {
 
-GEN_PIMPL_CTOR(Raft)
+Raft::Raft() : pImpl(std::make_unique<Impl>()) {
+  namespace ph = std::placeholders;
+  bind<tag::TransformIdentity>(std::bind(&Impl::transform, &*pImpl, ph::_1));
+  bind<tag::AppendEntries>(
+      std::bind(&Impl::rpc_appendEntries, &*pImpl, ph::_1));
+  bind<tag::RequestVote>(
+      std::bind(&Impl::rpc_requestVote, &*pImpl, ph::_1));
+  // TODO: addLog
+
+}
 GEN_PIMPL_DTOR(Raft)
 
 void Raft::start(std::string filename) {

@@ -52,6 +52,7 @@ Server::Server(const std::string &filename) : pImpl(std::make_unique<Impl>()) {
   pImpl->info = pImpl->config.dispatch(tag::LoadConfig(), filename);
   auto local = pImpl->info.get_local().toString();
   Logger::instance().addId(local);
+  pImpl->rpcSender.dispatch(tag::ConfigSender(), pImpl->info.get_srvList());
 }
 Server::~Server() = default;
 

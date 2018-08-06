@@ -11,7 +11,6 @@ namespace quintet {
 struct RaftState {
   Term currentTerm = InvalidTerm;
   ServerId votedFor;
-//  ServerId currentLeader = NullServerId;
   std::vector<LogEntry> entries = { LogEntry() };
 
   Index commitIdx = 0;

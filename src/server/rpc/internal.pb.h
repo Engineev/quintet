@@ -348,6 +348,12 @@ class AppendEntriesMessage : public ::google::protobuf::Message /* @@protoc_inse
   ::google::protobuf::uint64 leadercommit() const;
   void set_leadercommit(::google::protobuf::uint64 value);
 
+  // uint64 debugId = 9;
+  void clear_debugid();
+  static const int kDebugIdFieldNumber = 9;
+  ::google::protobuf::uint64 debugid() const;
+  void set_debugid(::google::protobuf::uint64 value);
+
   // @@protoc_insertion_point(class_scope:quintet.rpc.AppendEntriesMessage)
  private:
 
@@ -358,6 +364,7 @@ class AppendEntriesMessage : public ::google::protobuf::Message /* @@protoc_inse
   ::google::protobuf::uint64 prevlogindex_;
   ::google::protobuf::uint64 prevlogterm_;
   ::google::protobuf::uint64 leadercommit_;
+  ::google::protobuf::uint64 debugid_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_internal_2eproto::TableStruct;
 };
@@ -462,12 +469,19 @@ class AppendEntriesReply : public ::google::protobuf::Message /* @@protoc_insert
   bool success() const;
   void set_success(bool value);
 
+  // uint64 debugId = 9;
+  void clear_debugid();
+  static const int kDebugIdFieldNumber = 9;
+  ::google::protobuf::uint64 debugid() const;
+  void set_debugid(::google::protobuf::uint64 value);
+
   // @@protoc_insertion_point(class_scope:quintet.rpc.AppendEntriesReply)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::uint64 term_;
   bool success_;
+  ::google::protobuf::uint64 debugid_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_internal_2eproto::TableStruct;
 };
@@ -592,6 +606,12 @@ class RequestVoteMessage : public ::google::protobuf::Message /* @@protoc_insert
   ::google::protobuf::uint64 lastlogterm() const;
   void set_lastlogterm(::google::protobuf::uint64 value);
 
+  // uint64 debugId = 9;
+  void clear_debugid();
+  static const int kDebugIdFieldNumber = 9;
+  ::google::protobuf::uint64 debugid() const;
+  void set_debugid(::google::protobuf::uint64 value);
+
   // @@protoc_insertion_point(class_scope:quintet.rpc.RequestVoteMessage)
  private:
 
@@ -600,6 +620,7 @@ class RequestVoteMessage : public ::google::protobuf::Message /* @@protoc_insert
   ::google::protobuf::uint64 term_;
   ::google::protobuf::uint64 lastlogindex_;
   ::google::protobuf::uint64 lastlogterm_;
+  ::google::protobuf::uint64 debugid_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_internal_2eproto::TableStruct;
 };
@@ -704,12 +725,19 @@ class RequestVoteReply : public ::google::protobuf::Message /* @@protoc_insertio
   bool votegranted() const;
   void set_votegranted(bool value);
 
+  // uint64 debugId = 9;
+  void clear_debugid();
+  static const int kDebugIdFieldNumber = 9;
+  ::google::protobuf::uint64 debugid() const;
+  void set_debugid(::google::protobuf::uint64 value);
+
   // @@protoc_insertion_point(class_scope:quintet.rpc.RequestVoteReply)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::uint64 term_;
   bool votegranted_;
+  ::google::protobuf::uint64 debugid_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_internal_2eproto::TableStruct;
 };
@@ -987,6 +1015,20 @@ inline void AppendEntriesMessage::set_leadercommit(::google::protobuf::uint64 va
   // @@protoc_insertion_point(field_set:quintet.rpc.AppendEntriesMessage.leaderCommit)
 }
 
+// uint64 debugId = 9;
+inline void AppendEntriesMessage::clear_debugid() {
+  debugid_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 AppendEntriesMessage::debugid() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.AppendEntriesMessage.debugId)
+  return debugid_;
+}
+inline void AppendEntriesMessage::set_debugid(::google::protobuf::uint64 value) {
+  
+  debugid_ = value;
+  // @@protoc_insertion_point(field_set:quintet.rpc.AppendEntriesMessage.debugId)
+}
+
 // -------------------------------------------------------------------
 
 // AppendEntriesReply
@@ -1017,6 +1059,20 @@ inline void AppendEntriesReply::set_success(bool value) {
   
   success_ = value;
   // @@protoc_insertion_point(field_set:quintet.rpc.AppendEntriesReply.success)
+}
+
+// uint64 debugId = 9;
+inline void AppendEntriesReply::clear_debugid() {
+  debugid_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 AppendEntriesReply::debugid() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.AppendEntriesReply.debugId)
+  return debugid_;
+}
+inline void AppendEntriesReply::set_debugid(::google::protobuf::uint64 value) {
+  
+  debugid_ = value;
+  // @@protoc_insertion_point(field_set:quintet.rpc.AppendEntriesReply.debugId)
 }
 
 // -------------------------------------------------------------------
@@ -1118,6 +1174,20 @@ inline void RequestVoteMessage::set_lastlogterm(::google::protobuf::uint64 value
   // @@protoc_insertion_point(field_set:quintet.rpc.RequestVoteMessage.lastLogTerm)
 }
 
+// uint64 debugId = 9;
+inline void RequestVoteMessage::clear_debugid() {
+  debugid_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 RequestVoteMessage::debugid() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.RequestVoteMessage.debugId)
+  return debugid_;
+}
+inline void RequestVoteMessage::set_debugid(::google::protobuf::uint64 value) {
+  
+  debugid_ = value;
+  // @@protoc_insertion_point(field_set:quintet.rpc.RequestVoteMessage.debugId)
+}
+
 // -------------------------------------------------------------------
 
 // RequestVoteReply
@@ -1148,6 +1218,20 @@ inline void RequestVoteReply::set_votegranted(bool value) {
   
   votegranted_ = value;
   // @@protoc_insertion_point(field_set:quintet.rpc.RequestVoteReply.voteGranted)
+}
+
+// uint64 debugId = 9;
+inline void RequestVoteReply::clear_debugid() {
+  debugid_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 RequestVoteReply::debugid() const {
+  // @@protoc_insertion_point(field_get:quintet.rpc.RequestVoteReply.debugId)
+  return debugid_;
+}
+inline void RequestVoteReply::set_debugid(::google::protobuf::uint64 value) {
+  
+  debugid_ = value;
+  // @@protoc_insertion_point(field_set:quintet.rpc.RequestVoteReply.debugId)
 }
 
 #ifdef __GNUC__

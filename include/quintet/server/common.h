@@ -6,8 +6,6 @@
 
 namespace quintet {
 
-using DebugId = int;
-
 /// A wrapper of the client's command
 class BasicLogEntry {
 public:

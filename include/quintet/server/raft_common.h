@@ -1,13 +1,18 @@
+#include <utility>
+
+#include <utility>
+
 #pragma once
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <vector>
 
 #include "common.h"
 #include "common/config.h"
 #include "common/macro.h"
+#include "common/utils.h"
 
 namespace quintet {
 
@@ -22,8 +27,7 @@ using Index = std::size_t;
 class LogEntry : public BasicLogEntry {
 public:
   LogEntry(std::string opName_, std::string args_, Term term_)
-      : BasicLogEntry(std::move(opName_), std::move(args_)),
-        term(term_) {}
+      : BasicLogEntry(std::move(opName_), std::move(args_)), term(term_) {}
 
   GEN_DEFAULT_CTOR_AND_ASSIGNMENT(LogEntry);
   GEN_CONST_HANDLE(term);
@@ -48,7 +52,8 @@ private:
 /// The reply to the RequestVote RPCs
 class RequestVoteReply {
 public:
-  RequestVoteReply(Term term, bool voteGranted) : term(term), voteGranted(voteGranted) {}
+  RequestVoteReply(Term term, bool voteGranted)
+      : term(term), voteGranted(voteGranted) {}
   GEN_DEFAULT_CTOR_AND_ASSIGNMENT(RequestVoteReply);
   GEN_CONST_HANDLE(term);
   GEN_CONST_HANDLE(voteGranted);
@@ -61,13 +66,13 @@ private:
 /// A structure which packages the arguments of AppendEntries RPC
 class AppendEntriesMessage {
 public:
-  AppendEntriesMessage() = default;
+  GEN_DEFAULT_CTOR_AND_ASSIGNMENT(AppendEntriesMessage);
   AppendEntriesMessage(Term term, ServerId leaderId, size_t prevLogIdx,
                        Term prevLogTerm, std::vector<LogEntry> logEntries,
                        size_t commitIdx)
       : term(term), leaderId(std::move(leaderId)), prevLogIdx(prevLogIdx),
         prevLogTerm(prevLogTerm), logEntries(std::move(logEntries)),
-        commitIdx(commitIdx) {}
+        commitIdx(commitIdx), debugId(intRand<std::uint64_t>(100, 499)) {}
 
   GEN_CONST_HANDLE(term);
   GEN_CONST_HANDLE(leaderId);
@@ -75,6 +80,7 @@ public:
   GEN_CONST_HANDLE(prevLogTerm);
   GEN_CONST_HANDLE(logEntries);
   GEN_CONST_HANDLE(commitIdx);
+  GEN_CONST_HANDLE(debugId);
 
 private:
   Term term = InvalidTerm;
@@ -83,26 +89,32 @@ private:
   Term prevLogTerm = 0;
   std::vector<LogEntry> logEntries;
   std::size_t commitIdx = 0;
+
+  std::uint64_t debugId = 0;
 }; // class AppendEntriesMessage
 
 /// A structure which packages the arguments of RequestVote RPC
 class RequestVoteMessage {
 public:
+  GEN_DEFAULT_CTOR_AND_ASSIGNMENT(RequestVoteMessage);
   RequestVoteMessage(Term term, ServerId candidateId, size_t lastLogIdx,
                      Term lastLogTerm)
       : term(term), candidateId(std::move(candidateId)), lastLogIdx(lastLogIdx),
-        lastLogTerm(lastLogTerm) {}
+        lastLogTerm(lastLogTerm), debugId(intRand<std::uint64_t>(500, 999))
+        {}
 
   GEN_CONST_HANDLE(term);
   GEN_CONST_HANDLE(candidateId);
   GEN_CONST_HANDLE(lastLogIdx);
   GEN_CONST_HANDLE(lastLogTerm);
+  GEN_CONST_HANDLE(debugId);
 
 private:
   Term term = InvalidTerm;
   ServerId candidateId;
   std::size_t lastLogIdx = 0;
   Term lastLogTerm = InvalidTerm;
+  std::uint64_t debugId = 0;
 }; // class RequestVoteMessage
 
 } /* namespace quintet */

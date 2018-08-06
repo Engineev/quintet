@@ -16,11 +16,15 @@ message AppendEntriesMessage {
   uint64 prevLogTerm = 4;
   repeated LogEntry entries = 5;
   uint64 leaderCommit = 6;
+
+  uint64 debugId = 9;
 }
 
 message AppendEntriesReply {
   uint64 term = 1;
   bool success = 2;
+
+  uint64 debugId = 9;
 }
 
 // RequestVote RPC
@@ -29,11 +33,15 @@ message RequestVoteMessage {
   string candidateId = 2;
   uint64 lastLogIndex = 3;
   uint64 lastLogTerm = 4;
+
+  uint64 debugId = 9;
 }
 
 message RequestVoteReply {
   uint64 term = 1;
   bool voteGranted = 2;
+
+  uint64 debugId = 9;
 }
 
 service Internal {

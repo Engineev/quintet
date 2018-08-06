@@ -48,9 +48,9 @@ using ResetTransformer = THEATRE_TAG("resetTran");
 
 using RaftActor = theatre::Actor<
     theatre::Behavior<tag::AppendEntries,
-                      AppendEntriesReply(AppendEntriesMessage, DebugId)>,
+                      AppendEntriesReply(AppendEntriesMessage)>,
     theatre::Behavior<tag::RequestVote,
-                      RequestVoteReply(RequestVoteMessage, DebugId)>,
+                      RequestVoteReply(RequestVoteMessage)>,
     theatre::Behavior<tag::AddLog, void()>, /* TODO */
     theatre::Behavior<tag::TransformIdentity, void(IdentityNo)>>;
 

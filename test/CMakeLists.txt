@@ -7,6 +7,8 @@ target_link_libraries(
   ${PROJECT_NAME}_test
   ${PROJECT_NAME}
   ${Boost_LIBRARIES}
+  ${PROTOBUF_LIBRARIES}
+  ${GRPC_LIBRARIES}
 )
 
 # config

@@ -25,6 +25,8 @@ struct RpcSender::Impl {
   RequestVoteReply sendRequestVoteRpc(
       ServerId target, ClientContext ctx, RequestVoteMessage msg);
 
+  void throwError(const grpc::Status & status);
+
 }; // struct RpcSender::Impl
 
 void RpcSender::Impl::config(const std::vector<ServerId> &srvList) {
@@ -58,9 +60,8 @@ AppendEntriesReply RpcSender::Impl::sendAppendEntriesRpc(
   boost::shared_lock_guard<boost::shared_mutex> lk(m);
   auto & stub = stubs.at(target);
   rpc::AppendEntriesReply gReply;
-  auto status = stub->AppendEntries(&gCtx, std::move(rpcMsg), &gReply);
-  if (!status.ok())
-    return AppendEntriesReply(false, InvalidTerm); // TODO exception
+  auto status = stub->AppendEntries(&gCtx, rpcMsg, &gReply);
+  throwError(status);
   return AppendEntriesReply(gReply.success(), gReply.term());
 }
 RequestVoteReply RpcSender::Impl::sendRequestVoteRpc(
@@ -79,10 +80,17 @@ RequestVoteReply RpcSender::Impl::sendRequestVoteRpc(
   boost::shared_lock_guard<boost::shared_mutex> lk(m);
   auto & stub = stubs.at(target);
   rpc::RequestVoteReply gReply;
-  auto status = stub->RequestVote(&gCtx, std::move(rpcMsg), &gReply);
-  if (!status.ok())
-    return RequestVoteReply(false, InvalidTerm); // TODO exception
+  auto status = stub->RequestVote(&gCtx, rpcMsg, &gReply);
+  throwError(status);
   return RequestVoteReply(gReply.votegranted(), gReply.term());
+}
+
+void RpcSender::Impl::throwError(const grpc::Status &status) {
+  if (status.ok())
+    return;
+  if (status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED)
+    throw RpcError(RpcError::Code::TLE, status.error_message());
+  throw RpcError(RpcError::Code::UNKNOWN, status.error_message());
 }
 
 } // namespace quintet

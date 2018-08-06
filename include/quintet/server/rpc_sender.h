@@ -2,8 +2,11 @@
 #define QUINTET_RPC_SENDER_H
 
 #include <memory>
+#include <exception>
 
 #include "actor_types.h"
+#include "common/macro.h"
+#include "rpc_error.h"
 
 namespace quintet {
 
